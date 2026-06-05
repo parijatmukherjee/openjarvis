@@ -53,6 +53,7 @@ packages/core/
 ### Task 1: Root monorepo scaffold
 
 **Files:**
+
 - Create: `package.json`
 - Create: `tsconfig.base.json`
 - Create: `vitest.config.ts`
@@ -183,6 +184,7 @@ git commit -m "chore(s1.0): root monorepo scaffold (workspaces, ts, vitest, esli
 ### Task 2: `@openhawkins/core` package scaffold
 
 **Files:**
+
 - Create: `packages/core/package.json`
 - Create: `packages/core/tsconfig.json`
 - Create: `packages/core/src/index.ts`
@@ -253,6 +255,7 @@ git commit -m "chore(s1.0): scaffold @openhawkins/core package + TS project refe
 ### Task 3: `Clock` injection (deterministic time)
 
 **Files:**
+
 - Create: `packages/core/src/util/clock.ts`
 - Test: `packages/core/test/util/clock.test.ts`
 
@@ -321,6 +324,7 @@ git commit -m "feat(core): injectable Clock for deterministic time"
 ### Task 4: Deterministic id factory
 
 **Files:**
+
 - Create: `packages/core/src/util/ids.ts`
 - Test: `packages/core/test/util/ids.test.ts`
 
@@ -379,6 +383,7 @@ git commit -m "feat(core): deterministic id factory"
 ### Task 5: OS abstraction — `detectPlatform`
 
 **Files:**
+
 - Create: `packages/core/src/os/platform.ts`
 - Test: `packages/core/test/os/platform.test.ts`
 
@@ -450,6 +455,7 @@ git commit -m "feat(core): detectPlatform OS/shell abstraction"
 ### Task 6: OS abstraction — `freeDiskBytes` (cross-platform, no shell)
 
 **Files:**
+
 - Modify: `packages/core/src/os/platform.ts`
 - Test: `packages/core/test/os/platform.test.ts`
 
@@ -503,6 +509,7 @@ git commit -m "feat(core): cross-platform freeDiskBytes via fs.statfs"
 ### Task 7: OS abstraction — `configDir` / `dataDir`
 
 **Files:**
+
 - Modify: `packages/core/src/os/platform.ts`
 - Test: `packages/core/test/os/platform.test.ts`
 
@@ -593,6 +600,7 @@ git commit -m "feat(core): OS-appropriate configDir/dataDir resolution"
 ### Task 8: Probe CLI + Bun `--compile` spike
 
 **Files:**
+
 - Create: `packages/core/src/bin/probe.ts`
 
 - [ ] **Step 1: Write the probe CLI**
@@ -625,7 +633,7 @@ Expected: produces `dist/probe` (or `dist/probe.exe` on Windows).
 
 - [ ] **Step 4: Run the compiled binary**
 
-Run (posix): `./dist/probe`   ·   Run (windows): `dist\probe.exe`
+Run (posix): `./dist/probe` · Run (windows): `dist\probe.exe`
 Expected: same JSON line as Step 2 — proving the single-binary path works end-to-end.
 
 - [ ] **Step 5: Record the spike result as an ADR**
@@ -654,6 +662,7 @@ git commit -m "feat(core): probe CLI + Bun --compile single-binary spike (ADR 00
 ### Task 9: CI matrix (win/mac/linux × node + bun)
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 
 - [ ] **Step 1: Write the workflow**
@@ -719,13 +728,14 @@ Expected: both `node` and `bun` jobs pass on all three OSes.
 
 > Scope note: S1.1 delivers the event log, the pure state fold, the single-writer
 > session aggregate, and **state-rebuild replay** (reconstruct session state from a
-> recorded event log, deterministically). Feeding recorded *model/tool outputs*
+> recorded event log, deterministically). Feeding recorded _model/tool outputs_
 > back through the agent loop is part of the agent-loop milestone (S1.4/S1.5),
 > which builds on this primitive.
 
 ### Task 10: Domain events + event store
 
 **Files:**
+
 - Create: `packages/core/src/session/events.ts`
 - Test: `packages/core/test/session/events.test.ts`
 
@@ -746,7 +756,13 @@ describe("InMemoryEventStore", () => {
   it("appends and reads back events in order, scoped by session", async () => {
     const store = new InMemoryEventStore();
     await store.append(ev(1));
-    await store.append({ type: "TurnStarted", sessionId: "s-1", turnId: "t-1", input: "hi", at: 2 });
+    await store.append({
+      type: "TurnStarted",
+      sessionId: "s-1",
+      turnId: "t-1",
+      input: "hi",
+      at: 2,
+    });
     const events = await store.read("s-1");
     expect(events.map((e) => e.type)).toEqual(["SessionStarted", "TurnStarted"]);
   });
@@ -807,6 +823,7 @@ git commit -m "feat(core): DomainEvent union + EventStore (in-memory)"
 ### Task 11: Pure state fold (`reduceEvent`)
 
 **Files:**
+
 - Create: `packages/core/src/session/state.ts`
 - Test: `packages/core/test/session/state.test.ts`
 
@@ -878,9 +895,7 @@ export function reduceEvent(state: SessionState, event: DomainEvent): SessionSta
     case "TurnEnded":
       return {
         ...state,
-        turns: state.turns.map((t) =>
-          t.id === event.turnId ? { ...t, final: event.final } : t,
-        ),
+        turns: state.turns.map((t) => (t.id === event.turnId ? { ...t, final: event.final } : t)),
       };
   }
 }
@@ -907,6 +922,7 @@ git commit -m "feat(core): pure session state fold (reduceEvent/foldEvents)"
 ### Task 12: Single-writer `Session` aggregate
 
 **Files:**
+
 - Create: `packages/core/src/session/session.ts`
 - Test: `packages/core/test/session/session.test.ts`
 
@@ -1018,9 +1034,21 @@ export class Session {
 
   private async doRunTurn(input: string, handler: () => Promise<string>): Promise<void> {
     const turnId = this.nextTurnId();
-    await this.commit({ type: "TurnStarted", sessionId: this.sessionId, turnId, input, at: this.clock() });
+    await this.commit({
+      type: "TurnStarted",
+      sessionId: this.sessionId,
+      turnId,
+      input,
+      at: this.clock(),
+    });
     const final = await handler();
-    await this.commit({ type: "TurnEnded", sessionId: this.sessionId, turnId, final, at: this.clock() });
+    await this.commit({
+      type: "TurnEnded",
+      sessionId: this.sessionId,
+      turnId,
+      final,
+      at: this.clock(),
+    });
   }
 
   private async commit(event: DomainEvent): Promise<void> {
@@ -1047,6 +1075,7 @@ git commit -m "feat(core): single-writer Session aggregate (serialized turns)"
 ### Task 13: State-rebuild replay + determinism assertion
 
 **Files:**
+
 - Create: `packages/core/src/session/replay.ts`
 - Test: `packages/core/test/session/replay.test.ts`
 
@@ -1138,6 +1167,7 @@ git commit -m "feat(core): state-rebuild replay + determinism assertion"
 git push origin main
 gh run watch
 ```
+
 Expected: `node` and `bun` jobs green on ubuntu/macos/windows.
 
 ---
@@ -1155,6 +1185,7 @@ Expected: `node` and `bun` jobs green on ubuntu/macos/windows.
 ---
 
 ## Next plans (to be written after this one lands)
+
 - **S1.2** — tool registry (Zod→native schema) + capability checks + `disk_free`.
 - **S1.3** — model-adapter interface + Ollama (local+cloud) + OpenAI-compat + FileVault.
 - **S1.4** — agent loop + native tool-calling round-trip.

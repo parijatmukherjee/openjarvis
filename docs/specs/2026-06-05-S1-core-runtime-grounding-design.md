@@ -7,7 +7,7 @@
 
 > S1 is the foundation **and** the direct fix for the #1 pain point (P1:
 > hallucination when the model doesn't call tools). It delivers the core runtime,
-> the **Eleven** grounding engine, event-sourced replay/eval, and the *interfaces*
+> the **Eleven** grounding engine, event-sourced replay/eval, and the _interfaces_
 > for the S1 security foundations — proven end-to-end by a thin vertical slice on
 > Windows, macOS, and Linux.
 
@@ -16,6 +16,7 @@
 ## 1. Scope
 
 ### 1.1 In scope (S1)
+
 1. **`@openhawkins/core`** package: the agent loop, session model, event bus,
    typed tool registry, model-adapter interface, and the Eleven grounding engine.
 2. **Model adapters:** **Ollama (local + `:cloud`) is mandatory**, plus **one
@@ -27,7 +28,7 @@
    the "unknown" path.
 4. **Event sourcing + deterministic replay + eval harness** (§7) — designed in
    from turn one (umbrella §10.1).
-5. **Security foundation *interfaces*** (§8): `Vault` (The Cabin), capability
+5. **Security foundation _interfaces_** (§8): `Vault` (The Cabin), capability
    model (The Lab), taint tags (The Gate), single-writer session, append-only
    hash-chained audit (Murray). S1 ships the interfaces + a minimal local
    implementation; full hardening lands in later subprojects.
@@ -36,6 +37,7 @@
    fully replayable, passing on all three OSes.
 
 ### 1.2 Out of scope (deferred to later subprojects)
+
 - The Nexus orchestrator and the 5-phase Pulse (**S3**).
 - Multiple tendrils, in-process multi-agent dispatch (**S3**).
 - Durable SQLite state ledger / VINES, VECNA memory store (**S2**) — S1 uses an
@@ -49,6 +51,7 @@
 ## 2. Goals & non-goals for S1
 
 **Goals**
+
 - A model **cannot** emit a final answer to a grounding-required task without a
   successful, schema-valid tool call whose result its answer cites. Proven by an
   automated test that would otherwise hallucinate.
@@ -60,6 +63,7 @@
   checks, and audit.
 
 **Non-goals**
+
 - Not optimizing latency/cost yet (correctness first).
 - Not building the full sandbox/RBAC enforcement (interfaces only in S1).
 - No UI — the slice is exercised via the eval harness + a tiny CLI driver.
@@ -72,6 +76,7 @@ A single agent, `probe-agent`, with exactly one tool, `disk_free`, and one skill
 `host-facts`, declared `grounding: required`.
 
 **The hallucination test (the headline acceptance):**
+
 ```
 GIVEN  probe-agent on any model (free local Ollama incl.)
 WHEN   asked "How much disk space is free on this machine?"
@@ -83,7 +88,7 @@ AND    the entire run replays deterministically and the eval harness asserts all
        of the above — on Windows, macOS, and Linux.
 ```
 
-A companion **negative control**: the same question with grounding *disabled*
+A companion **negative control**: the same question with grounding _disabled_
 demonstrates the model fabricating a plausible-but-wrong number — proving the
 engine is what makes the difference (this becomes a regression fixture).
 
@@ -139,28 +144,40 @@ These are the contracts everything else depends on. (Zod-validated; types shown
 in TS shorthand.)
 
 ### 5.1 Messages, turns, sessions
+
 ```ts
 type Role = "system" | "user" | "assistant" | "tool";
 
 interface Message {
   role: Role;
-  content: ContentPart[];          // text + structured parts
-  provenance: Provenance;          // The Gate: where this content came from
+  content: ContentPart[]; // text + structured parts
+  provenance: Provenance; // The Gate: where this content came from
 }
 
-interface ToolCall  { id: string; tool: string; args: unknown; }   // args validated by registry
-interface ToolResult{ id: string; tool: string; ok: boolean; data: unknown; error?: string; }
+interface ToolCall {
+  id: string;
+  tool: string;
+  args: unknown;
+} // args validated by registry
+interface ToolResult {
+  id: string;
+  tool: string;
+  ok: boolean;
+  data: unknown;
+  error?: string;
+}
 
 interface Turn {
   id: string;
   input: Message;
-  modelCalls: ModelCall[];         // 1..n (re-prompts count)
+  modelCalls: ModelCall[]; // 1..n (re-prompts count)
   toolCalls: { call: ToolCall; result: ToolResult }[];
-  final?: Message;                 // present only once accepted by Eleven
-  grounding: GroundingOutcome;     // why it was accepted / what was enforced
+  final?: Message; // present only once accepted by Eleven
+  grounding: GroundingOutcome; // why it was accepted / what was enforced
 }
 
-interface Session {               // single-writer aggregate (§8.4)
+interface Session {
+  // single-writer aggregate (§8.4)
   id: string;
   agentId: string;
   turns: Turn[];
@@ -169,10 +186,16 @@ interface Session {               // single-writer aggregate (§8.4)
 ```
 
 ### 5.2 Provenance / taint (The Gate)
+
 ```ts
-type Trust = "system" | "operator" | "tool" | "external";  // external = untrusted
-interface Provenance { trust: Trust; source: string; taint: boolean; }
+type Trust = "system" | "operator" | "tool" | "external"; // external = untrusted
+interface Provenance {
+  trust: Trust;
+  source: string;
+  taint: boolean;
+}
 ```
+
 `external` content (future: channel messages, web pages, files) is `taint:true`.
 The taint rule (umbrella §5.5.3) is enforced at the grounding/approval boundary:
 a side-effecting action influenced by tainted content requires approval. In S1
@@ -187,17 +210,20 @@ Eleven sits **between the model and the acceptance of a final answer**. The agen
 loop never accepts a model's "final" message directly; it asks Eleven.
 
 ### 6.1 Grounding modes (per skill / per task)
+
 ```ts
 type GroundingMode =
-  | "off"        // free chat; no enforcement (used for the negative control)
-  | "preferred"  // nudge toward tools; accept ungrounded answers but flag them
-  | "required"   // MUST have >=1 successful qualifying tool call before final
-  | "cited";     // required + final answer must cite tool-result ids (strongest)
+  | "off" // free chat; no enforcement (used for the negative control)
+  | "preferred" // nudge toward tools; accept ungrounded answers but flag them
+  | "required" // MUST have >=1 successful qualifying tool call before final
+  | "cited"; // required + final answer must cite tool-result ids (strongest)
 ```
-A skill manifest declares its mode (and optionally the set of *qualifying tools*).
+
+A skill manifest declares its mode (and optionally the set of _qualifying tools_).
 `host-facts` in the slice is `cited`.
 
 ### 6.2 The enforcement loop
+
 ```
 loop:
   modelOut = adapter.generate(messages, tools)        # native tool-calling
@@ -213,8 +239,9 @@ loop:
 ```
 
 `eleven.evaluate` decides:
+
 - **required:** is there ≥1 successful qualifying tool call this turn? If not →
-  correction: *"You must call `<tool>` before answering. Do not guess."*
+  correction: _"You must call `<tool>` before answering. Do not guess."_
 - **cited:** required + every factual claim must map to a tool-result id
   (§6.3). Uncited factual claims → correction listing them.
 - **preferred:** accept, but attach a `flagged: ungrounded` marker for the audit.
@@ -222,9 +249,10 @@ loop:
   success** — removing the incentive to fabricate.
 
 ### 6.3 Claim-citation verification (citations.ts)
+
 - The model is instructed (and, where supported, structurally required) to emit
   final answers as **claims with citations**: `{ text, claims:[{ statement,
-  citesToolResultId }] }` (a Zod-structured output, §6.4).
+citesToolResultId }] }` (a Zod-structured output, §6.4).
 - The verifier checks each `citesToolResultId` exists in this turn and that the
   claim is consistent with that result. v1 consistency check = a layered approach:
   exact/numeric match where possible (e.g. the disk number), else a cheap-model
@@ -232,12 +260,14 @@ loop:
 - Failures → correction or strip, per mode.
 
 ### 6.4 Structured outputs
+
 For data answers, Eleven asks the adapter for a **schema-constrained response**
 (JSON-schema from Zod). Providers that support native structured output use it;
 others get a "respond ONLY as this JSON" instruction + a parse/repair step. This
 makes "fill fields from tool output" the path of least resistance vs. prose.
 
 ### 6.5 Model tiering & the optional verifier
+
 - `tiering.ts`: a policy maps `grounding-critical` steps to a stronger configured
   model (incl. Ollama cloud) when available; otherwise stays on the default.
 - `verifier.ts`: for high-stakes tasks, a second adapter pass adversarially checks
@@ -245,7 +275,8 @@ makes "fill fields from tool output" the path of least resistance vs. prose.
   (wired, tested, not on the slice's hot path).
 
 ### 6.6 Why this beats prose (ties to P1)
-The model is *structurally unable* to shortcut grounding: the runtime owns the
+
+The model is _structurally unable_ to shortcut grounding: the runtime owns the
 accept decision, validates tool args, and checks citations. Weak/free models —
 which hallucinate most — are exactly the ones this protects, which is why Eleven
 is mandatory, not optional (umbrella §6.1).
@@ -255,6 +286,7 @@ is mandatory, not optional (umbrella §6.1).
 ## 7. Event sourcing, replay & eval harness
 
 ### 7.1 Event log
+
 Every meaningful step is an append-only event:
 `SessionStarted, TurnStarted, ModelRequested, ModelResponded, ToolValidated,
 ToolCalled, ToolReturned, GroundingEvaluated, CorrectionIssued, FinalAccepted,
@@ -265,6 +297,7 @@ In S1 the store is in-memory + JSONL file behind a `EventStore` interface; **S2
 swaps in SQLite** with zero changes to callers.
 
 ### 7.2 Deterministic replay
+
 - Model calls and tool calls are recorded with their inputs+outputs. Replay
   re-runs the loop **feeding recorded outputs** instead of calling the live model/
   tools → identical decisions. This is what makes runs debuggable and the eval
@@ -273,6 +306,7 @@ swaps in SQLite** with zero changes to callers.
   is captured as an event; the loop logic itself is pure over the event stream.
 
 ### 7.3 Eval harness
+
 - A scenario = `{ prompt, recorded-or-live model, expected assertions }`.
 - Assertions can target: "a `disk_free` call happened before any final",
   "final cites a tool result", "numeric claim equals tool result", "ungrounded
@@ -289,6 +323,7 @@ S1 designs and minimally implements these so later subprojects inherit a safe
 core (umbrella §5.5). Brand names in prose; functional ids in code.
 
 ### 8.1 The Cabin — `Vault` (secrets)
+
 ```ts
 interface Vault {
   get(key: string): Promise<string | null>;
@@ -296,34 +331,44 @@ interface Vault {
   // never returns secrets to logs/audit; values are redacted in events
 }
 ```
+
 Impls: `KeychainVault` (macOS Keychain / Windows Credential Manager / libsecret)
 with a `FileVault` fallback (age/libsodium-encrypted, 0600). Config files refuse
 secret values. The slice needs it for the OpenAI-compatible / Ollama-cloud key.
 
 ### 8.2 The Lab — capability model
+
 ```ts
 interface Capability { name: "shell"|"network"|"fs:read"|"fs:write"|...; scope?: string }
 interface AgentGrant { agentId: string; capabilities: Capability[] }
 ```
+
 Each tool declares the capabilities it needs; the registry checks the calling
 agent's grant **before** executing a tool. `probe-agent` is granted only what
 `disk_free` needs. Default-deny.
 
 ### 8.3 The Gate — taint
+
 Provenance/taint tags (§5.2) attached to all content; the taint→approval rule is
 defined and unit-tested with a stub side-effecting tool, even though the slice
 ships none.
 
 ### 8.4 Single-writer sessions
+
 A session processes one turn at a time via a serialized queue/actor; concurrency
 is across sessions only. Prevents the state corruption of P16. Enforced by the
 event-sourced aggregate (state only changes by appending events through the
 single writer).
 
 ### 8.5 Murray — audit
+
 ```ts
-interface AuditLog { append(entry: AuditEntry): Promise<void>; verify(): Promise<boolean> }
+interface AuditLog {
+  append(entry: AuditEntry): Promise<void>;
+  verify(): Promise<boolean>;
+}
 ```
+
 Append-only, **hash-chained** (`entry.hash = H(prevHash + canonical(entry))`),
 secret-redacted. Every grounding decision, tool call, and correction is audited.
 `verify()` detects tampering. In-memory+JSONL in S1; durable in S2.
@@ -345,15 +390,15 @@ secret-redacted. Every grounding decision, tool call, and correction is audited.
 
 ## 10. Testing & acceptance
 
-| Gate | Requirement |
-| --- | --- |
+| Gate                     | Requirement                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
 | **Grounding (headline)** | §3 hallucination test passes; negative control shows fabrication; both are CI fixtures on 3 OSes |
-| **Provider-agnostic** | The slice passes unchanged on Ollama-local, Ollama-cloud, and an OpenAI-compatible endpoint |
-| **Replay** | Any recorded run replays to identical decisions; eval harness is deterministic |
-| **Session integrity** | Concurrent turn submissions to one session serialize; no interleaving (property test) |
-| **Audit** | `verify()` passes on clean logs, fails on a tampered entry |
-| **Capability** | A tool call without the required grant is denied before execution |
-| **Coverage / typing** | Inherit the source's bar: strict TS, lint/format, high coverage |
+| **Provider-agnostic**    | The slice passes unchanged on Ollama-local, Ollama-cloud, and an OpenAI-compatible endpoint      |
+| **Replay**               | Any recorded run replays to identical decisions; eval harness is deterministic                   |
+| **Session integrity**    | Concurrent turn submissions to one session serialize; no interleaving (property test)            |
+| **Audit**                | `verify()` passes on clean logs, fails on a tampered entry                                       |
+| **Capability**           | A tool call without the required grant is denied before execution                                |
+| **Coverage / typing**    | Inherit the source's bar: strict TS, lint/format, high coverage                                  |
 
 ---
 
@@ -391,6 +436,7 @@ Each milestone is independently reviewable; S1.6 (Eleven) is the keystone.
 ---
 
 ## 13. Dependencies on the umbrella decisions (already locked)
+
 Bun (spike) · Zod · Ollama local+cloud + OpenAI-compat · SQLite-default (S2; S1
 in-memory behind the interface) · MIT · Stranger Things naming (Eleven, The Gate,
 The Lab, The Cabin, Hopper, Murray) per [`docs/branding.md`](../branding.md).
