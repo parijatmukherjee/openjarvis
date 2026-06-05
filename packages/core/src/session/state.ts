@@ -4,6 +4,7 @@ export interface TurnState {
   id: string;
   input: string;
   final?: string;
+  error?: string;
 }
 
 export interface SessionState {
@@ -25,6 +26,11 @@ export function reduceEvent(state: SessionState, event: DomainEvent): SessionSta
       return {
         ...state,
         turns: state.turns.map((t) => (t.id === event.turnId ? { ...t, final: event.final } : t)),
+      };
+    case "TurnFailed":
+      return {
+        ...state,
+        turns: state.turns.map((t) => (t.id === event.turnId ? { ...t, error: event.error } : t)),
       };
   }
 }

@@ -54,7 +54,19 @@ export class Session {
       input,
       at: this.clock(),
     });
-    const final = await handler();
+    let final: string;
+    try {
+      final = await handler();
+    } catch (err) {
+      await this.commit({
+        type: "TurnFailed",
+        sessionId: this.sessionId,
+        turnId,
+        error: err instanceof Error ? err.message : String(err),
+        at: this.clock(),
+      });
+      throw err;
+    }
     await this.commit({
       type: "TurnEnded",
       sessionId: this.sessionId,

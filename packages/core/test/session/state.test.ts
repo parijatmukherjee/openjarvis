@@ -26,4 +26,13 @@ describe("session state fold", () => {
   it("is deterministic — same events produce equal state", () => {
     expect(foldEvents(events)).toEqual(foldEvents(events));
   });
+
+  it("TurnFailed marks the turn with an error and leaves final unset", () => {
+    const s = foldEvents([
+      { type: "SessionStarted", sessionId: "s-1", agentId: "a", at: 1 },
+      { type: "TurnStarted", sessionId: "s-1", turnId: "t-1", input: "hi", at: 2 },
+      { type: "TurnFailed", sessionId: "s-1", turnId: "t-1", error: "boom", at: 3 },
+    ]);
+    expect(s.turns[0]).toEqual({ id: "t-1", input: "hi", error: "boom" });
+  });
 });

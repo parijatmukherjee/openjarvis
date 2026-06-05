@@ -41,4 +41,34 @@ describe("Session (single-writer)", () => {
     expect(order).toEqual(["a:start", "a:end", "b:start"]);
     expect(session.state.turns.map((t) => t.final)).toEqual(["A", "B"]);
   });
+
+  it("records TurnFailed when a handler throws, rejects to the caller, and does not wedge the queue", async () => {
+    const store = new InMemoryEventStore();
+    const session = await Session.start({
+      sessionId: "s-3",
+      agentId: "probe-agent",
+      store,
+      clock: fixedClock(0),
+    });
+
+    await expect(
+      session.runTurn("bad", async () => {
+        throw new Error("boom");
+      }),
+    ).rejects.toThrow("boom");
+
+    // queue still works after a failure
+    await session.runTurn("good", async () => "ok");
+
+    const types = (await store.read("s-3")).map((e) => e.type);
+    expect(types).toEqual([
+      "SessionStarted",
+      "TurnStarted",
+      "TurnFailed",
+      "TurnStarted",
+      "TurnEnded",
+    ]);
+    expect(session.state.turns.map((t) => t.final)).toEqual([undefined, "ok"]);
+    expect(session.state.turns[0]?.error).toBe("boom");
+  });
 });
