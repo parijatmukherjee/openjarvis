@@ -1,0 +1,24 @@
+# Reproducible Linux test environment for OpenHawkins.
+#
+# Builds a clean image with the project's exact dependencies and runs the full
+# CI gate (build + lint + format:check + test) as the container's default
+# command. This is the gate every PR must pass before merging to main.
+#
+#   docker build -f Dockerfile.test -t openhawkins-test .
+#   docker run --rm openhawkins-test
+#
+# or, via compose:  docker compose run --rm test
+FROM node:22-slim
+
+# Non-root for safety; node:22 ships a `node` user.
+WORKDIR /app
+
+# Copy the whole working tree (see .dockerignore for exclusions: node_modules,
+# build artifacts, .git, the vendored reference/ copy), then install from the
+# committed lockfile for a deterministic, offline-after-install environment.
+COPY . .
+
+RUN npm ci
+
+# Default command runs the gate; `docker run` exits non-zero if any check fails.
+CMD ["sh", "scripts/ci-gate.sh"]

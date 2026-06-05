@@ -32,3 +32,12 @@ jobs:
       - run: bun install
       - run: bunx vitest run
       - run: bun build packages/core/src/bin/probe.ts --compile --outfile probe-bin
+
+  # The Docker gate: the full CI gate run inside a clean, reproducible Linux
+  # container. This is the required status check for merging to main.
+  docker-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile.test -t openhawkins-test .
+      - run: docker run --rm openhawkins-test
