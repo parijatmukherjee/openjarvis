@@ -372,21 +372,21 @@ Each milestone is independently reviewable; S1.6 (Eleven) is the keystone.
 
 ---
 
-## 12. Open questions for review
+## 12. Decisions (resolved 2026-06-05)
 
-1. **Second adapter choice** — confirmed **OpenAI-compatible** (covers Groq/
-   OpenRouter/local servers) as the proof-of-abstraction provider? Or prefer an
-   Anthropic-native adapter in S1?
-2. **Claim-consistency check depth in S1** — ship the layered exact/numeric +
-   cheap-model-entailment check now, or start with exact/numeric-only and add
-   entailment in S2? *Lean: numeric+existence in S1, entailment behind a flag.*
-3. **Structured-output strategy for providers without native support** — accept
-   the "instruct + parse + repair" fallback for S1? *Lean: yes.*
-4. **Keychain library** — pick the cross-platform keychain binding now, or start
-   with the encrypted `FileVault` and add keychain in S6 hardening? *Lean:
-   FileVault in S1, keychain interface ready.*
-5. **Bun vs Node default for the slice CI** — run both in the matrix from S1.0
-   (recommended) — confirm.
+1. **Second adapter = OpenAI-compatible.** One adapter covers Groq / OpenRouter /
+   local OpenAI-compatible servers and many free tiers. Anthropic-native is a
+   later add (it can also be reached via OpenAI-compatible proxies meanwhile).
+2. **Claim-consistency depth (S1) = numeric + existence checks; entailment behind
+   a flag.** S1 verifies that cited tool-result ids exist and that numeric/exact
+   claims match the result. The cheap-model entailment check is implemented but
+   **off by default** (feature-flagged), promoted in S2.
+3. **Structured-output fallback = yes.** Providers with native structured output
+   use it; others get "respond ONLY as this JSON" + a parse/repair step.
+4. **Secrets in S1 = encrypted `FileVault`; keychain interface ready.** Ship the
+   age/libsodium-encrypted 0600 `FileVault` now behind the `Vault` interface;
+   `KeychainVault` lands in S6 hardening without changing callers.
+5. **CI matrix = Bun + Node from S1.0**, across {windows, macos, linux}.
 
 ---
 
