@@ -37,7 +37,11 @@ concurrency. The model proposes; the runtime enforces.
 6. **Feature parity with the openclaw-hawkins pattern**: Nexus orchestration,
    6 Tendrils, durable state (VINES), decay-aware memory (VECNA), operator
    oversight.
-7. **Keep the strengths** of the source repo: TypeScript, strict typing, high
+7. **Security & trust as a core pillar** — encrypted secrets, RBAC + sandboxing,
+   prompt-injection defense, session integrity, tamper-evident audit, runtime-
+   enforced approval, and identity disclosure (§5.5). Safety lives in the runtime,
+   below the model — never in a config flag or a prose rule.
+8. **Keep the strengths** of the source repo: TypeScript, strict typing, high
    test coverage, clean module boundaries.
 
 ### Non-goals (for v1)
@@ -71,6 +75,16 @@ derived from reading the `openclaw-hawkins` source (`src/dispatcher.ts`,
 | **P10** | **No typed tool contract at the engine boundary.** Tool calls are free-form bash via `exec`; TypeBox validation exists only inside the plugin. | Tools aren't first-class at the runtime. | **Typed tool registry.** Every tool has a JSON-schema (TypeBox/Zod) for args + result; the runtime validates both directions and feeds schemas to the model as native tool definitions. |
 | **P11** | **Manual memory injection.** VECNA recall must be pre-fetched and pasted into the prompt. | Context assembly is the model's job. | **Automatic context assembly.** The runtime retrieves relevant memory (topic + embedding similarity) and injects it into the system prompt before each turn. |
 | **P12** | **No observability / eval / replay.** Post-mortem = reading `.jsonl` session files by hand. | No trace store. | **Trace store + replay.** Token accounting, cost, latency per orchestration; deterministic replay; eval harness. Surfaced in the dashboard. |
+| **P13** | **Credential & data exposure.** Secrets/API keys in plain-text `.env` under `~/.openclaw`; documented active exploits; no encrypted storage. | No secrets management. | **Encrypted credential vault.** Secrets live in the OS keychain (macOS Keychain · Windows Credential Manager · libsecret) or an age/libsodium-encrypted vault unlocked by a master key — **never plaintext on disk**. Optional 1Password/Vault backends. Config files refuse secret values. |
+| **P14** | **No access-control boundaries (no RBAC).** Granting the agent your creds gives it all your permissions; a compromised agent moves laterally — its shell is your shell. | No privilege separation. | **RBAC + least-privilege isolation.** Per-agent roles and capability grants (extends P8). Tendrils run in constrained sandboxes (restricted child process / OS sandbox / optional container), **not** as ambient you. Default-deny; explicit scoped grants only. |
+| **P15** | **Indirect prompt injection.** External content (WhatsApp/web/email/attachments) carries hidden instructions the LLM treats as system commands. | No data/instruction separation. | **Untrusted-content firewall.** All externally-ingested content is fenced as *data, never instructions*, with provenance tags. Injection heuristics + a "tainted input ⇒ side-effecting actions require approval" rule. Tool calls triggered by tainted content are gated and logged. |
+| **P16** | **State/session corruption.** Long async tool calls or concurrent messages bypass the command queue's serialization → conflicting tool outputs. | Weak concurrency model. | **Single-writer per session.** Each session is a serialized actor over the event-sourced log (extends P7); transactional state transitions, idempotency keys, optimistic locking. Concurrency happens *across* sessions, never *within* one. |
+| **P17** | **Inadequate audit logging.** Local conversation logs only; no tamper-evident, centralized trail for debugging/compliance. | Logs aren't auditable. | **Tamper-evident audit log.** Append-only, hash-chained record of every decision, tool call, state transition, and approval — exportable for compliance, queryable in the dashboard (extends P12 with integrity). |
+| **P18** | **Unpredictable autonomy.** Background heartbeat daemon may fire high-risk actions (send email, modify files) without final approval if guardrails are off/misconfigured. | Autonomy not runtime-gated. | **Runtime-enforced approval gates + autonomy levels.** Side-effecting actions are risk-classified; high-risk = default human-in-the-loop, mediated by the runtime (not a config flag the model can ignore). Dry-run mode; per-action autonomy policy. |
+| **P19** | **Skill conflicts & brittleness.** Global vs workspace `SKILL.md` collide; agent picks the wrong tool or loops. | No deterministic resolution. | **Deterministic skill resolution.** Explicit precedence + namespacing + scoping; conflict detection at load time; loop/circuit-breaker detection in the agent loop. |
+| **P20** | **Configuration friction.** Maintenance means hand-debugging YAML/Markdown; non-technical users can't fix broken integrations. | Untyped, hand-edited config. | **Typed config + dashboard-driven settings.** Schema-validated config with migrations; integration health checks + a `doctor` that self-diagnoses; no hand-editing required for common changes. |
+| **P21** | **Resource & energy drain.** Persistent polling, heartbeats, and heavy local work (audio transcription, etc.) tax laptops. | Busy-poll architecture. | **Event-driven, not polling.** Webhook/long-poll channel intake; lazy on-demand tendril spawning with idle suspension; resource budgets; offload heavy media tasks. |
+| **P22** | **Impersonation risk.** Recipients on Telegram/Slack/WhatsApp can't tell agent from human; unintended commitments. | No identity disclosure. | **Mandatory identity disclosure.** Outbound messages are signed/labeled as the assistant (configurable), never as the user (extends the source `comm-agent` rule into a runtime guarantee); outbound audit trail. |
 
 ---
 
@@ -192,6 +206,82 @@ deliberately under-instructed agent asked a question it would normally fabricate
 (e.g. "how much disk is free?") must be *unable* to answer without calling the
 disk tool, and its answer must cite the tool result — verified by an automated
 test on all three OSes.
+
+---
+
+## 5.5 Security, Trust & Safety model
+
+OpenClaw's most serious failures are not functional — they are security and
+trust failures (P13–P22). OpenHawkins treats security as a **core runtime
+pillar**, designed alongside the Grounding engine, not bolted on. The unifying
+principle mirrors Grounding: **the runtime enforces safety; it is never left to
+the model's discretion or a config flag.**
+
+The model can be tricked (prompt injection), the daemon can run unattended, and
+plugins are untrusted — so the safety boundary lives in the runtime, below the
+model.
+
+### 5.5.1 Secrets — encrypted, never plaintext (P13)
+- Secrets resolve from the **OS keychain** (macOS Keychain · Windows Credential
+  Manager · Linux libsecret/Secret Service) or an **age/libsodium-encrypted
+  vault** unlocked by a master key/passphrase.
+- **Config files refuse secret values** (continues the source's secrets policy,
+  hardened). Nothing sensitive is ever written plaintext to `~`.
+- Optional enterprise backends: 1Password CLI, HashiCorp Vault.
+
+### 5.5.2 Privilege separation & RBAC (P14)
+- **Least privilege per agent.** Each Tendril/plugin gets a typed capability
+  grant; the runtime denies anything outside it (shared mechanism with §8.5.3).
+- **Sandboxed execution.** Tendril tool handlers run in constrained workers
+  (restricted child processes; optional OS sandbox/container) — the agent's shell
+  is **not** the user's shell.
+- **RBAC roles** map operators → permitted agents/tools/approval authority, so a
+  compromised agent can't move laterally.
+
+### 5.5.3 Untrusted-content firewall — prompt-injection defense (P15)
+- All externally-ingested content (chat messages, web pages, files, attachments)
+  is **tagged with provenance** and **fenced as data, never instructions** in the
+  prompt assembly layer.
+- **Taint rule:** any action *influenced by* untrusted content that is also
+  *side-effecting* (send, delete, pay, exec) is force-gated through an approval
+  step and audit-logged — even in autonomous mode.
+- Injection heuristics flag suspicious instruction-like patterns in ingested data.
+
+### 5.5.4 Session integrity (P16)
+- **One writer per session.** Each session is a serialized actor over the
+  event-sourced log; transitions are transactional with idempotency keys and
+  optimistic locking. Parallelism is *across* sessions, never *within* one — so
+  async tool calls can't corrupt session state.
+
+### 5.5.5 Tamper-evident audit (P17)
+- An **append-only, hash-chained** audit log records every decision, tool call,
+  state transition, approval, and outbound message. Integrity is verifiable;
+  the log is exportable for compliance and queryable/replayable in the dashboard.
+
+### 5.5.6 Autonomy & approval (P18)
+- Side-effecting actions are **risk-classified**. High-risk defaults to
+  **human-in-the-loop**, enforced by the runtime — not a config flag the model or
+  a misconfiguration can bypass. Approval surfaces as a channel button (Telegram/
+  Discord) or a dashboard prompt. Dry-run mode and per-action autonomy policy.
+
+### 5.5.7 Identity disclosure — anti-impersonation (P22)
+- Outbound messages are **labeled/signed as the assistant** by default, never as
+  the user — a runtime guarantee, not a prose rule. Per-channel disclosure config
+  and a full outbound audit trail.
+
+### 5.5.8 Threat model (summary)
+| Adversary | Vector | Primary defense |
+| --- | --- | --- |
+| Local attacker reading disk | Plaintext secrets | Encrypted vault / OS keychain (§5.5.1) |
+| Compromised agent | Lateral movement | RBAC + sandboxing (§5.5.2) |
+| Malicious content author | Indirect prompt injection | Untrusted-content firewall + taint gating (§5.5.3) |
+| Malicious/buggy plugin | Capability abuse | Declared-capability sandbox + install disclosure (§8.5.3) |
+| Unattended daemon | Unapproved high-risk action | Runtime approval gates (§5.5.6) |
+| Repudiation / debugging | No trail | Tamper-evident audit (§5.5.5) |
+
+These defenses are **designed in S1** (vault interface, capability model, taint
+tags, single-writer sessions, audit log) so later subprojects inherit a safe
+core rather than retrofitting one.
 
 ---
 
