@@ -1,0 +1,12 @@
+# Local reproducible test environment.
+#
+# Run the full CI gate in a clean Linux container (mirrors what gates PRs):
+#
+#   docker compose run --rm test
+#
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    image: openhawkins-test

@@ -1,0 +1,16 @@
+# Keep the build context small and the image deterministic.
+.git
+node_modules
+**/node_modules
+dist
+**/dist
+coverage
+**/coverage
+*.tsbuildinfo
+**/*.tsbuildinfo
+probe-bin
+probe-bin.exe
+.astro
+.turbo
+# Vendored read-only copy of another project — not needed to build or test.
+reference
