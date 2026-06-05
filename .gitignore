@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+coverage/
+.vitest-cache/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-journal
+data/
+.astro/
+.turbo/
