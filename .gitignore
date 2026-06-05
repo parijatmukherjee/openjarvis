@@ -3,6 +3,8 @@ dist/
 build/
 coverage/
 *.tsbuildinfo
+probe-bin
+probe-bin.exe
 .vitest-cache/
 *.log
 .DS_Store
