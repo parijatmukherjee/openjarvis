@@ -8,11 +8,14 @@ type AnyToolDefinition = ToolDefinition<any, any>;
 export class ToolRegistry {
   private readonly tools = new Map<string, AnyToolDefinition>();
 
-  register(tool: AnyToolDefinition): void {
+  // Generic public signature so callers get full type-checking on the tool they
+  // pass; the single internal cast erases the type variables for heterogeneous
+  // storage (recovering <A,R> from a string lookup is impossible anyway).
+  register<A, R>(tool: ToolDefinition<A, R>): void {
     if (this.tools.has(tool.name)) {
       throw new Error(`tool already registered: ${tool.name}`);
     }
-    this.tools.set(tool.name, tool);
+    this.tools.set(tool.name, tool as AnyToolDefinition);
   }
 
   get(name: string): AnyToolDefinition | undefined {
