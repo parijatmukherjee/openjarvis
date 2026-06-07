@@ -9,3 +9,4 @@ export * from "./security/capability.js";
 export * from "./tools/to-json-schema.js";
 export * from "./tools/tool.js";
 export * from "./tools/registry.js";
+export * from "./tools/disk-free.js";
