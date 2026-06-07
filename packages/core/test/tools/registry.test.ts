@@ -89,4 +89,32 @@ describe("ToolRegistry", () => {
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/invalid result/);
   });
+
+  it("fails fast on an agentId mismatch between grant and ctx (confused deputy)", async () => {
+    const reg = new ToolRegistry();
+    reg.register(echoTool);
+    const res = await reg.invoke({ id: "c7", tool: "echo", args: { msg: "hi" } }, grant, {
+      agentId: "someone-else",
+    });
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/agent mismatch/);
+  });
+
+  it("captures a throwing args schema as ok:false (never throws)", async () => {
+    const reg = new ToolRegistry();
+    const trapTool: ToolDefinition<unknown, { ok: boolean }> = {
+      name: "trap",
+      description: "its args schema throws during parse",
+      args: z.object({ x: z.string() }).transform(() => {
+        throw new Error("parse-trap");
+      }),
+      result: z.object({ ok: z.boolean() }),
+      capabilities: [{ name: "host:info" }],
+      handler: async () => ({ ok: true }),
+    };
+    reg.register(trapTool);
+    const res = await reg.invoke({ id: "c8", tool: "trap", args: { x: "y" } }, grant, ctx);
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/parse-trap/);
+  });
 });

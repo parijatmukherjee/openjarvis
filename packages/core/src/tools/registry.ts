@@ -32,20 +32,26 @@ export class ToolRegistry {
       return fail(call, `unknown tool: ${call.tool}`);
     }
 
+    // Confused-deputy guard: the executing context must be the granted agent, so a
+    // caller bug can't run a tool under the wrong agent's authority.
+    if (grant.agentId !== ctx.agentId) {
+      return fail(call, `agent mismatch: grant is for ${grant.agentId}, context is ${ctx.agentId}`);
+    }
+
     // The Lab: default-deny capability gate.
     const missing = tool.capabilities.filter((c) => !grantSatisfies(grant, c));
     if (missing.length > 0) {
       return fail(call, `capability denied: ${missing.map((c) => c.name).join(", ")}`);
     }
 
-    // Validate args against the tool's Zod schema.
-    const parsedArgs = tool.args.safeParse(call.args);
-    if (!parsedArgs.success) {
-      return fail(call, `invalid args: ${parsedArgs.error.message}`);
-    }
-
-    // Execute, then validate the result against its schema.
+    // Everything that can throw lives inside the try so `invoke` never throws:
+    // arg `safeParse` can throw if a tool's schema uses a throwing transform/refine,
+    // the handler can throw, and result `safeParse` can throw likewise.
     try {
+      const parsedArgs = tool.args.safeParse(call.args);
+      if (!parsedArgs.success) {
+        return fail(call, `invalid args: ${parsedArgs.error.message}`);
+      }
       const raw = await tool.handler(parsedArgs.data, ctx);
       const parsedResult = tool.result.safeParse(raw);
       if (!parsedResult.success) {

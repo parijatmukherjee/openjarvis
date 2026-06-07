@@ -8,7 +8,9 @@ describe("toJsonSchema", () => {
     const json = toJsonSchema(schema);
     expect(json.type).toBe("object");
     const props = json.properties as Record<string, unknown>;
-    expect(Object.keys(props)).toEqual(["path", "depth"]);
+    // Compare as a set — JSON Schema property order is not semantically meaningful
+    // and can vary across zod-to-json-schema versions.
+    expect(Object.keys(props).sort()).toEqual(["depth", "path"]);
     expect((props.path as Record<string, unknown>).type).toBe("string");
   });
 

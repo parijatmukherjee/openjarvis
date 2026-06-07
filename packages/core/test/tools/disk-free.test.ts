@@ -12,7 +12,7 @@ describe("disk_free tool", () => {
     expect(diskFreeTool.capabilities).toEqual([{ name: "host:info" }]);
   });
 
-  it("returns a positive integer freeBytes for the temp dir when invoked with the grant", async () => {
+  it("returns a non-negative integer freeBytes for the temp dir when invoked with the grant", async () => {
     const reg = new ToolRegistry();
     reg.register(diskFreeTool);
     const grant: AgentGrant = { agentId: "probe-agent", capabilities: [{ name: "host:info" }] };
@@ -25,7 +25,9 @@ describe("disk_free tool", () => {
     const data = res.data as { path: string; freeBytes: number };
     expect(data.path).toBe(tmpdir());
     expect(Number.isInteger(data.freeBytes)).toBe(true);
-    expect(data.freeBytes).toBeGreaterThan(0);
+    // Match the tool's contract (result schema is `nonnegative()`), not an
+    // environment assumption that the disk is non-full.
+    expect(data.freeBytes).toBeGreaterThanOrEqual(0);
   });
 
   it("is denied for an agent without host:info", async () => {
