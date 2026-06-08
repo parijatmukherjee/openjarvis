@@ -26,6 +26,8 @@ export interface SqlDriver {
   exec(sql: string): void;
   prepare(sql: string): SqlStatement;
   loadExtension(path: string): void;
+  /** Run `fn` in a BEGIN/COMMIT transaction (ROLLBACK on throw). Not re-entrant:
+   *  calling transaction() inside another transaction() will fail at BEGIN. */
   transaction<T>(fn: () => T): T;
   close(): void;
 }
