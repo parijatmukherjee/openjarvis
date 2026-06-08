@@ -15,6 +15,12 @@ describe("cosineSimilarity", () => {
     expect(cosineSimilarity(new Float32Array([0, 0]), new Float32Array([1, 1]))).toBe(0);
     expect(cosineSimilarity(new Float32Array([1, 1]), new Float32Array([0, 0]))).toBe(0);
   });
+
+  it("throws on a dimension mismatch", () => {
+    expect(() => cosineSimilarity(new Float32Array([1, 0]), new Float32Array([1, 0, 0]))).toThrow(
+      /length mismatch/,
+    );
+  });
 });
 
 describe("FakeEmbedder", () => {

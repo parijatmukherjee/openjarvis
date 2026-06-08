@@ -8,13 +8,18 @@ export interface Embedder {
   embed(text: string): Promise<Float32Array>;
 }
 
-/** Cosine similarity in [-1, 1]; 0 when either vector has zero magnitude. */
+/**
+ * Cosine similarity in [-1, 1]; 0 when either vector has zero magnitude. Both
+ * vectors must have the same length (a dimension mismatch is a programming error).
+ */
 export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
-  const n = Math.min(a.length, b.length);
+  if (a.length !== b.length) {
+    throw new Error(`cosineSimilarity: length mismatch (${a.length} vs ${b.length})`);
+  }
   let dot = 0;
   let na = 0;
   let nb = 0;
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     na += a[i] * a[i];
     nb += b[i] * b[i];
