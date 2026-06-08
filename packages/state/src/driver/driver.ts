@@ -63,7 +63,13 @@ export function openDatabase(opts: OpenOptions): SqlDriver {
         native.exec("COMMIT");
         return result;
       } catch (err) {
-        native.exec("ROLLBACK");
+        // Best-effort rollback: if ROLLBACK itself fails (e.g. fn already ended the
+        // transaction), the original error must still win, not the rollback error.
+        try {
+          native.exec("ROLLBACK");
+        } catch {
+          // ignore — preserve the original failure
+        }
         throw err;
       }
     },

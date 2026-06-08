@@ -23,6 +23,9 @@ export function nativeOpen(opts: OpenOptions): NativeDatabase {
   const mod: unknown = requireCjs(moduleName);
   if (isBun) {
     const { Database } = mod as BunSqliteModule;
+    // Bun's Database has no `allowExtension` constructor option (extension loading is
+    // not gated the way node:sqlite gates it via allowExtension); loadExtension works
+    // directly. opts.allowExtension is therefore a no-op on Bun by design.
     return new Database(opts.path, { create: true });
   }
   const { DatabaseSync } = mod as NodeSqliteModule;

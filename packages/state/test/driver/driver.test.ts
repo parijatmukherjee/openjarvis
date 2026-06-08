@@ -51,4 +51,16 @@ describe("SqlDriver (over the host's built-in SQLite)", () => {
     expect(() => db.loadExtension("/no/such/extension.so")).toThrow();
     db.close();
   });
+
+  it("propagates the original error even if ROLLBACK fails (fn ended the transaction)", () => {
+    const db = openDatabase({ path: ":memory:" });
+    db.exec("CREATE TABLE t (n INTEGER)");
+    expect(() =>
+      db.transaction(() => {
+        db.exec("COMMIT"); // ends the transaction so the wrapper's ROLLBACK will fail
+        throw new Error("original-failure");
+      }),
+    ).toThrow("original-failure");
+    db.close();
+  });
 });
