@@ -4,7 +4,7 @@ import { type SqlDriver, type SqlStatement, openDatabase, migrate } from "@openh
 import type { Fragment, ScoredFragment } from "./fragment.js";
 import { MEMORY_SCHEMA } from "./schema.js";
 import { type Candidate, rankCandidates, toMatchQuery, bm25ToRelevance } from "./recall.js";
-import type { Embedder } from "./embedder.js";
+import { cosineSimilarity, type Embedder } from "./embedder.js";
 
 export interface RememberInput {
   text: string;
@@ -47,6 +47,7 @@ export class VecnaStore {
   private readonly embedder: Embedder | undefined;
   private readonly insertStmt: SqlStatement;
   private readonly matchStmt: SqlStatement;
+  private readonly loadEmbeddedStmt: SqlStatement;
   private readonly reinforceStmt: SqlStatement;
 
   constructor(db: SqlDriver, opts: { id?: () => string; embedder?: Embedder } = {}) {
@@ -69,6 +70,7 @@ export class VecnaStore {
          JOIN fragments f ON f.rowid = fragments_fts.rowid
         WHERE fragments_fts MATCH ?`,
     );
+    this.loadEmbeddedStmt = db.prepare(`SELECT f.* FROM fragments f WHERE f.embedding IS NOT NULL`);
     this.reinforceStmt = db.prepare(
       `UPDATE fragments
           SET importance = MAX(0.0, MIN(1.0, importance + ?)), uses = uses + 1, last_used_at = ?
@@ -115,6 +117,28 @@ export class VecnaStore {
   }
 
   async recall(query: RecallQuery): Promise<ScoredFragment[]> {
+    const ctx = {
+      now: query.now,
+      ...(query.tags !== undefined ? { tags: query.tags } : {}),
+      ...(query.tendril !== undefined ? { tendril: query.tendril } : {}),
+    };
+    const k = query.k ?? 5;
+
+    if (this.embedder) {
+      const qvec = await this.embedder.embed(query.text);
+      if (isZeroVector(qvec)) {
+        return [];
+      }
+      const rows = this.loadEmbeddedStmt.all() as (FragmentRow & { embedding: Uint8Array })[];
+      const candidates: Candidate[] = rows.map((r) => ({
+        fragment: rowToFragment(r),
+        // clamp cosine to [0,1] so the text term shares scale with the lexical path
+        // (a real embedder can return a negative cosine for dissimilar text).
+        relevance: Math.max(0, cosineSimilarity(qvec, blobToVec(r.embedding))),
+      }));
+      return rankCandidates(candidates, ctx, k);
+    }
+
     const match = toMatchQuery(query.text);
     if (match === null) {
       return [];
@@ -124,12 +148,7 @@ export class VecnaStore {
       fragment: rowToFragment(r),
       relevance: bm25ToRelevance(r.bm25),
     }));
-    const ctx = {
-      now: query.now,
-      ...(query.tags !== undefined ? { tags: query.tags } : {}),
-      ...(query.tendril !== undefined ? { tendril: query.tendril } : {}),
-    };
-    return rankCandidates(candidates, ctx, query.k ?? 5);
+    return rankCandidates(candidates, ctx, k);
   }
 
   async reinforce(id: string, delta: number, now: number = Date.now()): Promise<void> {
@@ -156,4 +175,18 @@ function rowToFragment(r: FragmentRow): Fragment {
     lastUsedAt: r.last_used_at,
     uses: r.uses,
   };
+}
+
+/** True when every component of the vector is exactly 0 (no semantic signal). */
+function isZeroVector(v: Float32Array): boolean {
+  return v.every((x) => x === 0);
+}
+
+/**
+ * Reconstruct a Float32 vector from a SQLite BLOB. `.slice()` yields a fresh,
+ * 4-byte-aligned, exactly-sized buffer (SQLite may hand back an unaligned view).
+ */
+function blobToVec(blob: Uint8Array): Float32Array {
+  const copy = blob.slice();
+  return new Float32Array(copy.buffer);
 }

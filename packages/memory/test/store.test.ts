@@ -173,3 +173,75 @@ describe("VecnaStore embedding storage (Task 3)", () => {
     s.close();
   });
 });
+
+function vectorStore(): VecnaStore {
+  let n = 0;
+  return VecnaStore.open(":memory:", { id: () => `f-${++n}`, embedder: new FakeEmbedder(64) });
+}
+
+describe("VecnaStore vector recall", () => {
+  it("ranks the semantically-closest fragment first (cosine over embeddings)", async () => {
+    const s = vectorStore();
+    await s.remember({ text: "the machine has free disk space available" }, 1000);
+    await s.remember({ text: "the capital of france is paris" }, 1000);
+
+    const hits = await s.recall({ text: "how much disk space is free", now: 2000 });
+    expect(hits[0].text).toContain("free disk space");
+    expect(hits[0].score).toBeGreaterThan(0);
+    s.close();
+  });
+
+  it("respects k in vector mode", async () => {
+    const s = vectorStore();
+    await s.remember({ text: "alpha free disk" }, 1);
+    await s.remember({ text: "beta free disk" }, 1);
+    await s.remember({ text: "gamma free disk" }, 1);
+    const hits = await s.recall({ text: "free disk", now: 2, k: 2 });
+    expect(hits).toHaveLength(2);
+    s.close();
+  });
+
+  it("blends decay in vector mode (fresh outranks stale at equal similarity)", async () => {
+    const s = vectorStore();
+    await s.remember({ text: "free disk stale", importance: 1 }, 0);
+    await s.remember({ text: "free disk fresh", importance: 1 }, 60 * 86_400_000);
+    const hits = await s.recall({ text: "free disk", now: 60 * 86_400_000, k: 2 });
+    expect(hits[0].text).toBe("free disk fresh");
+    s.close();
+  });
+
+  it("returns [] in vector mode when the query embeds to a zero vector", async () => {
+    const s = vectorStore();
+    await s.remember({ text: "free disk" }, 1);
+    expect(await s.recall({ text: "?! ...", now: 2 })).toEqual([]);
+    s.close();
+  });
+
+  it("returns [] in vector mode when no fragment has an embedding", async () => {
+    const s = vectorStore();
+    expect(await s.recall({ text: "free disk", now: 2 })).toEqual([]);
+    s.close();
+  });
+
+  it("round-trips an embedding from a view-returning embedder (byteOffset > 0)", async () => {
+    // An embedder that returns a SUBARRAY (byteOffset > 0) — proves remember stores
+    // only the vector's own bytes, not the whole backing buffer.
+    const viewEmbedder = {
+      dims: 4,
+      async embed(text: string): Promise<Float32Array> {
+        const backing = new Float32Array(8); // larger backing buffer
+        const sub = backing.subarray(4, 8); // byteOffset = 16
+        const base = new FakeEmbedder(4);
+        sub.set(await base.embed(text));
+        return sub;
+      },
+    };
+    let n = 0;
+    const s = VecnaStore.open(":memory:", { id: () => `f-${++n}`, embedder: viewEmbedder });
+    await s.remember({ text: "free disk space" }, 1);
+    const hits = await s.recall({ text: "free disk space", now: 2 });
+    expect(hits).toHaveLength(1);
+    expect(hits[0].text).toBe("free disk space");
+    s.close();
+  });
+});
