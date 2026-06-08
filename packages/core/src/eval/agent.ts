@@ -1,0 +1,122 @@
+import { Session } from "../session/session.js";
+import { InMemoryEventStore, type EventStore } from "../session/events.js";
+import { type Clock, systemClock } from "../util/clock.js";
+import type { ModelAdapter } from "../models/adapter.js";
+import type { ToolRegistry } from "../tools/registry.js";
+import type { AgentGrant } from "../security/capability.js";
+import type { ToolDefinition } from "../tools/tool.js";
+import { runAgentTurn, type AgentLoopConfig } from "../loop/agent-loop.js";
+import type { TurnRecord } from "../loop/turn.js";
+import { Eleven, groundingInstruction, type ElevenConfig } from "../grounding/eleven.js";
+import { type AuditLog, InMemoryAuditLog } from "../security/audit.js";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyToolDefinition = ToolDefinition<any, any>;
+
+/**
+ * The runtime object a caller (the CLI, the eval harness) actually drives. It ties
+ * the event-sourced Session (single-writer), the agent loop, Eleven grounding, and
+ * the Murray audit into one `ask()` — so grounding, session integrity, and audit are
+ * owned by the runtime, not the model (spec §2 goals).
+ */
+export interface AgentConfig {
+  agentId: string;
+  adapter: ModelAdapter;
+  registry: ToolRegistry;
+  grant: AgentGrant;
+  tools: AnyToolDefinition[];
+  grounding: ElevenConfig;
+  systemPrompt?: string;
+  maxModelCalls?: number;
+  store?: EventStore;
+  audit?: AuditLog;
+  clock?: Clock;
+}
+
+export class Agent {
+  private constructor(
+    private readonly cfg: AgentConfig,
+    private readonly session: Session,
+    private readonly clock: Clock,
+    readonly audit: AuditLog,
+  ) {}
+
+  static async start(cfg: AgentConfig): Promise<Agent> {
+    const clock = cfg.clock ?? systemClock;
+    const store = cfg.store ?? new InMemoryEventStore();
+    const audit = cfg.audit ?? new InMemoryAuditLog();
+    const session = await Session.start({
+      sessionId: `${cfg.agentId}-session`,
+      agentId: cfg.agentId,
+      store,
+      clock,
+    });
+    return new Agent(cfg, session, clock, audit);
+  }
+
+  /** Run one grounded turn. Serialized by the Session; audited by Murray. */
+  async ask(input: string): Promise<TurnRecord> {
+    const policy = new Eleven(this.cfg.grounding);
+    const instruction = groundingInstruction(
+      this.cfg.grounding.mode,
+      this.cfg.grounding.qualifyingTools,
+    );
+    const systemPrompt = [this.cfg.systemPrompt, instruction].filter(Boolean).join("\n\n");
+
+    const loopCfg: AgentLoopConfig = {
+      adapter: this.cfg.adapter,
+      registry: this.cfg.registry,
+      grant: this.cfg.grant,
+      tools: this.cfg.tools,
+      policy,
+      ...(systemPrompt ? { systemPrompt } : {}),
+      ...(this.cfg.maxModelCalls ? { maxModelCalls: this.cfg.maxModelCalls } : {}),
+    };
+
+    let record!: TurnRecord;
+    await this.session.runTurn(input, async () => {
+      record = await runAgentTurn(loopCfg, input);
+      await this.writeAudit(record);
+      return record.final ?? "[no grounded answer]";
+    });
+    return record;
+  }
+
+  /** Derive Murray audit entries from a completed turn (every step is auditable). */
+  private async writeAudit(rec: TurnRecord): Promise<void> {
+    for (const mc of rec.modelCalls) {
+      await this.audit.append({
+        kind: "ModelResponded",
+        at: this.clock(),
+        data: { content: mc.content, toolCalls: mc.toolCalls.length },
+      });
+    }
+    for (const tc of rec.toolCalls) {
+      await this.audit.append({
+        kind: "ToolReturned",
+        at: this.clock(),
+        data: {
+          tool: tc.call.tool,
+          ok: tc.result.ok,
+          ...(tc.result.ok ? {} : { error: tc.result.error }),
+        },
+      });
+    }
+    for (const correction of rec.corrections) {
+      await this.audit.append({
+        kind: "CorrectionIssued",
+        at: this.clock(),
+        data: { correction },
+      });
+    }
+    await this.audit.append({
+      kind: rec.accepted ? "FinalAccepted" : "GroundingFailed",
+      at: this.clock(),
+      data: {
+        accepted: rec.accepted,
+        ...(rec.final ? { final: rec.final } : {}),
+        ...(rec.flagged ? { flagged: rec.flagged } : {}),
+      },
+    });
+  }
+}

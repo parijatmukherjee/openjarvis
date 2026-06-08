@@ -6,7 +6,26 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["packages/*/src/**/*.ts"],
-      exclude: ["packages/*/src/bin/**"],
+      exclude: [
+        // `bin/**` are CLI entrypoints exercised by the black-box functional suite
+        // in a separate process, so they cannot be instrumented by the in-process
+        // unit run — they are covered end-to-end (test-functional/*.e2e.test.ts).
+        "packages/*/src/bin/**",
+        // Type-only modules: nothing but `interface`/`type` declarations, which
+        // erase to no runtime code — there are no statements or branches to cover.
+        "packages/*/src/loop/turn.ts",
+        "packages/*/src/models/adapter.ts",
+        "packages/*/src/tools/tool.ts",
+      ],
+      reporter: ["text", "html", "lcov", "json-summary"],
+      // The merge gate: coverage MUST stay above these floors (enforced locally,
+      // in Docker, and in CI). Lines/statements/functions are held at >99%.
+      thresholds: {
+        statements: 99,
+        lines: 99,
+        functions: 99,
+        branches: 99,
+      },
     },
   },
 });
