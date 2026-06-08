@@ -44,6 +44,11 @@ export interface AcceptDecision {
   accept: boolean;
   correction?: string;
   flagged?: string;
+  /**
+   * When accepting, the cleaned final to record instead of the model's raw output
+   * (e.g. Eleven returns the human-readable `text` of a structured cited answer).
+   */
+  final?: string;
 }
 
 /**

@@ -87,7 +87,7 @@ export async function runAgentTurn(cfg: AgentLoopConfig, input: string): Promise
     const acceptCtx: AcceptContext = { final: out.content, toolResults: record.toolCalls };
     const decision = policy.evaluate(acceptCtx);
     if (decision.accept) {
-      record.final = out.content;
+      record.final = decision.final ?? out.content;
       record.accepted = true;
       if (decision.flagged) {
         record.flagged = decision.flagged;
