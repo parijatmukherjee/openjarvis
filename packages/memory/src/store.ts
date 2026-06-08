@@ -5,16 +5,6 @@ import type { Fragment, ScoredFragment } from "./fragment.js";
 import { MEMORY_SCHEMA } from "./schema.js";
 import { type Candidate, rankCandidates, toMatchQuery } from "./recall.js";
 
-/** Distinct lowercase word tokens of a string, in first-seen order. Mirrors the
- *  FTS5 tokenization in `toMatchQuery` so we can count per-candidate token overlap. */
-function tokens(text: string): Set<string> {
-  const out = new Set<string>();
-  for (const m of text.toLowerCase().matchAll(/[a-z0-9]+/g)) {
-    out.add(m[0]);
-  }
-  return out;
-}
-
 export interface RememberInput {
   text: string;
   tendril?: string;
@@ -117,26 +107,8 @@ export class VecnaStore {
     if (match === null) {
       return [];
     }
-    // FTS5 OR-matches any term, so a long query can pull in fragments that share only
-    // one incidental, ubiquitous word ("is", "on"). Treat such a lone-token hit as noise
-    // when the query carries several distinct terms — it never reflects real relevance.
-    const queryTokens = tokens(query.text);
     const rows = this.matchStmt.all(match) as (FragmentRow & { bm25: number })[];
-    const candidates: Candidate[] = rows
-      .map((r) => ({ fragment: rowToFragment(r), bm25: r.bm25 }))
-      .filter(({ fragment }) => {
-        if (queryTokens.size < 3) {
-          return true;
-        }
-        const frag = tokens(fragment.text);
-        let overlap = 0;
-        for (const t of queryTokens) {
-          if (frag.has(t)) {
-            overlap += 1;
-          }
-        }
-        return overlap > 1;
-      });
+    const candidates: Candidate[] = rows.map((r) => ({ fragment: rowToFragment(r), bm25: r.bm25 }));
     const ctx = {
       now: query.now,
       ...(query.tags !== undefined ? { tags: query.tags } : {}),
