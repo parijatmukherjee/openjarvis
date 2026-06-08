@@ -68,7 +68,7 @@ export class VecnaStore {
     );
     this.reinforceStmt = db.prepare(
       `UPDATE fragments
-          SET importance = MIN(1.0, importance + ?), uses = uses + 1, last_used_at = ?
+          SET importance = MAX(0.0, MIN(1.0, importance + ?)), uses = uses + 1, last_used_at = ?
         WHERE id = ?`,
     );
   }
@@ -84,7 +84,7 @@ export class VecnaStore {
       text: input.text,
       ...(input.tendril !== undefined ? { tendril: input.tendril } : {}),
       tags: input.tags ?? [],
-      importance: input.importance ?? 0.5,
+      importance: Math.max(0, Math.min(1, input.importance ?? 0.5)),
       trust: prov.trust,
       taint: prov.taint,
       createdAt: now,

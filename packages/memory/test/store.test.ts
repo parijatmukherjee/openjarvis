@@ -27,6 +27,15 @@ describe("VecnaStore.remember", () => {
     s.close();
   });
 
+  it("clamps a provided importance into [0,1]", async () => {
+    const s = store();
+    const hi = await s.remember({ text: "over the top free disk", importance: 1.5 }, 1);
+    expect(hi.importance).toBe(1);
+    const lo = await s.remember({ text: "below zero free disk", importance: -0.5 }, 1);
+    expect(lo.importance).toBe(0);
+    s.close();
+  });
+
   it("honors provided tendril, tags, importance, and provenance (taint)", async () => {
     const s = store();
     const f = await s.remember(
@@ -111,6 +120,15 @@ describe("VecnaStore.reinforce", () => {
     expect(hits[0].importance).toBe(1); // 0.9 + 0.2 clamped to 1
     expect(hits[0].uses).toBe(1);
     expect(hits[0].lastUsedAt).toBe(5000);
+    s.close();
+  });
+
+  it("floors importance at 0 for a negative delta", async () => {
+    const s = store();
+    await s.remember({ text: "fade me free disk", importance: 0.1 }, 0);
+    await s.reinforce("f-1", -0.5, 100);
+    const hits = await s.recall({ text: "free disk", now: 100 });
+    expect(hits[0].importance).toBe(0);
     s.close();
   });
 
