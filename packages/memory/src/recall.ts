@@ -45,18 +45,81 @@ export function decay(ageMs: number, halfLifeMs: number): number {
 }
 
 /**
+ * Common English function words dropped from FTS5 queries: matching on them
+ * surfaces irrelevant fragments (e.g. any text containing "is"). Content words
+ * carry the relevance signal. Not exhaustive — the lexical baseline is superseded
+ * by semantic (embedding) recall in S2.3.
+ */
+const STOPWORDS = new Set<string>([
+  "a",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "be",
+  "been",
+  "but",
+  "by",
+  "do",
+  "does",
+  "did",
+  "for",
+  "from",
+  "how",
+  "if",
+  "in",
+  "into",
+  "is",
+  "it",
+  "its",
+  "many",
+  "me",
+  "much",
+  "my",
+  "of",
+  "on",
+  "or",
+  "over",
+  "that",
+  "the",
+  "their",
+  "then",
+  "there",
+  "this",
+  "to",
+  "was",
+  "were",
+  "what",
+  "when",
+  "where",
+  "which",
+  "who",
+  "why",
+  "will",
+  "with",
+  "you",
+  "your",
+  "we",
+  "us",
+  "i",
+]);
+
+/**
  * Build an FTS5 MATCH expression from free text: lowercase, extract word tokens,
- * dedupe, and OR them so any term can match. Returns null if no usable token —
- * the caller then skips the FTS query (no candidates).
+ * drop stopwords, dedupe, and OR the rest so any content term can match. Returns
+ * null if no usable token remains — the caller then skips the FTS query.
  */
 export function toMatchQuery(text: string): string | null {
   const seen = new Set<string>();
   const tokens: string[] = [];
   for (const m of text.toLowerCase().matchAll(/[a-z0-9]+/g)) {
-    if (!seen.has(m[0])) {
-      seen.add(m[0]);
-      tokens.push(m[0]);
+    const tok = m[0];
+    if (STOPWORDS.has(tok) || seen.has(tok)) {
+      continue;
     }
+    seen.add(tok);
+    tokens.push(tok);
   }
   return tokens.length > 0 ? tokens.join(" OR ") : null;
 }

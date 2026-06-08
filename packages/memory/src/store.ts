@@ -57,6 +57,9 @@ export class VecnaStore {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
     );
     // FTS5 candidate query: join the matched rowids back to the full fragment rows.
+    // Candidate set is every FTS5 match (no LIMIT) — fine at S2 store sizes; a
+    // bound can be added in S2.4 once recall runs on every turn. rankCandidates
+    // needs all candidates to rank globally.
     this.matchStmt = db.prepare(
       `SELECT f.*, bm25(fragments_fts) AS bm25
          FROM fragments_fts
@@ -133,6 +136,8 @@ function rowToFragment(r: FragmentRow): Fragment {
     ...(r.tendril !== null ? { tendril: r.tendril } : {}),
     tags: JSON.parse(r.tags) as string[],
     importance: r.importance,
+    // invariant: only valid Trust values are ever written (remember() constrains
+    // trust via Provenance), so this cast from the TEXT column is sound.
     trust: r.trust as Fragment["trust"],
     taint: r.taint === 1,
     createdAt: r.created_at,

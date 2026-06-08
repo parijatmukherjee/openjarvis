@@ -49,7 +49,7 @@ describe("VecnaStore.remember", () => {
 });
 
 describe("VecnaStore.recall", () => {
-  it("ranks the text-relevant fragment first (lexical baseline may surface weak matches)", async () => {
+  it("returns only text-relevant fragments (stopword-only matches are excluded)", async () => {
     const s = store();
     await s.remember({ text: "1136350134272 bytes are free on this machine" }, 1000);
     await s.remember({ text: "the capital of france is paris" }, 1000);
@@ -58,8 +58,7 @@ describe("VecnaStore.recall", () => {
       text: "how much disk space is free on this machine?",
       now: 2000,
     });
-    // The relevant fragment ranks first; any weak stopword-only match ranks below it.
-    expect(hits.length).toBeGreaterThanOrEqual(1);
+    expect(hits).toHaveLength(1);
     expect(hits[0].text).toContain("free on this machine");
     expect(hits[0].score).toBeGreaterThan(0);
     s.close();
@@ -93,15 +92,11 @@ describe("VecnaStore.recall", () => {
 
   it("matches on provided tags and tendril context", async () => {
     const s = store();
-    await s.remember({ text: "free disk with context", tendril: "system", tags: ["disk"] }, 1);
-    const hits = await s.recall({
-      text: "free disk",
-      now: 2,
-      tags: ["disk"],
-      tendril: "system",
-    });
+    await s.remember({ text: "free disk reading", tendril: "system", tags: ["disk", "host"] }, 1);
+    const hits = await s.recall({ text: "free disk", now: 2, tags: ["disk"], tendril: "system" });
     expect(hits).toHaveLength(1);
-    expect(hits[0].text).toBe("free disk with context");
+    expect(hits[0].tendril).toBe("system");
+    expect(hits[0].tags).toEqual(["disk", "host"]);
     s.close();
   });
 });

@@ -28,13 +28,15 @@ function frag(over: Partial<Fragment>): Fragment {
 
 describe("toMatchQuery", () => {
   it("lowercases, extracts word tokens, dedupes, and ORs them for FTS5", () => {
-    expect(toMatchQuery("How much DISK space is free? disk")).toBe(
-      "how OR much OR disk OR space OR is OR free",
-    );
+    expect(toMatchQuery("How much DISK space is free? disk")).toBe("disk OR space OR free");
   });
 
   it("returns null when there are no usable tokens", () => {
     expect(toMatchQuery("   ?!  ")).toBeNull();
+  });
+
+  it("returns null when every token is a stopword", () => {
+    expect(toMatchQuery("how is this on the")).toBeNull();
   });
 });
 
