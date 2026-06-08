@@ -1,0 +1,25 @@
+# Codecov configuration — the coverage gate for every PR.
+#
+# The HARD enforcement lives in vitest.config.ts thresholds, run by the required
+# docker-gate (scripts/ci-gate.sh -> `npm run coverage`), so a PR below the floor
+# fails CI even if Codecov is unavailable. These status checks add per-PR coverage
+# visibility and a second gate on top.
+coverage:
+  status:
+    project:
+      default:
+        target: 99%
+        threshold: 0% # no regression below 99% allowed
+    patch:
+      default:
+        target: 99% # new/changed lines must be >=99% covered
+
+comment:
+  layout: "reach, diff, files"
+  require_changes: false
+
+ignore:
+  - "packages/*/src/bin/**" # CLI entrypoints — covered by black-box functional e2e
+  - "packages/*/src/loop/turn.ts" # type-only module (no runtime code)
+  - "packages/*/src/models/adapter.ts" # type-only module
+  - "packages/*/src/tools/tool.ts" # type-only module
