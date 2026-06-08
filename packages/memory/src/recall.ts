@@ -32,8 +32,15 @@ export interface RecallContext {
   tendril?: string;
 }
 
-/** Exponential decay in [0,1]: 1 at age 0, halving every half-life. */
+/**
+ * Exponential decay in [0,1]: 1 at age 0, halving every half-life. A non-positive
+ * half-life is treated as fully decayed (0) rather than producing NaN/Infinity.
+ * `ageMs` is expected to be >= 0 (callers clamp); a negative age yields a value > 1.
+ */
 export function decay(ageMs: number, halfLifeMs: number): number {
+  if (halfLifeMs <= 0) {
+    return 0;
+  }
   return 0.5 ** (ageMs / halfLifeMs);
 }
 
@@ -60,7 +67,10 @@ export function scoreCandidate(
   ctx: RecallContext,
   w: RecallWeights = DEFAULT_WEIGHTS,
 ): number {
-  const text = w.text * -c.bm25; // bm25 is negative for matches; negate so better -> larger
+  // text is unbounded (−bm25 can reach ~10–20 for multi-term FTS5 matches) while
+  // importance·decay and tag overlap are in [0,1]; text dominates by design here
+  // (FTS5 already guarantees relevance). Weight tuning is deferred to S3.
+  const text = w.text * -c.bm25;
   const age = Math.max(0, ctx.now - c.fragment.lastUsedAt);
   const importance = w.importance * c.fragment.importance * decay(age, w.halfLifeMs);
   const tags = w.tags * tagOverlap(ctx.tags ?? [], c.fragment.tags);
@@ -77,6 +87,9 @@ export function rankCandidates(
   k: number,
   w: RecallWeights = DEFAULT_WEIGHTS,
 ): ScoredFragment[] {
+  if (k <= 0) {
+    return [];
+  }
   return candidates
     .map((c) => ({ ...c.fragment, score: scoreCandidate(c, ctx, w) }))
     .sort((a, b) => b.score - a.score)

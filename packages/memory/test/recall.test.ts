@@ -44,6 +44,11 @@ describe("decay", () => {
     expect(decay(DEFAULT_WEIGHTS.halfLifeMs, DEFAULT_WEIGHTS.halfLifeMs)).toBeCloseTo(0.5, 10);
     expect(decay(2 * DEFAULT_WEIGHTS.halfLifeMs, DEFAULT_WEIGHTS.halfLifeMs)).toBeCloseTo(0.25, 10);
   });
+
+  it("treats a non-positive half-life as fully decayed (no NaN)", () => {
+    expect(decay(0, 0)).toBe(0);
+    expect(decay(100, -1)).toBe(0);
+  });
 });
 
 describe("scoreCandidate", () => {
@@ -61,6 +66,7 @@ describe("scoreCandidate", () => {
   });
 
   it("decays importance with age (a fresh fragment outranks an old one)", () => {
+    // Both fragments are identical (lastUsedAt: 0); only the evaluation time `now` differs.
     const fresh: Candidate = { fragment: frag({ importance: 1, lastUsedAt: 0 }), bm25: -1 };
     const old: Candidate = { fragment: frag({ importance: 1, lastUsedAt: 0 }), bm25: -1 };
     const now = 30 * DAY;
@@ -102,5 +108,11 @@ describe("rankCandidates", () => {
     const ranked = rankCandidates(cands, { now: 0 }, 5, DEFAULT_WEIGHTS);
     expect(ranked).toHaveLength(1);
     expect(ranked[0].id).toBe("only");
+  });
+
+  it("returns [] for a non-positive k", () => {
+    const cands: Candidate[] = [{ fragment: frag({ id: "a" }), bm25: -1 }];
+    expect(rankCandidates(cands, { now: 0 }, 0)).toEqual([]);
+    expect(rankCandidates(cands, { now: 0 }, -1)).toEqual([]);
   });
 });
