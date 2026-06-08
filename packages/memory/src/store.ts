@@ -4,6 +4,7 @@ import { type SqlDriver, type SqlStatement, openDatabase, migrate } from "@openh
 import type { Fragment, ScoredFragment } from "./fragment.js";
 import { MEMORY_SCHEMA } from "./schema.js";
 import { type Candidate, rankCandidates, toMatchQuery, bm25ToRelevance } from "./recall.js";
+import type { Embedder } from "./embedder.js";
 
 export interface RememberInput {
   text: string;
@@ -43,18 +44,20 @@ interface FragmentRow {
 export class VecnaStore {
   private readonly db: SqlDriver;
   private readonly nextId: () => string;
+  private readonly embedder: Embedder | undefined;
   private readonly insertStmt: SqlStatement;
   private readonly matchStmt: SqlStatement;
   private readonly reinforceStmt: SqlStatement;
 
-  constructor(db: SqlDriver, opts: { id?: () => string } = {}) {
+  constructor(db: SqlDriver, opts: { id?: () => string; embedder?: Embedder } = {}) {
     this.db = db;
     this.nextId = opts.id ?? (() => randomUUID());
+    this.embedder = opts.embedder;
     migrate(db, MEMORY_SCHEMA);
     this.insertStmt = db.prepare(
       `INSERT INTO fragments
-         (id, text, tendril, tags, importance, trust, taint, created_at, last_used_at, uses)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+         (id, text, tendril, tags, importance, trust, taint, created_at, last_used_at, uses, embedding)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
     );
     // FTS5 candidate query: join the matched rowids back to the full fragment rows.
     // Candidate set is every FTS5 match (no LIMIT) — fine at S2 store sizes; a
@@ -73,7 +76,7 @@ export class VecnaStore {
     );
   }
 
-  static open(path: string, opts: { id?: () => string } = {}): VecnaStore {
+  static open(path: string, opts: { id?: () => string; embedder?: Embedder } = {}): VecnaStore {
     return new VecnaStore(openDatabase({ path }), opts);
   }
 
@@ -91,6 +94,9 @@ export class VecnaStore {
       lastUsedAt: now,
       uses: 0,
     };
+    const embedding = this.embedder
+      ? Buffer.from((await this.embedder.embed(fragment.text)).buffer)
+      : null;
     this.insertStmt.run(
       fragment.id,
       fragment.text,
@@ -101,6 +107,7 @@ export class VecnaStore {
       fragment.taint ? 1 : 0,
       fragment.createdAt,
       fragment.lastUsedAt,
+      embedding,
     );
     return fragment;
   }

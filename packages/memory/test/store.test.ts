@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { VecnaStore } from "../src/store.js";
+import { FakeEmbedder } from "../src/embedder.js";
 
 const DAY = 86_400_000;
 
@@ -148,6 +149,27 @@ describe("VecnaStore defaults", () => {
     // remembering again yields a different id
     const g = await s.remember({ text: "another free disk" });
     expect(g.id).not.toBe(f.id);
+    s.close();
+  });
+});
+
+describe("VecnaStore embedding storage (Task 3)", () => {
+  it("remember with an embedder resolves and returns the fragment", async () => {
+    let n = 0;
+    const s = VecnaStore.open(":memory:", { id: () => `f-${++n}`, embedder: new FakeEmbedder(16) });
+    const f = await s.remember({ text: "free disk space" }, 1);
+    expect(f.id).toBe("f-1");
+    expect(f.text).toBe("free disk space");
+    s.close();
+  });
+
+  it("remember without an embedder still works", async () => {
+    let n = 0;
+    const s = VecnaStore.open(":memory:", { id: () => `f-${++n}` });
+    const f = await s.remember({ text: "no embedding here" }, 1);
+    expect(f.id).toBe("f-1");
+    const hits = await s.recall({ text: "no embedding", now: 2 });
+    expect(hits.some((h) => h.id === "f-1")).toBe(true);
     s.close();
   });
 });
