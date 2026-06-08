@@ -3,7 +3,7 @@ import type { Provenance } from "@openhawkins/core";
 import { type SqlDriver, type SqlStatement, openDatabase, migrate } from "@openhawkins/state";
 import type { Fragment, ScoredFragment } from "./fragment.js";
 import { MEMORY_SCHEMA } from "./schema.js";
-import { type Candidate, rankCandidates, toMatchQuery } from "./recall.js";
+import { type Candidate, rankCandidates, toMatchQuery, bm25ToRelevance } from "./recall.js";
 
 export interface RememberInput {
   text: string;
@@ -111,7 +111,10 @@ export class VecnaStore {
       return [];
     }
     const rows = this.matchStmt.all(match) as (FragmentRow & { bm25: number })[];
-    const candidates: Candidate[] = rows.map((r) => ({ fragment: rowToFragment(r), bm25: r.bm25 }));
+    const candidates: Candidate[] = rows.map((r) => ({
+      fragment: rowToFragment(r),
+      relevance: bm25ToRelevance(r.bm25),
+    }));
     const ctx = {
       now: query.now,
       ...(query.tags !== undefined ? { tags: query.tags } : {}),

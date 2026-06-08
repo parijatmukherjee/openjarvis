@@ -19,10 +19,10 @@ export const DEFAULT_WEIGHTS: RecallWeights = {
   halfLifeMs: 7 * 86_400_000, // 7 days
 };
 
-/** A fragment paired with its raw FTS5 bm25 score (lower/more-negative = better). */
+/** A fragment paired with its normalized relevance (higher = more relevant). */
 export interface Candidate {
   fragment: Fragment;
-  bm25: number;
+  relevance: number;
 }
 
 /** What the query contributes to scoring, beyond the text match. */
@@ -42,6 +42,15 @@ export function decay(ageMs: number, halfLifeMs: number): number {
     return 0;
   }
   return 0.5 ** (ageMs / halfLifeMs);
+}
+
+/**
+ * Map an FTS5 `bm25` score (<= 0, more negative = a better match) to a normalized
+ * relevance in [0, 1) so the lexical path feeds the same scorer as the vector path
+ * (where relevance is cosine similarity).
+ */
+export function bm25ToRelevance(bm25: number): number {
+  return 1 - Math.exp(bm25);
 }
 
 /**
@@ -130,10 +139,7 @@ export function scoreCandidate(
   ctx: RecallContext,
   w: RecallWeights = DEFAULT_WEIGHTS,
 ): number {
-  // text is unbounded (−bm25 can reach ~10–20 for multi-term FTS5 matches) while
-  // importance·decay and tag overlap are in [0,1]; text dominates by design here
-  // (FTS5 already guarantees relevance). Weight tuning is deferred to S3.
-  const text = w.text * -c.bm25;
+  const text = w.text * c.relevance;
   const age = Math.max(0, ctx.now - c.fragment.lastUsedAt);
   const importance = w.importance * c.fragment.importance * decay(age, w.halfLifeMs);
   const tags = w.tags * tagOverlap(ctx.tags ?? [], c.fragment.tags);
