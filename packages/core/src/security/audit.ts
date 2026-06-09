@@ -25,7 +25,8 @@ export interface AuditLog {
   verify(): Promise<boolean>;
 }
 
-const GENESIS = "0".repeat(64);
+/** The chain's pre-genesis hash — the `prevHash` of the first entry. */
+export const GENESIS = "0".repeat(64);
 
 /** Deterministic hash of an entry's content chained onto the previous hash. */
 export function hashEntry(
