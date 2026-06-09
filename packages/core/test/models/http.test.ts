@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { parseJsonOrThrow, assertSafeBaseUrl } from "../../src/models/http.js";
+import { requestWithTimeout, withRetry, type HttpFetch } from "../../src/models/http.js";
+
+const okResponse = (text = "{}") => ({ ok: true, status: 200, text: async () => text });
 
 describe("parseJsonOrThrow", () => {
   it("parses valid JSON", () => {
@@ -24,5 +27,63 @@ describe("assertSafeBaseUrl", () => {
   });
   it("throws on an unparseable URL", () => {
     expect(() => assertSafeBaseUrl("not a url")).toThrow();
+  });
+});
+
+describe("requestWithTimeout", () => {
+  it("returns the response when the call resolves in time", async () => {
+    const http: HttpFetch = async () => okResponse();
+    const res = await requestWithTimeout(
+      http,
+      "https://x",
+      { method: "POST", headers: {}, body: "" },
+      50,
+    );
+    expect(res.ok).toBe(true);
+  });
+  it("aborts and throws a timeout error when the call exceeds the deadline", async () => {
+    const hang: HttpFetch = (_u, init) =>
+      new Promise((_res, rej) =>
+        init.signal?.addEventListener("abort", () => rej(new Error("aborted"))),
+      );
+    await expect(
+      requestWithTimeout(hang, "https://x", { method: "POST", headers: {}, body: "" }, 10),
+    ).rejects.toThrow(/timed out/);
+  });
+  it("rethrows a non-timeout error unchanged (signal not aborted)", async () => {
+    const boom: HttpFetch = async () => {
+      throw new Error("ECONNREFUSED");
+    };
+    await expect(
+      requestWithTimeout(boom, "https://x", { method: "POST", headers: {}, body: "" }, 50),
+    ).rejects.toThrow(/ECONNREFUSED/);
+  });
+});
+
+describe("withRetry", () => {
+  it("retries a transient failure then succeeds", async () => {
+    let n = 0;
+    const r = await withRetry(
+      async () => {
+        if (n++ < 2) throw new Error("ECONNRESET");
+        return "ok";
+      },
+      { retries: 3, baseDelayMs: 0 },
+    );
+    expect(r).toBe("ok");
+    expect(n).toBe(3);
+  });
+  it("gives up after exhausting retries, surfacing the last error", async () => {
+    let n = 0;
+    await expect(
+      withRetry(
+        async () => {
+          n++;
+          throw new Error("down");
+        },
+        { retries: 2, baseDelayMs: 0 },
+      ),
+    ).rejects.toThrow(/down/);
+    expect(n).toBe(3); // initial + 2 retries
   });
 });

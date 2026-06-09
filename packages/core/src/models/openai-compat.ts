@@ -5,7 +5,14 @@ import type {
   GenerateResult,
   ModelToolCall,
 } from "./adapter.js";
-import { defaultHttp, parseJsonOrThrow, assertSafeBaseUrl, type HttpFetch } from "./http.js";
+import {
+  defaultHttp,
+  parseJsonOrThrow,
+  assertSafeBaseUrl,
+  requestWithTimeout,
+  withRetry,
+  type HttpFetch,
+} from "./http.js";
 
 /**
  * OpenAI-compatible adapter — the `/v1/chat/completions` wire format spoken by
@@ -19,6 +26,12 @@ export interface OpenAiCompatConfig {
   baseUrl: string;
   apiKey?: string;
   http?: HttpFetch;
+  /** Per-request deadline in ms before the call is aborted (default 30000). */
+  timeoutMs?: number;
+  /** Bounded retries on a transient failure (default 2). */
+  retries?: number;
+  /** Base backoff in ms for the exponential retry (default 200). */
+  retryBaseMs?: number;
 }
 
 interface OpenAiToolCall {
@@ -35,6 +48,9 @@ export class OpenAiCompatAdapter implements ModelAdapter {
   private readonly baseUrl: string;
   private readonly apiKey: string | undefined;
   private readonly http: HttpFetch;
+  private readonly timeoutMs: number;
+  private readonly retries: number;
+  private readonly retryBaseMs: number;
 
   constructor(cfg: OpenAiCompatConfig) {
     this.model = cfg.model;
@@ -42,6 +58,9 @@ export class OpenAiCompatAdapter implements ModelAdapter {
     assertSafeBaseUrl(this.baseUrl);
     this.apiKey = cfg.apiKey;
     this.http = cfg.http ?? defaultHttp;
+    this.timeoutMs = cfg.timeoutMs ?? 30000;
+    this.retries = cfg.retries ?? 2;
+    this.retryBaseMs = cfg.retryBaseMs ?? 200;
   }
 
   async generate(req: GenerateRequest): Promise<GenerateResult> {
@@ -68,11 +87,17 @@ export class OpenAiCompatAdapter implements ModelAdapter {
       headers.authorization = `Bearer ${this.apiKey}`;
     }
 
-    const res = await this.http(`${this.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
+    const url = `${this.baseUrl}/chat/completions`;
+    const res = await withRetry(
+      () =>
+        requestWithTimeout(
+          this.http,
+          url,
+          { method: "POST", headers, body: JSON.stringify(body) },
+          this.timeoutMs,
+        ),
+      { retries: this.retries, baseDelayMs: this.retryBaseMs },
+    );
     const text = await res.text();
     if (!res.ok) {
       throw new Error(`openai-compat request failed (${res.status}): ${text}`);

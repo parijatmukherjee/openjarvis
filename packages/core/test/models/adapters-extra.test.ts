@@ -110,4 +110,25 @@ describe("defaultHttp", () => {
       globalThis.fetch = original;
     }
   });
+
+  it("forwards an AbortSignal to the platform fetch when present", async () => {
+    const original = globalThis.fetch;
+    let seenSignal: AbortSignal | undefined;
+    globalThis.fetch = (async (_url: string, init: RequestInit) => {
+      seenSignal = init.signal ?? undefined;
+      return { ok: true, status: 200, text: async () => "ok" };
+    }) as unknown as typeof fetch;
+    const controller = new AbortController();
+    try {
+      await defaultHttp("http://example.test", {
+        method: "GET",
+        headers: {},
+        body: "",
+        signal: controller.signal,
+      });
+      expect(seenSignal).toBe(controller.signal);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
 });
