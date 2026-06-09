@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { PlaybookRun, type PlaybookRunDeps } from "../../src/playbook/runner.js";
 import { DEFAULT_MANIFEST } from "../../src/playbook/manifest.js";
 import { SoftGate, ValidateGate, type PhaseGate } from "../../src/playbook/gates.js";
-import { isPhaseEvent } from "../../src/playbook/events.js";
+import { foldPlaybook, isPhaseEvent } from "../../src/playbook/events.js";
 import { InMemoryEventStore } from "../../src/session/events.js";
 import { InMemoryAuditLog } from "../../src/security/audit.js";
 import { fixedClock } from "../../src/util/clock.js";
@@ -119,7 +119,7 @@ describe("PlaybookRun.advance", () => {
     await run.override("op", "to tasks"); // Plan -> Tasks
     await run.override("op", "to execute"); // Tasks -> Execute
     await run.override("op", "to validate"); // Execute -> Validate
-    const status = await run.advance(); // fails; replans (0+1) > maxReplans (0) -> escalate
+    const status = await run.advance(); // fails; replans (0) >= maxReplans (0) -> escalate
     expect(status).toEqual({ kind: "escalated", phase: "Validate", reason: "still red" });
     const events = await phasesOf(d.store as InMemoryEventStore);
     expect(events[events.length - 1]).toBe("PhaseGateFailed:Validate");
@@ -145,6 +145,22 @@ describe("PlaybookRun.advance", () => {
     expect(await run.advance()).toEqual({ kind: "done", phase: "Present" });
     const after = (await (d.store as InMemoryEventStore).read("s1")).length;
     expect(after).toBe(before); // no new events at terminal
+  });
+
+  it("the folded event log is the single source of truth for replans (F-H2)", async () => {
+    const d = deps({ validateGate: fakeGate({ status: "failed", reason: "red" }) });
+    const run = await PlaybookRun.start(d);
+    await run.override("op", "to plan"); // Research -> Plan
+    await run.override("op", "to tasks"); // Plan -> Tasks
+    await run.override("op", "to execute"); // Tasks -> Execute
+    await run.override("op", "to validate"); // Execute -> Validate
+    await run.advance(); // Validate fails -> replan (replans 0 -> 1)
+
+    const log = (await (d.store as InMemoryEventStore).read("s1")).filter(isPhaseEvent);
+    // The live runtime count and the count re-derived purely from the event log agree —
+    // there is no second place that could drift.
+    expect(foldPlaybook(log).replans).toBe(run.state.replans);
+    expect(run.state.replans).toBe(1);
   });
 });
 
