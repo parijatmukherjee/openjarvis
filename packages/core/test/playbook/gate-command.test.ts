@@ -37,13 +37,18 @@ describe("runCommand", () => {
     expect(result.detail).toBeDefined();
   });
 
-  it('reports a null exit code as "null" when killed by a signal', async () => {
-    // A process killed by a signal closes with code === null (signal set instead);
-    // this exercises the `code ?? "null"` coalesce.
-    const result = await runCommand(SELF, ["-e", 'process.kill(process.pid, "SIGKILL")']);
-    expect(result.ok).toBe(false);
-    expect(result.detail).toContain("exit code null");
-  });
+  // POSIX-only: a signal-killed process closes with `code === null` (the signal is set
+  // instead), which exercises the `code ?? "null"` coalesce. Windows has no real signals
+  // — `process.kill` terminates with a numeric exit code there — so the null-code path is
+  // unreachable on win32. The coverage gate runs on Linux, where this still covers it.
+  it.skipIf(process.platform === "win32")(
+    'reports a null exit code as "null" when killed by a signal',
+    async () => {
+      const result = await runCommand(SELF, ["-e", 'process.kill(process.pid, "SIGKILL")']);
+      expect(result.ok).toBe(false);
+      expect(result.detail).toContain("exit code null");
+    },
+  );
 });
 
 describe("gateCommandPredicate", () => {
