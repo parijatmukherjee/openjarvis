@@ -38,6 +38,7 @@ The `Transition` shape change breaks `runner.ts`'s compile, so `machine.ts`, `ru
 and `machine.test.ts` move together in one commit to keep the build green.
 
 **Files:**
+
 - Modify: `packages/core/src/playbook/machine.ts`
 - Modify: `packages/core/src/playbook/runner.ts:95-101,143-145`
 - Test: `packages/core/test/playbook/machine.test.ts`
@@ -204,9 +205,9 @@ Change each to `transition.phase`:
 ```
 
 ```ts
-    const transition = step(this.deps.manifest, this._state, { status: "passed" });
-    await this.enter(transition.phase);
-    this._status = this.statusForPhase(transition.phase);
+const transition = step(this.deps.manifest, this._state, { status: "passed" });
+await this.enter(transition.phase);
+this._status = this.statusForPhase(transition.phase);
 ```
 
 - [ ] **Step 5: Run the machine + runner tests to verify they pass**
@@ -233,6 +234,7 @@ git commit -m "refactor(playbook): single source of truth for replans (F-H2)"
 ### Task 2: F-H2 invariant regression test + stale-comment fix + gate
 
 **Files:**
+
 - Modify: `packages/core/test/playbook/runner.test.ts:122` (stale `0+1 > 0` comment)
 - Test: `packages/core/test/playbook/runner.test.ts` (new invariant test)
 
@@ -246,21 +248,21 @@ imports and its `InMemoryEventStore` cast pattern. Add the `foldPlaybook, isPhas
 import to the existing events import line if not already present.
 
 ```ts
-  it("the folded event log is the single source of truth for replans (F-H2)", async () => {
-    const d = deps({ validateGate: fakeGate({ status: "failed", reason: "red" }) });
-    const run = await PlaybookRun.start(d);
-    await run.override("op", "to plan"); // Research -> Plan
-    await run.override("op", "to tasks"); // Plan -> Tasks
-    await run.override("op", "to execute"); // Tasks -> Execute
-    await run.override("op", "to validate"); // Execute -> Validate
-    await run.advance(); // Validate fails -> replan (replans 0 -> 1)
+it("the folded event log is the single source of truth for replans (F-H2)", async () => {
+  const d = deps({ validateGate: fakeGate({ status: "failed", reason: "red" }) });
+  const run = await PlaybookRun.start(d);
+  await run.override("op", "to plan"); // Research -> Plan
+  await run.override("op", "to tasks"); // Plan -> Tasks
+  await run.override("op", "to execute"); // Tasks -> Execute
+  await run.override("op", "to validate"); // Execute -> Validate
+  await run.advance(); // Validate fails -> replan (replans 0 -> 1)
 
-    const log = (await (d.store as InMemoryEventStore).read("s1")).filter(isPhaseEvent);
-    // The live runtime count and the count re-derived purely from the event log agree —
-    // there is no second place that could drift.
-    expect(foldPlaybook(log).replans).toBe(run.state.replans);
-    expect(run.state.replans).toBe(1);
-  });
+  const log = (await (d.store as InMemoryEventStore).read("s1")).filter(isPhaseEvent);
+  // The live runtime count and the count re-derived purely from the event log agree —
+  // there is no second place that could drift.
+  expect(foldPlaybook(log).replans).toBe(run.state.replans);
+  expect(run.state.replans).toBe(1);
+});
 ```
 
 If the `read` session id in this file is not `"s1"`, match whatever `deps()` uses (grep the
@@ -272,7 +274,7 @@ In the existing "escalates when the replan budget is exhausted" test, the inline
 reads `// fails; replans (0+1) > maxReplans (0) -> escalate`. Update it to the new formula:
 
 ```ts
-    const status = await run.advance(); // fails; replans (0) >= maxReplans (0) -> escalate
+const status = await run.advance(); // fails; replans (0) >= maxReplans (0) -> escalate
 ```
 
 - [ ] **Step 3: Run the runner tests**
@@ -291,9 +293,11 @@ In `docs/reviews/2026-06-09-production-readiness-review.md`, change the A5 roadm
 - [ ] **Step 5: Full repo gate**
 
 Run:
+
 ```bash
 npm run build && npm run lint && npm run format:check && npm run coverage && npm run test:functional
 ```
+
 Expected: all green, coverage 100%.
 
 - [ ] **Step 6: Docker gate**
