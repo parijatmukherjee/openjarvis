@@ -1,0 +1,66 @@
+import { describe, it, expect } from "vitest";
+import { ConverterRegistry } from "../src/registry.js";
+import { textConverter } from "../src/converters/text.js";
+import type { Converter } from "../src/types.js";
+
+const upper: Converter = {
+  format: "upper",
+  accepts: (d) => d.mime === "text/upper" || d.ext === "up",
+  convert: async (data) => ({ markdown: String(data).toUpperCase(), title: "T" }),
+};
+const boom: Converter = {
+  format: "boom",
+  accepts: (d) => d.ext === "boom",
+  convert: async () => {
+    throw new Error("kaboom");
+  },
+};
+
+function registry(): ConverterRegistry {
+  return new ConverterRegistry(textConverter).register(upper).register(boom);
+}
+
+describe("ConverterRegistry", () => {
+  it("dispatches by mime, then extension, attaching the format + title", async () => {
+    expect(await registry().convert({ data: "hi", mime: "text/upper" })).toEqual({
+      markdown: "HI",
+      format: "upper",
+      warnings: [],
+      title: "T",
+    });
+    expect(await registry().convert({ data: "hi", filename: "a.up" })).toMatchObject({
+      markdown: "HI",
+      format: "upper",
+    });
+  });
+
+  it("falls back to the text converter when nothing accepts", async () => {
+    expect(await registry().convert({ data: "plain words" })).toEqual({
+      markdown: "plain words",
+      format: "text",
+      warnings: [],
+    });
+  });
+
+  it("uses a content sniff when mime/ext do not decide", async () => {
+    const reg = new ConverterRegistry(textConverter).register({
+      format: "html",
+      accepts: (d) => d.ext === "html",
+      convert: async () => ({ markdown: "from-html" }),
+    });
+    // no mime, no extension, but the content sniffs as html
+    expect((await reg.convert({ data: "<p>hi</p>" })).format).toBe("html");
+  });
+
+  it("falls back to text when the sniffed format has no registered converter", async () => {
+    // registry() has upper + boom but no "html"; "<p>" sniffs as html -> no converter -> text
+    expect((await registry().convert({ data: "<p>hi</p>" })).format).toBe("text");
+  });
+
+  it("never throws: a failing converter degrades to text + a warning", async () => {
+    const res = await registry().convert({ data: "data", filename: "x.boom" });
+    expect(res.format).toBe("text");
+    expect(res.markdown).toBe("data");
+    expect(res.warnings[0]).toMatch(/boom.*failed.*kaboom/);
+  });
+});
