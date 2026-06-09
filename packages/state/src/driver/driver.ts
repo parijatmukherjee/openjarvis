@@ -44,6 +44,10 @@ export interface OpenOptions {
  */
 export function openDatabase(opts: OpenOptions): SqlDriver {
   const native = nativeOpen(opts);
+  // Durability + concurrency pragmas. WAL allows concurrent readers with a writer and is a
+  // no-op on :memory:; busy_timeout makes writers wait rather than throw SQLITE_BUSY.
+  native.exec("PRAGMA journal_mode = WAL");
+  native.exec("PRAGMA busy_timeout = 5000");
   return {
     exec: (sql) => native.exec(sql),
     prepare: (sql) => {
