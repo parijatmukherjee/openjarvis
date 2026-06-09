@@ -4,3 +4,4 @@ export * from "./migrate.js";
 export * from "./schema.js";
 export * from "./event-store.js";
 export * from "./audit-store.js";
+export * from "./build-durable-agent-run.js";
