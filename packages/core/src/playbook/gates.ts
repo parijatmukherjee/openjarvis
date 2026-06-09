@@ -24,3 +24,33 @@ export class SoftGate implements PhaseGate {
     };
   }
 }
+
+/** The result of a validate check: green, or red with optional human-readable detail. */
+export interface GateCheck {
+  ok: boolean;
+  detail?: string;
+}
+
+/** An async check the `ValidateGate` runs — injected so it is testable with a fake; the
+ *  real default is the repo-gate command predicate in `gate-command.ts`. */
+export type ValidatePredicate = () => Promise<GateCheck>;
+
+/**
+ * Runs an injected predicate to decide the Validate phase: ok → `passed`; not ok →
+ * `failed` (with the predicate's detail). Guaranteed not to throw — a predicate that
+ * throws is caught and becomes a `failed` verdict, so a broken gate cannot crash the run.
+ */
+export class ValidateGate implements PhaseGate {
+  constructor(private readonly check: ValidatePredicate) {}
+
+  async evaluate(): Promise<GateVerdict> {
+    try {
+      const result = await this.check();
+      return result.ok
+        ? { status: "passed" }
+        : { status: "failed", reason: result.detail ?? "validation failed" };
+    } catch (err) {
+      return { status: "failed", reason: err instanceof Error ? err.message : String(err) };
+    }
+  }
+}
