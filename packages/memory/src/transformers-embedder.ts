@@ -22,7 +22,7 @@ interface TransformersModule {
 export class TransformersEmbedder implements Embedder {
   readonly dims: number;
   private readonly model: string;
-  private pipe: FeatureExtractionPipeline | undefined;
+  private pipePromise: Promise<FeatureExtractionPipeline> | undefined;
 
   constructor(opts: { model?: string; dims?: number } = {}) {
     this.model = opts.model ?? "Xenova/all-MiniLM-L6-v2";
@@ -32,23 +32,45 @@ export class TransformersEmbedder implements Embedder {
   async embed(text: string): Promise<Float32Array> {
     const pipe = await this.ensurePipeline();
     const out = await pipe(text, { pooling: "mean", normalize: true });
-    return out.data instanceof Float32Array ? out.data : Float32Array.from(out.data);
+    const vec = out.data instanceof Float32Array ? out.data : Float32Array.from(out.data);
+    if (vec.length !== this.dims) {
+      throw new Error(
+        `TransformersEmbedder: model '${this.model}' produced ${vec.length} dims, expected ${this.dims} (pass a matching { dims } or { model }).`,
+      );
+    }
+    return vec;
   }
 
-  private async ensurePipeline(): Promise<FeatureExtractionPipeline> {
-    if (this.pipe) {
-      return this.pipe;
+  /** Load the pipeline at most once; concurrent callers share the in-flight promise.
+   *  On failure the cached promise is cleared so a later call can retry. */
+  private ensurePipeline(): Promise<FeatureExtractionPipeline> {
+    if (!this.pipePromise) {
+      this.pipePromise = this.loadPipeline().catch((err: unknown) => {
+        this.pipePromise = undefined;
+        throw err;
+      });
     }
+    return this.pipePromise;
+  }
+
+  private async loadPipeline(): Promise<FeatureExtractionPipeline> {
     let mod: TransformersModule;
     try {
       // @ts-expect-error optional peer dependency, may not be installed at build time
       mod = (await import("@huggingface/transformers")) as TransformersModule;
-    } catch {
-      throw new Error(
-        "TransformersEmbedder requires the optional peer dependency '@huggingface/transformers'. Install it to enable semantic recall.",
-      );
+    } catch (err) {
+      const e = err as { code?: string; message?: string };
+      const notInstalled =
+        e.code === "ERR_MODULE_NOT_FOUND" ||
+        e.code === "MODULE_NOT_FOUND" ||
+        (e.message ?? "").includes("@huggingface/transformers");
+      if (notInstalled) {
+        throw new Error(
+          "TransformersEmbedder requires the optional peer dependency '@huggingface/transformers'. Install it to enable semantic recall.",
+        );
+      }
+      throw err; // a genuine load/init failure — preserve the real error and stack
     }
-    this.pipe = await mod.pipeline("feature-extraction", this.model);
-    return this.pipe;
+    return mod.pipeline("feature-extraction", this.model);
   }
 }
