@@ -21,6 +21,10 @@ export interface BuildAgentRunOpts {
   operator: Operator;
   /** Defaults to the REAL repo gate. Tests pass a fake to avoid recursively running it. */
   validateGate?: PhaseGate;
+  /** Durable stores wired by a composition root (e.g. the durable integration test or a
+   *  CLI). Default: in-memory. Injecting these is the F-C1 durability seam. */
+  store?: EventStore;
+  audit?: AuditLog;
   clock?: Clock;
 }
 
@@ -39,8 +43,8 @@ export interface BuiltAgentRun {
  */
 export async function buildAgentRun(opts: BuildAgentRunOpts): Promise<BuiltAgentRun> {
   const clock = opts.clock ?? systemClock;
-  const store = new InMemoryEventStore();
-  const audit = new InMemoryAuditLog();
+  const store = opts.store ?? new InMemoryEventStore();
+  const audit = opts.audit ?? new InMemoryAuditLog();
   // `Agent.start` derives its sessionId as `${agentId}-session`; we hand the PlaybookRun
   // the same id so both stream into the one shared store/audit. Derive both from one
   // constant so the shared-trace invariant can't drift across edits.

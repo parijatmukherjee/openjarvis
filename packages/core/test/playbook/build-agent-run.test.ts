@@ -4,6 +4,8 @@ import { AgentRun } from "../../src/playbook/agent-run.js";
 import { ScriptedOperator } from "../../src/playbook/operators.js";
 import { weakHostFactsModel } from "../../src/eval/scenarios.js";
 import { ValidateGate } from "../../src/playbook/gates.js";
+import { InMemoryEventStore } from "../../src/session/events.js";
+import { InMemoryAuditLog } from "../../src/security/audit.js";
 import { tmpdir } from "node:os";
 
 const approve = () =>
@@ -47,5 +49,21 @@ describe("buildAgentRun", () => {
       operator: approve(),
     });
     expect(built.run).toBeInstanceOf(AgentRun);
+  });
+
+  it("uses injected store + audit when provided (durability seam)", async () => {
+    const store = new InMemoryEventStore();
+    const audit = new InMemoryAuditLog();
+    const built = await buildAgentRun({
+      adapter: weakHostFactsModel(tmpdir()),
+      grounding: "cited",
+      prompts: {},
+      operator: approve(),
+      validateGate: new ValidateGate(async () => ({ ok: true })),
+      store,
+      audit,
+    });
+    expect(built.store).toBe(store);
+    expect(built.audit).toBe(audit);
   });
 });
