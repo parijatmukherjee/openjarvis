@@ -18,4 +18,18 @@ export const SCHEMA: Migration[] = [
       CREATE INDEX events_by_session ON events (session_id, seq);
     `,
   },
+  {
+    version: 2,
+    name: "audit",
+    up: `
+      CREATE TABLE audit (
+        seq       INTEGER PRIMARY KEY,
+        at        INTEGER NOT NULL,
+        kind      TEXT NOT NULL,
+        data      TEXT NOT NULL,
+        prev_hash TEXT NOT NULL,
+        hash      TEXT NOT NULL
+      );
+    `,
+  },
 ];

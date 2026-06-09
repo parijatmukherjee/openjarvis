@@ -3,3 +3,4 @@ export type { SqlDriver, SqlStatement, SqlRunResult, OpenOptions } from "./drive
 export * from "./migrate.js";
 export * from "./schema.js";
 export * from "./event-store.js";
+export * from "./audit-store.js";
