@@ -21,4 +21,8 @@ export type VisualCommand =
   | { type: "open_url"; url: string; monitor?: number }
   | { type: "show_text"; text: string; monitor?: number }
   | { type: "highlight"; element: string; monitor?: number }
-  | { type: "clear"; monitor?: number };
+  | { type: "clear"; monitor?: number }
+  // NEW:
+  | { type: "open_vision_feed"; monitor?: number }
+  | { type: "show_agent_output"; agentId: string; monitor?: number }
+  | { type: "show_context_card"; title: string; body: string; monitor?: number };
