@@ -6,6 +6,7 @@ import { ToolRegistry } from "../../src/tools/registry.js";
 import { diskFreeTool } from "../../src/tools/disk-free.js";
 import { fixedClock } from "../../src/util/clock.js";
 import type { AgentGrant } from "../../src/security/capability.js";
+import type { MetricsCollector } from "../../src/observability/metrics.js";
 
 const grant: AgentGrant = { agentId: "probe-agent", capabilities: [{ name: "host:info" }] };
 
@@ -36,7 +37,7 @@ describe("Agent (runtime facade) — audit branches", () => {
     expect(record.accepted).toBe(false);
     const kinds = (await agent.audit.entries()).map((e) => e.kind);
     expect(kinds).toContain("GroundingFailed");
-    expect(await agent.audit.verify()).toBe(true);
+    expect((await agent.audit.verify()).ok).toBe(true);
   });
 
   it("audits a failed (capability-denied) tool call with its error", async () => {
@@ -97,5 +98,54 @@ describe("Agent (runtime facade) — audit branches", () => {
     expect(record.final).toBe("hi");
     // The very first model request carries no system message.
     expect(record.modelCalls[0].request[0].role).toBe("user");
+  });
+
+  it("generates a traceId per turn and threads it through audit entries", async () => {
+    const adapter = new ScriptedAdapter([{ content: "hi", toolCalls: [] }]);
+    const agent = await Agent.start({
+      agentId: "probe-agent",
+      adapter,
+      registry: registry(),
+      grant,
+      tools: [diskFreeTool],
+      grounding: { mode: "off" },
+      clock: fixedClock(0),
+    });
+
+    const record = await agent.ask("hi");
+    expect(record.traceId).toBeDefined();
+    expect(typeof record.traceId).toBe("string");
+
+    const entries = await agent.audit.entries();
+    const finalEntry = entries.find((e) => e.kind === "FinalAccepted");
+    expect((finalEntry?.data as { traceId?: string }).traceId).toBe(record.traceId);
+  });
+
+  it("records ModelResponseLatency histogram for each model call", async () => {
+    const histograms: { name: string; value: number }[] = [];
+    const metrics: MetricsCollector = {
+      increment() {},
+      histogram: (name, value) => void histograms.push({ name, value }),
+    };
+    const adapter = new ScriptedAdapter([
+      { content: "first", toolCalls: [] },
+      { content: "second", toolCalls: [] },
+    ]);
+    const agent = await Agent.start({
+      agentId: "probe-agent",
+      adapter,
+      registry: registry(),
+      grant,
+      tools: [diskFreeTool],
+      grounding: { mode: "off" },
+      clock: fixedClock(0),
+      metrics,
+    });
+
+    const record = await agent.ask("hi");
+    expect(record.accepted).toBe(true);
+    expect(histograms).toHaveLength(record.modelCalls.length);
+    expect(histograms.every((h) => h.name === "ModelResponseLatency")).toBe(true);
+    expect(histograms.every((h) => h.value >= 0)).toBe(true);
   });
 });

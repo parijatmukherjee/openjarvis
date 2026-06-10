@@ -4,6 +4,8 @@ import { OllamaAdapter } from "../models/ollama.js";
 import { OpenAiCompatAdapter } from "../models/openai-compat.js";
 import type { GroundingMode } from "../grounding/eleven.js";
 import { buildProbeAgent, weakHostFactsModel } from "../eval/scenarios.js";
+import { FileVault } from "../security/vault.js";
+import { JsonLogger } from "../observability/logger.js";
 
 /**
  * `openhawkins ask` — the tiny CLI driver for the vertical slice (spec §2 non-goals:
@@ -14,6 +16,7 @@ import { buildProbeAgent, weakHostFactsModel } from "../eval/scenarios.js";
  *   ask "..." --model ollama                                      # real local model
  *   ask "..." --grounding off                                     # the negative control
  *   ask "..." --json                                              # machine-readable trace
+ *   ask "..." --vault vault.json --vault-pass secret              # adapter keys from Vault
  *
  * `--model scripted` (default) uses the deterministic weak-model stand-in so the
  * command always works offline and is reproducible; the REAL machine, REAL tool, and
@@ -21,7 +24,7 @@ import { buildProbeAgent, weakHostFactsModel } from "../eval/scenarios.js";
  */
 
 /** Flags that take a value (so the following token is consumed, not the prompt). */
-const VALUE_FLAGS = ["--model", "--grounding", "--path"];
+const VALUE_FLAGS = ["--model", "--grounding", "--path", "--vault", "--vault-pass"];
 
 function flag(args: string[], name: string, fallback: string): string {
   const i = args.indexOf(name);
@@ -43,28 +46,61 @@ function positionalPrompt(args: string[], fallback: string): string {
   return fallback;
 }
 
-function buildAdapter(kind: string, path: string): ModelAdapter {
+/** Load a string: try the Vault first, then fall back to `process.env`. */
+async function loadStr(
+  vault: FileVault | undefined,
+  vaultKey: string,
+  envName: string,
+  fallback: string,
+): Promise<string> {
+  if (vault) {
+    try {
+      const v = await vault.get(vaultKey);
+      if (v !== null) return v;
+    } catch {
+      // Vault unreadable for this key → fall through to env
+    }
+  }
+  return process.env[envName] ?? fallback;
+}
+
+/** Load an optional string: Vault first, then env, then undefined. */
+async function loadOpt(
+  vault: FileVault | undefined,
+  vaultKey: string,
+  envName: string,
+): Promise<string | undefined> {
+  const v = await loadStr(vault, vaultKey, envName, "");
+  return v || undefined;
+}
+
+async function buildAdapter(kind: string, path: string, vault?: FileVault): Promise<ModelAdapter> {
   switch (kind) {
     case "scripted":
       return weakHostFactsModel(path);
-    case "ollama":
+    case "ollama": {
+      const model = await loadStr(vault, "ollama-model", "OPENHAWKINS_OLLAMA_MODEL", "llama3.1");
+      const baseUrl = await loadOpt(vault, "ollama-url", "OPENHAWKINS_OLLAMA_URL");
       return new OllamaAdapter({
-        model: process.env.OPENHAWKINS_OLLAMA_MODEL ?? "llama3.1",
-        ...(process.env.OPENHAWKINS_OLLAMA_URL
-          ? { baseUrl: process.env.OPENHAWKINS_OLLAMA_URL }
-          : {}),
-        ...(process.env.OPENHAWKINS_OLLAMA_KEY
-          ? { apiKey: process.env.OPENHAWKINS_OLLAMA_KEY }
-          : {}),
+        model,
+        ...(baseUrl ? { baseUrl } : {}),
+        ...(vault ? { apiKeyName: "ollama-key", vault } : {}),
       });
-    case "openai":
+    }
+    case "openai": {
+      const model = await loadStr(vault, "openai-model", "OPENHAWKINS_OPENAI_MODEL", "gpt-4o-mini");
+      const baseUrl = await loadStr(
+        vault,
+        "openai-url",
+        "OPENHAWKINS_OPENAI_URL",
+        "https://api.openai.com/v1",
+      );
       return new OpenAiCompatAdapter({
-        model: process.env.OPENHAWKINS_OPENAI_MODEL ?? "gpt-4o-mini",
-        baseUrl: process.env.OPENHAWKINS_OPENAI_URL ?? "https://api.openai.com/v1",
-        ...(process.env.OPENHAWKINS_OPENAI_KEY
-          ? { apiKey: process.env.OPENHAWKINS_OPENAI_KEY }
-          : {}),
+        model,
+        baseUrl,
+        ...(vault ? { apiKeyName: "openai-key", vault } : {}),
       });
+    }
     default:
       throw new Error(`unknown --model "${kind}" (use scripted | ollama | openai)`);
   }
@@ -77,9 +113,17 @@ async function main(): Promise<void> {
   const grounding = flag(args, "--grounding", "cited") as GroundingMode;
   const path = flag(args, "--path", tmpdir());
   const asJson = args.includes("--json");
+  const vaultPath = flag(args, "--vault", "");
+  const vaultPass = flag(args, "--vault-pass", "");
 
-  const adapter = buildAdapter(modelKind, path);
-  const agent = await buildProbeAgent({ adapter, grounding });
+  let vault: FileVault | undefined;
+  if (vaultPath && vaultPass) {
+    vault = new FileVault({ path: vaultPath, passphrase: vaultPass });
+  }
+
+  const logger = new JsonLogger();
+  const adapter = await buildAdapter(modelKind, path, vault);
+  const agent = await buildProbeAgent({ adapter, grounding, logger });
   const record = await agent.ask(prompt);
 
   if (asJson) {

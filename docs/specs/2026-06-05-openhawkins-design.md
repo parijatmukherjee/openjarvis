@@ -9,15 +9,7 @@
 
 ## 1. One-paragraph thesis
 
-OpenHawkins is a self-owned AI-agent platform. Where `openclaw-hawkins` is an
-_orchestration layer that rides on top of the external OpenClaw runtime_ (it
-shells out to `openclaw agent --agent <id> --message …`), OpenHawkins **owns the
-runtime itself** — the agent loop, model adapters, the tool/skill engine, durable
-state, shared memory, the chat channels, and the dashboard. The Hawkins pattern
-(Nexus + Tendrils + VINES + VECNA) becomes the _core_, not a plugin. The guiding
-principle: **the runtime enforces what OpenClaw left to the LLM's discretion** —
-tool-calling, grounding, state transitions, memory injection, permissions, and
-concurrency. The model proposes; the runtime enforces.
+OpenHawkins is **your personal AI assistant** — one brain, your devices. It runs on your PC, laptop, and phone, synchronized over your local network so your memory, context, and work follow you everywhere. **Your data never touches a cloud server.** The agent loop, model adapters, tool engine, durable state, and shared memory all live on your devices, talking to each other over encrypted local sync. The guiding principle: **the runtime enforces what models leave to chance** — tool-calling, grounding, state transitions, memory injection, permissions, and device routing. The model proposes; the runtime enforces. Your brain, everywhere.
 
 ---
 
@@ -56,9 +48,13 @@ concurrency. The model proposes; the runtime enforces.
   (Anthropic / OpenAI / Ollama) and own everything _above_ the raw model call.
 - A general-purpose agent _framework_ for third parties (we may expose a plugin
   API later, but v1 is a product, not a framework).
-- Voice channels, mobile apps (future).
-- Distributed/multi-host clustering in v1 (single-host daemon; design leaves the
-  door open via pluggable Postgres/MariaDB state).
+- Voice channels (future).
+- Cloud hosting / SaaS / multi-tenancy. OpenHawkins is **one person's personal
+  assistant**, not a hosted platform. Multi-device sync is device-to-device over
+  the local network, never through a cloud server.
+- Public API or external clients. The only network surface is encrypted device-to-device sync.
+- Distributed/multi-host clustering in v1 (single-device default; multi-device sync
+  is local-only, no relay).
 
 ---
 
@@ -73,7 +69,7 @@ derived from reading the `openclaw-hawkins` source (`src/dispatcher.ts`,
 | **P1**  | **Models hallucinate when they don't call tools**, even with clear skill instructions.                                                                                       | Skills/`AGENTS.md` are _passive prose_ injected into context. Tool-use is _optional_ — the model decides. Weak local models (kimi-k2, gemma via ollama) answer from parametric memory. No grounding check. | **The Grounding engine** (§5) — runtime-enforced tool-required skills, claim-citation verification, structured outputs, and an "I-don't-know / call-a-tool" path. The runtime _rejects_ ungrounded final answers and re-prompts.                                                            |
 | **P2**  | **Dispatch is subprocess-based and fragile.** `dispatchSpecialist` runs `openclaw agent … --json`, parses stdout.                                                            | Brittle: PATH/ENOENT, JSON parse failures, 16 MB buffer cap, no streaming, timeout = SIGTERM kill, no mid-flight cancellation.                                                                             | **In-process dispatch** over a typed message bus. Streaming token + tool-call events, cancellation, structured results — no subprocess, no stdout parsing.                                                                                                                                  |
 | **P3**  | **No streaming / no progress.** Synchronous request→response with a hard timeout; the Nexus blocks on a subprocess.                                                          | The runtime has no event model.                                                                                                                                                                            | **Event-sourced runtime.** Every turn emits `token`, `tool_call`, `tool_result`, `phase`, `state` events over WebSocket to channels + dashboard.                                                                                                                                            |
-| **P4**  | **Hard MariaDB dependency** for durability (VINES + VECNA).                                                                                                                  | Both subsystems require a MariaDB instance.                                                                                                                                                                | **Embedded SQLite by default** (zero-config, cross-platform). MariaDB/Postgres as _opt-in_ for multi-host. Storage is a pluggable driver.                                                                                                                                                   |
+| **P4**  | **Hard MariaDB dependency** for durability (VINES + VECNA).                                                                                                                  | Both subsystems require a MariaDB instance.                                                                                                                                                                | **Embedded SQLite default** (zero-config, cross-platform). SQLite on every device, synced device-to-device. No external database required.                                                                                                                                                  |
 | **P5**  | **State & memory are bolt-ons the LLM must remember to call.** VINES/VECNA are CLIs the orchestrator invokes via bash; if the model forgets `vines set-state`, state drifts. | Durability depends on LLM discipline.                                                                                                                                                                      | **Runtime-owned state & memory.** The orchestrator engine writes state transitions automatically as it drives the Pulse. Memory is **auto-injected** each turn — no manual `vecna recall` paste.                                                                                            |
 | **P6**  | **Operator oversight requires Linear** (third-party SaaS).                                                                                                                   | No built-in UI.                                                                                                                                                                                            | **Built-in Astro dashboard** + local event store. Linear/GitHub Issues become optional _exporters_, not the source of truth.                                                                                                                                                                |
 | **P7**  | **Concurrency is prose, not enforced.** "No more than 2 dispatches", "sequential by default" live in `AGENTS.md`.                                                            | The model is asked to self-limit.                                                                                                                                                                          | **Runtime scheduler** with enforced concurrency limits, queueing, and backpressure.                                                                                                                                                                                                         |
@@ -103,7 +99,7 @@ optional (an Ollama server, an opt-in Postgres/MariaDB).
 
 ```
                          ┌───────────────────────────────────────┐
-        operator ───────►│  CHANNELS  (Telegram · Discord · CLI · │
+        user ───────────►│  CHANNELS  (Telegram · Discord · CLI · │
                          │            WebSocket for dashboard)     │
                          └───────────────────┬───────────────────┘
                                              │ typed session messages
@@ -133,8 +129,22 @@ optional (an Ollama server, an opt-in Postgres/MariaDB).
        │  STATE (VINES)             │   MEMORY (VECNA)             │
        │  durable orchestration row │   decay-aware shared memory  │
        │  runtime-owned transitions │   auto-injected each turn    │
-       │  SQLite default / PG opt-in│   SQLite+embeddings default  │
-       └───────────────────────────────────────────────────────────┘
+       │  SQLite per device          │   SQLite+embeddings per device│
+       └──────────────────────────────────────────────────────────┘
+                             │
+              ┌──────────────▼──────────────┐
+              │  SYNC ENGINE (Track B)       │
+              │  • mDNS device discovery    │
+              │  • Noise encrypted sync      │
+              │  • CRDT conflict resolution  │
+              │  • master device election    │
+              └──────────────┬──────────────┘
+                             │ encrypted device-to-device
+              ┌──────────────▼──────────────┐
+              │  YOUR DEVICES                │
+              │  PC · Laptop · Phone · Tablet │
+              │  (all share one brain)       │
+              └─────────────────────────────┘
                              │
               ┌──────────────▼───────────────┐
               │  DASHBOARD (Astro, motion-rich)│  ◄── real-time over WebSocket
@@ -148,8 +158,9 @@ optional (an Ollama server, an opt-in Postgres/MariaDB).
 | Package                     | Responsibility                                                                                                                                                          | Key deps                                                      |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | `@openhawkins/core`         | Agent loop, model adapters, typed tool registry, **Grounding engine**, capability sandbox, event bus                                                                    | `@anthropic-ai/sdk`, `openai`, ollama client, `zod`/`typebox` |
-| `@openhawkins/state`        | VINES reborn — durable orchestration ledger, runtime-owned transitions, recovery                                                                                        | `better-sqlite3` (default), `pg`/`mariadb` (opt-in)           |
-| `@openhawkins/memory`       | VECNA reborn — fragments, decay ranking, embeddings, auto-injection                                                                                                     | sqlite-vec / local embeddings                                 |
+| `@openhawkins/state`        | VINES reborn — durable orchestration ledger, runtime-owned transitions, recovery (SQLite per device)                                                                    | `better-sqlite3`                                              |
+| `@openhawkins/memory`       | VECNA reborn — fragments, decay ranking, embeddings, auto-injection (SQLite per device)                                                                                 | sqlite-vec / local embeddings                                 |
+| `@openhawkins/sync`         | **Track B** — device identity, local-first sync, CRDT, mDNS discovery, Noise encrypted sync, cross-device task routing                                                  | `@openhawkins/state`, `@openhawkins/memory`                   |
 | `@openhawkins/tickets`      | **The Board** — operator ticket tracking (Cases); replaces Linear; SQLite-backed                                                                                        | state store                                                   |
 | `@openhawkins/orchestrator` | The Nexus — routing, the Pulse engine (in code), synthesis                                                                                                              | core, state, memory, tickets                                  |
 | `@openhawkins/tendrils`     | 6 specialist agent definitions + scoped tool surfaces                                                                                                                   | core                                                          |

@@ -15,6 +15,7 @@ export interface HttpRequestInit {
 export interface HttpResponse {
   ok: boolean;
   status: number;
+  headers?: Headers;
   text(): Promise<string>;
 }
 
@@ -41,13 +42,19 @@ export function parseJsonOrThrow<T>(text: string, provider: string, status: numb
   }
 }
 
+export interface AssertSafeBaseUrlOptions {
+  /** When true, http is rejected even on loopback (because a bearer key is in use). */
+  requireHttpsWhenKey?: boolean;
+}
+
 /** Require https for any non-loopback host — an http base to a remote host sends the
- *  bearer key in cleartext (review F-M4). Loopback http (local Ollama) is allowed. */
-export function assertSafeBaseUrl(url: string): void {
+ *  bearer key in cleartext (review F-M4). Loopback http (local Ollama) is allowed.
+ *  When `requireHttpsWhenKey` is true, http is rejected everywhere, including loopback. */
+export function assertSafeBaseUrl(url: string, opts?: AssertSafeBaseUrlOptions): void {
   const u = new URL(url); // throws on an unparseable URL
   const host = u.hostname.replace(/^\[|\]$/g, ""); // strip [] from IPv6
   const loopback = host === "127.0.0.1" || host === "localhost" || host === "::1";
-  if (u.protocol !== "https:" && !loopback) {
+  if (u.protocol !== "https:" && (!loopback || opts?.requireHttpsWhenKey)) {
     throw new Error(`baseUrl "${url}" requires https for a non-loopback host`);
   }
 }

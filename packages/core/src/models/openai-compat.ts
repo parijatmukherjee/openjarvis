@@ -13,6 +13,7 @@ import {
   withRetry,
   type HttpFetch,
 } from "./http.js";
+import type { Vault } from "../security/vault.js";
 
 /**
  * OpenAI-compatible adapter — the `/v1/chat/completions` wire format spoken by
@@ -24,7 +25,12 @@ export interface OpenAiCompatConfig {
   model: string;
   /** e.g. `https://api.groq.com/openai/v1` or a local server's `/v1`. */
   baseUrl: string;
+  /** Vault key name to resolve at request time (preferred over raw `apiKey`). */
+  apiKeyName?: string;
+  /** Raw bearer key — only used when `apiKeyName` is absent. */
   apiKey?: string;
+  /** Vault instance for resolving `apiKeyName`. */
+  vault?: Vault;
   http?: HttpFetch;
   /** Per-request deadline in ms before the call is aborted (default 30000). */
   timeoutMs?: number;
@@ -46,7 +52,9 @@ export class OpenAiCompatAdapter implements ModelAdapter {
   readonly name = "openai-compat";
   private readonly model: string;
   private readonly baseUrl: string;
+  private readonly apiKeyName: string | undefined;
   private readonly apiKey: string | undefined;
+  private readonly vault: Vault | undefined;
   private readonly http: HttpFetch;
   private readonly timeoutMs: number;
   private readonly retries: number;
@@ -55,8 +63,10 @@ export class OpenAiCompatAdapter implements ModelAdapter {
   constructor(cfg: OpenAiCompatConfig) {
     this.model = cfg.model;
     this.baseUrl = cfg.baseUrl.replace(/\/$/, "");
-    assertSafeBaseUrl(this.baseUrl);
+    assertSafeBaseUrl(this.baseUrl, { requireHttpsWhenKey: !!(cfg.apiKeyName || cfg.apiKey) });
+    this.apiKeyName = cfg.apiKeyName;
     this.apiKey = cfg.apiKey;
+    this.vault = cfg.vault;
     this.http = cfg.http ?? defaultHttp;
     this.timeoutMs = cfg.timeoutMs ?? 30000;
     this.retries = cfg.retries ?? 2;
@@ -83,8 +93,13 @@ export class OpenAiCompatAdapter implements ModelAdapter {
     }
 
     const headers: Record<string, string> = { "content-type": "application/json" };
-    if (this.apiKey) {
-      headers.authorization = `Bearer ${this.apiKey}`;
+    // Resolve the key inside generate() so it never outlives the request.
+    const apiKey =
+      this.apiKeyName && this.vault
+        ? ((await this.vault.get(this.apiKeyName)) ?? undefined)
+        : this.apiKey;
+    if (apiKey) {
+      headers.authorization = `Bearer ${apiKey}`;
     }
 
     const url = `${this.baseUrl}/chat/completions`;
@@ -100,7 +115,9 @@ export class OpenAiCompatAdapter implements ModelAdapter {
     );
     const text = await res.text();
     if (!res.ok) {
-      throw new Error(`openai-compat request failed (${res.status}): ${text}`);
+      const retryAfter = res.headers?.get("retry-after");
+      const suffix = retryAfter ? ` (retry-after: ${retryAfter})` : "";
+      throw new Error(`openai-compat request failed (${res.status})${suffix}: ${text}`);
     }
     return parseOpenAiResponse(
       parseJsonOrThrow<OpenAiChatResponse>(text, "openai-compat", res.status),

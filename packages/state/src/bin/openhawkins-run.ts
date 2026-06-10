@@ -2,6 +2,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ScriptedOperator, weakHostFactsModel, ValidateGate, JsonLogger } from "@openhawkins/core";
 import { buildDurableAgentRun, verifyDurable } from "../build-durable-agent-run.js";
+import { checkHealth } from "../health.js";
+import { anchorAuditChain, verifyAnchor, FileVault, resolveAuditKey } from "@openhawkins/core";
+import { openDatabase } from "../driver/driver.js";
+import { SqliteAuditLog } from "../audit-store.js";
+import { rollback } from "../migrate.js";
+import { SCHEMA } from "../schema.js";
 
 /**
  * `openhawkins-run` — a durable, keyed-audit agent run over SQLite (A1b: F-C1/F-C2 at
@@ -9,6 +15,12 @@ import { buildDurableAgentRun, verifyDurable } from "../build-durable-agent-run.
  * SQLite event store, the Vault-resolved audit key, and the keyed HMAC chain are all REAL.
  * `--verify` reopens an existing db+vault (a SEPARATE process) and reports whether the
  * keyed chain still verifies — the cross-process durability proof.
+ * `--health` reports DB connectivity, vault unlock status, last audit verification, and
+ * recent error rate.
+ * `--anchor` writes an external tamper-evident anchor after the run.
+ * `--verify-anchor` checks the external anchor against the current audit tip before running.
+ * `--vacuum` runs VACUUM on the database before starting.
+ * `--rollback <steps>` undoes the last N migrations before starting.
  */
 function flag(args: string[], name: string, fallback: string): string {
   const i = args.indexOf(name);
@@ -25,6 +37,65 @@ async function main(): Promise<void> {
     process.env.OPENHAWKINS_VAULT_PASS ?? "openhawkins",
   );
   const asJson = args.includes("--json");
+  const anchorPath = flag(args, "--anchor", "");
+  const verifyAnchorPath = flag(args, "--verify-anchor", "");
+  const vacuum = args.includes("--vacuum");
+  const rollbackStepsRaw = flag(args, "--rollback", "");
+  const rollbackSteps = rollbackStepsRaw ? Number(rollbackStepsRaw) : undefined;
+
+  if (vacuum || rollbackSteps !== undefined) {
+    const db = openDatabase({ path: dbPath });
+    try {
+      if (vacuum) {
+        db.vacuum();
+        console.log(asJson ? JSON.stringify({ mode: "vacuum", ok: true }) : `vacuum: ok`);
+      }
+      if (rollbackSteps !== undefined) {
+        const rolled = rollback(db, SCHEMA, rollbackSteps);
+        console.log(
+          asJson
+            ? JSON.stringify({ mode: "rollback", rolled })
+            : `rollback: ${rolled} migration(s) rolled back`,
+        );
+      }
+    } finally {
+      db.close();
+    }
+    if (
+      !args.includes("--verify") &&
+      !args.includes("--health") &&
+      !anchorPath &&
+      !verifyAnchorPath
+    ) {
+      return;
+    }
+  }
+
+  if (verifyAnchorPath) {
+    const db = openDatabase({ path: dbPath });
+    try {
+      const key = await resolveAuditKey(new FileVault({ path: vaultPath, passphrase }));
+      const audit = new SqliteAuditLog(db, key);
+      const v = await verifyAnchor(audit, verifyAnchorPath);
+      console.log(
+        asJson
+          ? JSON.stringify({ mode: "verify-anchor", ...v })
+          : `verify-anchor: ${v.ok ? "ok" : "TAMPERED or MISMATCHED"}`,
+      );
+      if (!v.ok) {
+        process.exitCode = 1;
+      }
+      return;
+    } finally {
+      db.close();
+    }
+  }
+
+  if (args.includes("--health")) {
+    const h = await checkHealth({ dbPath, vaultPath, passphrase });
+    console.log(asJson ? JSON.stringify({ mode: "health", ...h }) : `health: ${JSON.stringify(h)}`);
+    return;
+  }
 
   if (args.includes("--verify")) {
     const v = await verifyDurable({ dbPath, vaultPath, passphrase });
@@ -48,12 +119,15 @@ async function main(): Promise<void> {
     logger: new JsonLogger(),
   });
   const result = await built.run.run();
-  const verified = await built.audit.verify();
+  const verified = (await built.audit.verify()).ok;
+  if (anchorPath) {
+    await anchorAuditChain(built.audit, anchorPath);
+  }
   built.close();
   console.log(
     asJson
-      ? JSON.stringify({ mode: "run", result, auditVerified: verified })
-      : `run ${result.kind}; audit ${verified ? "verified" : "TAMPERED"}; db ${dbPath}`,
+      ? JSON.stringify({ mode: "run", result, auditVerified: verified, anchored: !!anchorPath })
+      : `run ${result.kind}; audit ${verified ? "verified" : "TAMPERED"}; db ${dbPath}${anchorPath ? `; anchored ${anchorPath}` : ""}`,
   );
 }
 

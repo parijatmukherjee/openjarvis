@@ -1,4 +1,5 @@
 import type { EventStore, DomainEvent } from "@openhawkins/core";
+import { parseJsonOrThrow } from "@openhawkins/core";
 import { type SqlDriver, type SqlStatement, openDatabase } from "./driver/driver.js";
 import { migrate } from "./migrate.js";
 import { SCHEMA } from "./schema.js";
@@ -12,7 +13,6 @@ import { SCHEMA } from "./schema.js";
 export class SqliteEventStore implements EventStore {
   private readonly db: SqlDriver;
   private readonly insertStmt: SqlStatement;
-  private readonly selectStmt: SqlStatement;
 
   constructor(db: SqlDriver) {
     this.db = db;
@@ -20,7 +20,6 @@ export class SqliteEventStore implements EventStore {
     this.insertStmt = db.prepare(
       "INSERT INTO events (session_id, type, payload, at) VALUES (?, ?, ?, ?)",
     );
-    this.selectStmt = db.prepare("SELECT payload FROM events WHERE session_id = ? ORDER BY seq");
   }
 
   /** Open (or create) a database file (or ":memory:") and run migrations. */
@@ -32,9 +31,24 @@ export class SqliteEventStore implements EventStore {
     this.insertStmt.run(event.sessionId, event.type, JSON.stringify(event), event.at);
   }
 
-  async read(sessionId: string): Promise<DomainEvent[]> {
-    const rows = this.selectStmt.all(sessionId) as { payload: string }[];
-    return rows.map((r) => JSON.parse(r.payload) as DomainEvent);
+  async read(
+    sessionId: string,
+    opts?: { limit?: number; afterSeq?: number },
+  ): Promise<DomainEvent[]> {
+    let sql = "SELECT payload FROM events WHERE session_id = ?";
+    const params: unknown[] = [sessionId];
+    if (opts?.afterSeq !== undefined) {
+      sql += " AND seq > ?";
+      params.push(opts.afterSeq);
+    }
+    sql += " ORDER BY seq";
+    if (opts?.limit !== undefined) {
+      sql += " LIMIT ?";
+      params.push(opts.limit);
+    }
+    const stmt = this.db.prepare(sql);
+    const rows = stmt.all(...params) as { payload: string }[];
+    return rows.map((r) => parseJsonOrThrow<DomainEvent>(r.payload, "SqliteEventStore", 200));
   }
 
   close(): void {

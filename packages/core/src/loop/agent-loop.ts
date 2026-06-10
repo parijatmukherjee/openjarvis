@@ -4,6 +4,12 @@ import type { ToolDefinition, ToolCall, ToolContext } from "../tools/tool.js";
 import type { AgentGrant } from "../security/capability.js";
 import { toJsonSchema } from "../tools/to-json-schema.js";
 import type { AcceptPolicy, AcceptContext, TurnRecord } from "./turn.js";
+import type { MemoryStore } from "../memory.js";
+import type { MetricsCollector } from "../observability/metrics.js";
+import { noopMetricsCollector } from "../observability/metrics.js";
+import type { Logger } from "../observability/logger.js";
+import { noopLogger } from "../observability/logger.js";
+import { tokenBucket, calculateBackoff } from "../util/rate-limiter.js";
 
 // Tools are heterogeneous in their <A,R> type parameters; the loop only reads
 // name/description/args, so it stores them with erased type variables (same
@@ -27,6 +33,18 @@ export interface AgentLoopConfig {
   systemPrompt?: string;
   /** Hard ceiling on model round-trips; on exceed the turn ends ungrounded. */
   maxModelCalls?: number;
+  /** Optional memory store for context injection before each turn. */
+  memory?: MemoryStore;
+  /** Correlation ID propagated through model calls, tool calls, and audit entries. */
+  traceId?: string;
+  /** Metrics collector for turn lifecycle and latency telemetry. */
+  metrics?: MetricsCollector;
+  /** Optional rate limiting for model calls. */
+  rateLimit?: {
+    capacity: number;
+    refillRate: number;
+    logger?: Logger;
+  };
 }
 
 /**
@@ -39,7 +57,12 @@ export interface AgentLoopConfig {
 export async function runAgentTurn(cfg: AgentLoopConfig, input: string): Promise<TurnRecord> {
   const policy = cfg.policy ?? acceptAlways;
   const maxModelCalls = cfg.maxModelCalls ?? 6;
-  const ctx: ToolContext = { agentId: cfg.grant.agentId };
+  const metrics = cfg.metrics ?? noopMetricsCollector;
+  metrics.increment("TurnStarted");
+  const ctx: ToolContext = {
+    agentId: cfg.grant.agentId,
+    ...(cfg.traceId ? { traceId: cfg.traceId } : {}),
+  };
 
   const toolSchemas: ToolSchema[] = cfg.tools.map((t) => ({
     name: t.name,
@@ -59,9 +82,24 @@ export async function runAgentTurn(cfg: AgentLoopConfig, input: string): Promise
     toolCalls: [],
     corrections: [],
     accepted: false,
+    ...(cfg.traceId ? { traceId: cfg.traceId } : {}),
   };
 
+  const limiter = cfg.rateLimit ? tokenBucket("agent-loop-model-call", cfg.rateLimit) : null;
+  const logger = cfg.rateLimit?.logger ?? noopLogger;
+  let rateLimitAttempt = 0;
+
   while (record.modelCalls.length < maxModelCalls) {
+    if (limiter && !limiter.allow()) {
+      logger.log("warn", "rate-limited", {
+        detail: `model call rate limit exceeded (capacity=${cfg.rateLimit!.capacity}, refillRate=${cfg.rateLimit!.refillRate})`,
+      });
+      const backoff = calculateBackoff(rateLimitAttempt++, 100);
+      logger.log("debug", "rate-limit-backoff", { ms: backoff });
+      await new Promise((r) => setTimeout(r, backoff));
+      continue;
+    }
+    rateLimitAttempt = 0;
     const out = await cfg.adapter.generate({ messages, tools: toolSchemas });
     record.modelCalls.push({
       request: messages.map((m) => ({ ...m })),
@@ -92,6 +130,7 @@ export async function runAgentTurn(cfg: AgentLoopConfig, input: string): Promise
       if (decision.flagged) {
         record.flagged = decision.flagged;
       }
+      metrics.increment("TurnCompleted");
       return record;
     }
 
@@ -101,5 +140,6 @@ export async function runAgentTurn(cfg: AgentLoopConfig, input: string): Promise
   }
 
   // Budget exhausted without an accepted answer — a grounded failure, not a guess.
+  metrics.increment("TurnFailed");
   return record;
 }

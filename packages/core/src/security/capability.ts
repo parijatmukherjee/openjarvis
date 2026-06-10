@@ -6,7 +6,8 @@ export type CapabilityName =
   | "fs:write"
   | "host:info"
   | "model-call"
-  | "playbook:override";
+  | "playbook:override"
+  | "document:convert";
 
 export interface Capability {
   name: CapabilityName;
@@ -20,19 +21,24 @@ export interface AgentGrant {
 }
 
 /**
- * Does `grant` satisfy `required`? A capability matches when names are equal and
- * either side's scope is broad (undefined) or the scopes are equal. Default-deny:
- * no matching capability => false.
+ * Does `grant` satisfy `required`? A capability matches when names are equal and:
+ * - a scopeless requirement matches only a scopeless grant (deny-by-default for scope);
+ * - a scoped requirement matches only if the grant's scope is a prefix of the required
+ *   scope (or the grant is scopeless, which is broad).
  *
- * KNOWN-LIMITATION(S6): a scoped grant (e.g. `fs:read` scope `/var`) also satisfies
- * a scope-LESS requirement of the same name. So scope narrows peer-to-peer matching,
- * not the actual reach of a tool that declares no scope. True path/resource
- * confinement arrives with the S6 process sandbox; until then, scope is advisory.
+ * Default-deny: no matching capability => false.
  */
 export function grantSatisfies(grant: AgentGrant, required: Capability): boolean {
-  return grant.capabilities.some(
-    (c) =>
-      c.name === required.name &&
-      (c.scope === undefined || required.scope === undefined || c.scope === required.scope),
-  );
+  return grant.capabilities.some((c) => {
+    if (c.name !== required.name) return false;
+    // Scopeless requirement → scopeless grant only (deny-by-default for scope).
+    if (required.scope === undefined) {
+      return c.scope === undefined;
+    }
+    // Scoped requirement → scopeless grant (broad) or scoped grant with matching prefix.
+    if (c.scope === undefined) {
+      return true;
+    }
+    return required.scope.startsWith(c.scope);
+  });
 }

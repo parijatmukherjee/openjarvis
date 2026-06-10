@@ -79,7 +79,7 @@ async function main(): Promise<void> {
   });
 
   const result = await built.run.run();
-  const verified = await built.audit.verify();
+  const verified = (await built.audit.verify()).ok;
   if (asJson) {
     const entries = await built.audit.entries();
     console.log(JSON.stringify({ result, auditEntries: entries.length, auditVerified: verified }));
