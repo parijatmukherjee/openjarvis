@@ -3,7 +3,10 @@
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
-    "composite": false
+    "composite": false,
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023", "DOM"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"]
 }
