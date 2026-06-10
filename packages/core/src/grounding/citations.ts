@@ -90,8 +90,13 @@ export type ParsedAnswer =
   | { kind: "unknown" }
   | { kind: "invalid" };
 
+const MAX_ANSWER_BYTES = 1_048_576; // 1 MB
+
 /** Classify a model's final string as a cited answer, an honest unknown, or junk. */
 export function parseAnswer(content: string): ParsedAnswer {
+  if (Buffer.byteLength(content, "utf8") > MAX_ANSWER_BYTES) {
+    return { kind: "invalid" };
+  }
   let json: unknown;
   try {
     json = JSON.parse(content);
