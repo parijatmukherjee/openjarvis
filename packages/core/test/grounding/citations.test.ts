@@ -31,7 +31,10 @@ describe("parseAnswer", () => {
 
   it("rejects payloads exceeding MAX_ANSWER_BYTES", () => {
     const bigText = "x".repeat(1_048_576);
-    const valid = JSON.stringify({ text: bigText, claims: [{ statement: "ok", citesToolResultId: "t1" }] });
+    const valid = JSON.stringify({
+      text: bigText,
+      claims: [{ statement: "ok", citesToolResultId: "t1" }],
+    });
     expect(valid.length).toBeGreaterThan(1_048_576);
     const parsed = parseAnswer(valid);
     expect(parsed.kind).toBe("invalid");

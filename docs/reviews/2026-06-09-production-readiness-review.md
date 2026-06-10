@@ -86,6 +86,7 @@ Ordered by leverage (foundational first):
 **Revised vision (2026-06-10):** OpenHawkins is **one person's personal assistant**, not a SaaS platform. Track B is not about scaling to millions of users — it is about making the user's brain (one Vault, one event store, one VECNA memory graph) available on **all their devices** (PC, laptop, phone) without ever touching a cloud server.
 
 **Core principles:**
+
 1. **One brain, multiple devices.** The same VECNA memory, the same audit chain, the same tool registry — synchronized across all approved devices.
 2. **Local-first, always.** All data stays on the user's devices. Sync is device-to-device over the local network (Wi-Fi / LAN). No cloud server, no relay, no third-party storage.
 3. **Works offline.** Each device has a full copy of the brain. Network absence is normal, not an error. Changes sync when devices reconnect.
@@ -95,13 +96,13 @@ Ordered by leverage (foundational first):
 
 **Track B subsystems (spec: [`docs/specs/2026-06-10-track-b-personal-assistant.md`](../specs/2026-06-10-track-b-personal-assistant.md)):**
 
-| # | Subsystem | What it is | Status |
-|---|-----------|-----------|--------|
-| B1 | **Device Identity & Approval** | Pairing flow (QR code). Ed25519 keypairs. User approves new devices. Vault becomes a sync group. | 🟡 SPEC DONE |
-| B2 | **Local-First Data Architecture** | SQLite per device + CRDT/event-log sync. VECNA memory replicates. Event store syncs. | 🔴 PENDING |
-| B3 | **Device Discovery & Sync Network** | mDNS/Bonjour on LAN. Noise protocol encrypted sync. Master device election. | 🔴 PENDING |
-| B4 | **Cross-Device Task Scheduling** | Route tasks to best device. Battery-aware. Offline queueing. | 🔴 PENDING |
-| B5 | **Device-Level Capability Grants** | User grants capabilities per device. | 🔴 PENDING |
+| #   | Subsystem                           | What it is                                                                                       | Status       |
+| --- | ----------------------------------- | ------------------------------------------------------------------------------------------------ | ------------ |
+| B1  | **Device Identity & Approval**      | Pairing flow (QR code). Ed25519 keypairs. User approves new devices. Vault becomes a sync group. | 🟡 SPEC DONE |
+| B2  | **Local-First Data Architecture**   | SQLite per device + CRDT/event-log sync. VECNA memory replicates. Event store syncs.             | 🔴 PENDING   |
+| B3  | **Device Discovery & Sync Network** | mDNS/Bonjour on LAN. Noise protocol encrypted sync. Master device election.                      | 🔴 PENDING   |
+| B4  | **Cross-Device Task Scheduling**    | Route tasks to best device. Battery-aware. Offline queueing.                                     | 🔴 PENDING   |
+| B5  | **Device-Level Capability Grants**  | User grants capabilities per device.                                                             | 🔴 PENDING   |
 
 ### Sequencing note
 

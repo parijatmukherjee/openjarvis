@@ -3,7 +3,7 @@
 **Date:** 2026-06-10  
 **Status:** Design spec — approved for implementation  
 **Author:** Parijat Mukherjee (with OpenCode)  
-**Source:** [`docs/reviews/2026-06-09-production-readiness-review.md`](../../reviews/2026-06-09-production-readiness-review.md) §Track B  
+**Source:** [`docs/reviews/2026-06-09-production-readiness-review.md`](../../reviews/2026-06-09-production-readiness-review.md) §Track B
 
 ---
 
@@ -78,6 +78,7 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 ### 3.1 App architecture
 
 **Desktop (Electron):**
+
 - **Frontend:** React/Vue/Svelte inside Electron Chromium (or the existing Astro dashboard rendered in a WebView)
 - **Backend:** The OpenHawkins daemon runs as a hidden Node.js process inside Electron (via `child_process` or `NodeIntegration`)
 - **IPC:** Electron's `ipcMain`/`ipcRenderer` for UI ↔ daemon communication
@@ -85,6 +86,7 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 - **Auto-update:** Electron's `autoUpdater` (or `electron-updater`) with update files served from the user's primary device (no external server)
 
 **Mobile (Flutter):**
+
 - **Frontend:** Flutter UI (Dart) — one codebase for iOS and Android
 - **Backend:** The OpenHawkins daemon compiled to a native library (via `dart:ffi` binding to a Rust/C++ wrapper around the TypeScript core, or via a headless Flutter isolate running the daemon)
 - **Communication:** Flutter `MethodChannel`/`EventChannel` for UI ↔ daemon
@@ -146,13 +148,13 @@ Both Electron and Flutter apps embed the same OpenHawkins daemon (the TypeScript
 
 ## 4. Track B Subsystems
 
-| # | Subsystem | What it is | Depends on |
-|---|-----------|-----------|------------|
-| B1 | **Device Identity & Approval** | Pairing flow. Each device gets a `deviceId` + Ed25519 keypair. User approves new devices on existing devices. The Vault becomes a sync group. | — (foundational) |
-| B2 | **Local-First Data Architecture** | SQLite per device + CRDT/event-log sync. VECNA memory replicates. Event store syncs. Conflict resolution. | B1 |
-| B3 | **Device Discovery & Sync Network** | mDNS/Bonjour on LAN. Encrypted sync (Noise protocol). Master device election. Offline-capable. | B1, B2 |
-| B4 | **Cross-Device Task Scheduling** | Route tasks to best device. Battery-aware. Offline queueing. | B1, B2, B3 |
-| B5 | **Device-Level Capability Grants** | User grants capabilities per device: "phone can send SMS", "PC can access ~/Documents". | B1 |
+| #   | Subsystem                           | What it is                                                                                                                                    | Depends on       |
+| --- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| B1  | **Device Identity & Approval**      | Pairing flow. Each device gets a `deviceId` + Ed25519 keypair. User approves new devices on existing devices. The Vault becomes a sync group. | — (foundational) |
+| B2  | **Local-First Data Architecture**   | SQLite per device + CRDT/event-log sync. VECNA memory replicates. Event store syncs. Conflict resolution.                                     | B1               |
+| B3  | **Device Discovery & Sync Network** | mDNS/Bonjour on LAN. Encrypted sync (Noise protocol). Master device election. Offline-capable.                                                | B1, B2           |
+| B4  | **Cross-Device Task Scheduling**    | Route tasks to best device. Battery-aware. Offline queueing.                                                                                  | B1, B2, B3       |
+| B5  | **Device-Level Capability Grants**  | User grants capabilities per device: "phone can send SMS", "PC can access ~/Documents".                                                       | B1               |
 
 ---
 
@@ -161,6 +163,7 @@ Both Electron and Flutter apps embed the same OpenHawkins daemon (the TypeScript
 ### 5.1 Device identity
 
 Each device has:
+
 - `deviceId`: UUID (generated on first run, persisted in `~/.openhawkins/device.json`)
 - `deviceName`: user-editable (e.g., "Parijat's MacBook Pro")
 - `deviceType`: `"desktop" | "laptop" | "mobile" | "tablet" | "server"`
@@ -206,6 +209,7 @@ PC (existing)                           Phone (new)
 ### 5.3 Vault as sync group
 
 The Vault is re-interpreted:
+
 - **Before:** A single encrypted file on one device.
 - **After:** The same encrypted file, but every device has a copy. When a device changes a secret, it syncs the delta to other devices.
 - **Conflict resolution:** Last-write-wins with a vector clock per key. If two devices write the same key simultaneously, the lexicographically larger vector clock wins, and the losing write is kept as a conflict tombstone.
@@ -266,6 +270,7 @@ CREATE TABLE _sync_state (
 ### 6.2 CRDT for VECNA memory
 
 Memory fragments are naturally CRDT-friendly:
+
 - **Create:** A new fragment has a unique `fragmentId` (UUID), a `createdAt` timestamp, and a vector clock. Creating a fragment is commutative — any device can create one.
 - **Update:** Fragments are immutable. An "update" creates a new fragment version with the same `fragmentId` and a higher vector clock. The latest version wins.
 - **Delete:** Soft delete (tombstone with `deletedAt`). Tombstones are preserved so sync can propagate the deletion.
@@ -275,6 +280,7 @@ Memory fragments are naturally CRDT-friendly:
 ### 6.3 Event log sync
 
 The event store is append-only. Sync is simple:
+
 1. Device A sends device B: "I have events up to seq 1234"
 2. Device B replies: "I have events up to seq 1000; send me 1001-1234"
 3. Device A sends the delta
@@ -293,6 +299,7 @@ The audit chain is append-only and hash-chained. Syncing it is identical to the 
 ### 7.1 mDNS/Bonjour discovery
 
 Each device advertises itself on the local network via mDNS:
+
 ```
 Service: _openhawkins._tcp.local
 Name:    Parijat's MacBook Pro
@@ -348,6 +355,7 @@ Sync is pull-based: each device periodically asks peers "what do you have that I
 ### 7.4 Master device election
 
 One device is elected "master" per sync group. The master is responsible for:
+
 - Assigning `device_seq` numbers to new devices (preventing seq collisions)
 - Coordinating Vault key rotation
 - Acting as the "source of truth" when devices disagree (rare, since conflicts are resolved by vector clock)
@@ -366,7 +374,7 @@ The user asks a question on their phone: "Summarize the quarterly report."
 Phone (where the question was asked)
   │
   │  1. Phone adds the task to its local queue
-  │     with routing hints: { preferredDevice: "pc", 
+  │     with routing hints: { preferredDevice: "pc",
   │                            fallbackDevice: "laptop" }
   │
   │  2. Phone's daemon detects the PC is online
@@ -385,13 +393,13 @@ Each device advertises its capabilities:
 
 ```typescript
 interface DeviceCapabilities {
-  compute: "low" | "medium" | "high";      // CPU/GPU power
+  compute: "low" | "medium" | "high"; // CPU/GPU power
   battery?: { level: number; charging: boolean }; // null for plugged-in devices
-  storage: "full" | "limited";              // can it store the full brain?
+  storage: "full" | "limited"; // can it store the full brain?
   network: "wifi" | "cellular" | "offline";
-  tools: string[];                           // which tools are available on this device
-                                             // e.g., ["sms", "camera"] on phone
-                                             //       ["shell", "docker"] on PC
+  tools: string[]; // which tools are available on this device
+  // e.g., ["sms", "camera"] on phone
+  //       ["shell", "docker"] on PC
 }
 ```
 
@@ -400,26 +408,25 @@ interface DeviceCapabilities {
 ```typescript
 function routeTask(task: Task, devices: DeviceInfo[]): DeviceInfo {
   // 1. Filter to devices that are online and have the required tools
-  const candidates = devices.filter(d => 
-    d.online && 
-    task.requiredTools.every(t => d.capabilities.tools.includes(t))
+  const candidates = devices.filter(
+    (d) => d.online && task.requiredTools.every((t) => d.capabilities.tools.includes(t)),
   );
-  
+
   // 2. Prefer the device with the highest compute
   candidates.sort((a, b) => computeRank(b) - computeRank(a));
-  
+
   // 3. Avoid mobile devices if the task is compute-heavy
   if (task.computeEstimate === "high") {
-    const nonMobile = candidates.filter(d => d.deviceType !== "mobile");
+    const nonMobile = candidates.filter((d) => d.deviceType !== "mobile");
     if (nonMobile.length > 0) return nonMobile[0];
   }
-  
+
   // 4. Avoid battery-powered devices if the task is long
   if (task.estimatedDuration > 30000) {
-    const pluggedIn = candidates.filter(d => !d.capabilities.battery?.charging);
+    const pluggedIn = candidates.filter((d) => !d.capabilities.battery?.charging);
     if (pluggedIn.length > 0) return pluggedIn[0];
   }
-  
+
   return candidates[0];
 }
 ```
@@ -452,6 +459,7 @@ The user can toggle capabilities on/off per device. Changes sync to all devices.
 ### 9.2 Enforcement
 
 When a device attempts to invoke a tool:
+
 1. The tool's `capabilities` are checked against the device's granted capabilities (stored in `_devices` table)
 2. If the device lacks a required capability, the tool invocation is rejected with a `ToolCapabilityError`
 3. The error is logged in the audit trail: `deviceId` attempted `toolName` without `capabilityName`
@@ -459,6 +467,7 @@ When a device attempts to invoke a tool:
 ### 9.3 New capability: `device:admin`
 
 Only devices with `device:admin` can:
+
 - Approve new devices
 - Revoke devices
 - Change capability grants
@@ -474,6 +483,7 @@ The first device automatically gets `device:admin`. The user can grant/revoke `d
 The single-device "self-host" profile is unchanged. All multi-device code is behind a `--sync` flag or auto-detected (if multiple devices are configured). Existing users running OpenHawkins on one machine see no behavior change.
 
 When upgrading from single-device to multi-device:
+
 1. The existing device becomes the "bootstrap" device (automatically gets `device:admin`)
 2. The user runs `openhawkins device add` to start pairing
 3. The existing SQLite database is treated as the "master" copy; new devices receive a full sync
@@ -482,14 +492,14 @@ When upgrading from single-device to multi-device:
 
 ## 11. Security summary
 
-| Threat | Defense |
-|--------|---------|
-| Attacker on the internet | No cloud surface; LAN-only sync |
-| Attacker on the same Wi-Fi | Noise-encrypted sync; mDNS only advertises key hash |
-| Stolen device | Revocation from any other device; revoked device can't read future sync |
-| Malicious device on LAN | User must explicitly approve; no auto-join |
-| Eavesdropping on sync traffic | End-to-end encryption via Noise protocol |
-| Device without permission tries tool | Device-level capability grants enforced at runtime |
+| Threat                               | Defense                                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| Attacker on the internet             | No cloud surface; LAN-only sync                                         |
+| Attacker on the same Wi-Fi           | Noise-encrypted sync; mDNS only advertises key hash                     |
+| Stolen device                        | Revocation from any other device; revoked device can't read future sync |
+| Malicious device on LAN              | User must explicitly approve; no auto-join                              |
+| Eavesdropping on sync traffic        | End-to-end encryption via Noise protocol                                |
+| Device without permission tries tool | Device-level capability grants enforced at runtime                      |
 
 ---
 
@@ -515,4 +525,4 @@ When upgrading from single-device to multi-device:
 
 ---
 
-*Next step: Write implementation plan for B1 → B5, then execute. See [`docs/plans/2026-06-10-track-b-implementation.md`](../../plans/2026-06-10-track-b-implementation.md).*
+_Next step: Write implementation plan for B1 → B5, then execute. See [`docs/plans/2026-06-10-track-b-implementation.md`](../../plans/2026-06-10-track-b-implementation.md)._

@@ -91,9 +91,10 @@ export class OllamaAdapter implements ModelAdapter {
 
     const headers: Record<string, string> = { "content-type": "application/json" };
     // Resolve the key inside generate() so it never outlives the request.
-    const apiKey = this.apiKeyName && this.vault
-      ? await this.vault.get(this.apiKeyName) ?? undefined
-      : this.apiKey;
+    const apiKey =
+      this.apiKeyName && this.vault
+        ? ((await this.vault.get(this.apiKeyName)) ?? undefined)
+        : this.apiKey;
     if (apiKey) {
       headers.authorization = `Bearer ${apiKey}`;
     }
