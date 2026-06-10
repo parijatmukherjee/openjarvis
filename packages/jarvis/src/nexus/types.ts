@@ -45,8 +45,8 @@ export type VisualCommand =
 
 export interface Synthesis {
   spoken: string;
-  visual?: VisualCommand[];
-  action?: string;
+  visual?: VisualCommand[] | undefined;
+  action?: string | undefined;
 }
 
 export interface AgentInfo {
@@ -61,4 +61,12 @@ export interface AgentContext {
   sessionId: string;
   intent: Intent;
   memory?: unknown;
+}
+
+export interface Synthesizer {
+  synthesize(
+    results: AgentResult[],
+    originalIntent: Intent,
+    context: JarvisContext,
+  ): Promise<Synthesis>;
 }

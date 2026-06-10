@@ -1,11 +1,13 @@
-import type { Synthesizer, AgentResult, Intent, JarvisContext, Synthesis } from "./types.js";
+import type { AgentResult, Intent, JarvisContext, Synthesis, Synthesizer } from "./types.js";
 
-export interface Synthesizer {
-  synthesize(results: AgentResult[], originalIntent: Intent, context: JarvisContext): Promise<Synthesis>;
-}
+export type { Synthesizer };
 
 export class RuleBasedSynthesizer implements Synthesizer {
-  async synthesize(results: AgentResult[], originalIntent: Intent, _context: JarvisContext): Promise<Synthesis> {
+  async synthesize(
+    results: AgentResult[],
+    _originalIntent: Intent,
+    _context: JarvisContext,
+  ): Promise<Synthesis> {
     const parts: string[] = [];
     const visual: Synthesis["visual"] = [];
 

@@ -1,4 +1,4 @@
-import type { EventBus } from "../event-bus/simple.js";
+import type { EventBus, BusEvent } from "../event-bus.js";
 import type { NexusEvent } from "./events.js";
 
 export class ReplayEngine {
@@ -6,7 +6,7 @@ export class ReplayEngine {
   private sequence = 0;
 
   constructor(eventBus: EventBus) {
-    eventBus.subscribe("nexus", (event) => {
+    eventBus.subscribe("nexus", (event: BusEvent) => {
       const payload = event.payload as NexusEvent;
       const sessionId = (payload as { sessionId: string }).sessionId;
       if (!this.eventLog.has(sessionId)) {

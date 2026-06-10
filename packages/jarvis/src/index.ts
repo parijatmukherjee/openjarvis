@@ -16,5 +16,6 @@ export * from "./display/mock.js";
 export * from "./agents/mock-delegator.js";
 export * from "./scheduler/simple.js";
 export * from "./event-bus/simple.js";
-export type { AgentRoute, DispatchPlan, AgentContext } from "./nexus/types.js";
-export * from "./nexus/events.js";
+
+// Nexus exports are available via deep import: @openjarvis/jarvis/nexus
+// export * from "./nexus/index.js";

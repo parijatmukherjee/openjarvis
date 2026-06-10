@@ -12,7 +12,12 @@ describe("RuleBasedRouter", () => {
   };
 
   it("routes 'search' intent to research agent", () => {
-    const intent: Intent = { action: "search", params: { query: "weather" }, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "search",
+      params: { query: "weather" },
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const plan = router.route(intent, context);
     expect(plan.primary?.agentId).toBe("research");
     expect(plan.parallel).toHaveLength(0);
@@ -28,7 +33,12 @@ describe("RuleBasedRouter", () => {
   });
 
   it("routes 'open_app' intent to system agent", () => {
-    const intent: Intent = { action: "open_app", params: { app: "Calendar" }, confidence: 0.95, ambiguous: false };
+    const intent: Intent = {
+      action: "open_app",
+      params: { app: "Calendar" },
+      confidence: 0.95,
+      ambiguous: false,
+    };
     const plan = router.route(intent, context);
     expect(plan.primary?.agentId).toBe("system");
   });

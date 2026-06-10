@@ -1,5 +1,5 @@
-import type { EventBus } from "../event-bus/simple.js";
-import type { Intent, JarvisContext, Synthesis, AgentResult, AgentRoute, DispatchPlan } from "./types.js";
+import type { EventBus } from "../event-bus.js";
+import type { Intent, JarvisContext, Synthesis, AgentResult, AgentRoute } from "./types.js";
 import type { IntentRouter } from "./router.js";
 import type { AgentPool } from "./pool.js";
 import type { Synthesizer } from "./synthesizer.js";
@@ -89,7 +89,12 @@ export class NexusEngine {
 
     const agentContext = {
       sessionId,
-      intent: context.recentIntents[context.recentIntents.length - 1] ?? { action: "unknown", params: {}, confidence: 0, ambiguous: true },
+      intent: context.recentIntents[context.recentIntents.length - 1] ?? {
+        action: "unknown",
+        params: {},
+        confidence: 0,
+        ambiguous: true,
+      },
       memory: undefined,
     };
 

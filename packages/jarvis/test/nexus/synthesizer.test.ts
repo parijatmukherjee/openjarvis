@@ -12,8 +12,15 @@ describe("RuleBasedSynthesizer", () => {
   };
 
   it("synthesizes weather result", async () => {
-    const intent: Intent = { action: "check_weather", params: {}, confidence: 0.9, ambiguous: false };
-    const results: AgentResult[] = [{ agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } }];
+    const intent: Intent = {
+      action: "check_weather",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
+    const results: AgentResult[] = [
+      { agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } },
+    ];
     const synthesis = await synthesizer.synthesize(results, intent, context);
     expect(synthesis.spoken).toMatch(/72/);
     expect(synthesis.spoken).toMatch(/sunny/);
@@ -23,7 +30,11 @@ describe("RuleBasedSynthesizer", () => {
     const intent: Intent = { action: "get_updates", params: {}, confidence: 0.9, ambiguous: false };
     const results: AgentResult[] = [
       { agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } },
-      { agentId: "calendar", success: true, output: { events: [{ title: "Meeting", time: "10:00" }] } },
+      {
+        agentId: "calendar",
+        success: true,
+        output: { events: [{ title: "Meeting", time: "10:00" }] },
+      },
     ];
     const synthesis = await synthesizer.synthesize(results, intent, context);
     expect(synthesis.spoken).toMatch(/72/);

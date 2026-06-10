@@ -23,9 +23,9 @@ packages/jarvis/src/
     replay.ts          # ReplayEngine — event replay for debugging
     events.ts          # NexusEvent types
     types.ts           # Shared interfaces (Intent, Synthesis, etc.)
-  
+
   hub.ts               # Modified: integrate Pulse loop with Nexus
-  
+
   bin/
     jarvis.ts          # CLI entrypoint for Jarvis hub
 
@@ -45,6 +45,7 @@ test/
 ## Task 1: Nexus Event Types
 
 **Files:**
+
 - Create: `packages/jarvis/src/nexus/events.ts`
 - Test: `packages/jarvis/test/nexus/events.test.ts`
 
@@ -54,14 +55,27 @@ test/
 
 ```typescript
 import { describe, it, expect } from "vitest";
-import type { NexusEvent, IntentRoutedEvent, AgentDispatchedEvent } from "../../../src/nexus/events.js";
+import type {
+  NexusEvent,
+  IntentRoutedEvent,
+  AgentDispatchedEvent,
+} from "../../../src/nexus/events.js";
 
 describe("NexusEvent types", () => {
   it("IntentRoutedEvent has correct shape", () => {
     const event: IntentRoutedEvent = {
       type: "intent_routed",
-      intent: { action: "search", params: { query: "weather" }, confidence: 0.95, ambiguous: false },
-      plan: { parallel: [], sequential: [], primary: { agentId: "research", confidence: 0.95, required: true } },
+      intent: {
+        action: "search",
+        params: { query: "weather" },
+        confidence: 0.95,
+        ambiguous: false,
+      },
+      plan: {
+        parallel: [],
+        sequential: [],
+        primary: { agentId: "research", confidence: 0.95, required: true },
+      },
       sessionId: "sess-1",
       at: Date.now(),
     };
@@ -93,7 +107,12 @@ Expected: FAIL — "Cannot find module"
 // packages/jarvis/src/nexus/events.ts
 import type { Intent, DispatchPlan, AgentRoute, AgentResult, Synthesis } from "./types.js";
 
-export type PulsePhase = "await_input" | "parse_intent" | "route_dispatch" | "synthesize_output" | "await_feedback";
+export type PulsePhase =
+  | "await_input"
+  | "parse_intent"
+  | "route_dispatch"
+  | "synthesize_output"
+  | "await_feedback";
 
 export interface IntentRoutedEvent {
   type: "intent_routed";
@@ -215,6 +234,7 @@ git commit -m "feat(nexus): define Nexus event types"
 ## Task 2: Shared Types
 
 **Files:**
+
 - Create: `packages/jarvis/src/nexus/types.ts`
 - Modify: `packages/jarvis/src/index.ts` (export new types)
 - Test: `packages/jarvis/test/nexus/types.test.ts`
@@ -225,11 +245,22 @@ git commit -m "feat(nexus): define Nexus event types"
 
 ```typescript
 import { describe, it, expect } from "vitest";
-import type { Intent, DispatchPlan, AgentRoute, AgentResult, Synthesis } from "../../../src/nexus/types.js";
+import type {
+  Intent,
+  DispatchPlan,
+  AgentRoute,
+  AgentResult,
+  Synthesis,
+} from "../../../src/nexus/types.js";
 
 describe("Nexus types", () => {
   it("Intent has required fields", () => {
-    const intent: Intent = { action: "search", params: { query: "test" }, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "search",
+      params: { query: "test" },
+      confidence: 0.9,
+      ambiguous: false,
+    };
     expect(intent.action).toBe("search");
     expect(intent.confidence).toBe(0.9);
   });
@@ -359,6 +390,7 @@ git commit -m "feat(nexus): define shared Nexus types (Intent, DispatchPlan, Syn
 ## Task 3: IntentRouter
 
 **Files:**
+
 - Create: `packages/jarvis/src/nexus/router.ts`
 - Test: `packages/jarvis/test/nexus/router.test.ts`
 
@@ -381,7 +413,12 @@ describe("RuleBasedRouter", () => {
   };
 
   it("routes 'search' intent to research agent", () => {
-    const intent: Intent = { action: "search", params: { query: "weather" }, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "search",
+      params: { query: "weather" },
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const plan = router.route(intent, context);
     expect(plan.primary?.agentId).toBe("research");
     expect(plan.parallel).toHaveLength(0);
@@ -397,7 +434,12 @@ describe("RuleBasedRouter", () => {
   });
 
   it("routes 'open_app' intent to system agent", () => {
-    const intent: Intent = { action: "open_app", params: { app: "Calendar" }, confidence: 0.95, ambiguous: false };
+    const intent: Intent = {
+      action: "open_app",
+      params: { app: "Calendar" },
+      confidence: 0.95,
+      ambiguous: false,
+    };
     const plan = router.route(intent, context);
     expect(plan.primary?.agentId).toBe("system");
   });
@@ -527,6 +569,7 @@ git commit -m "feat(nexus): implement RuleBasedRouter with intent→agent mappin
 ## Task 4: AgentPool
 
 **Files:**
+
 - Create: `packages/jarvis/src/nexus/pool.ts`
 - Test: `packages/jarvis/test/nexus/pool.test.ts`
 
@@ -541,7 +584,10 @@ import type { AgentRoute, AgentContext } from "../../../src/nexus/types.js";
 
 describe("InProcessAgentPool", () => {
   const pool = new InProcessAgentPool();
-  const context: AgentContext = { sessionId: "sess-1", intent: { action: "search", params: {}, confidence: 0.9, ambiguous: false } };
+  const context: AgentContext = {
+    sessionId: "sess-1",
+    intent: { action: "search", params: {}, confidence: 0.9, ambiguous: false },
+  };
 
   it("lists available agents", async () => {
     const agents = await pool.list();
@@ -602,12 +648,66 @@ export class InProcessAgentPool implements AgentPool {
 
   constructor() {
     this.agents = new Map([
-      ["research", { id: "research", name: "Research Agent", role: "research", capabilities: ["web_search", "summarize"], active: true }],
-      ["system", { id: "system", name: "System Agent", role: "system", capabilities: ["open_app", "list_apps"], active: true }],
-      ["weather", { id: "weather", name: "Weather Agent", role: "data", capabilities: ["fetch_weather"], active: true }],
-      ["calendar", { id: "calendar", name: "Calendar Agent", role: "data", capabilities: ["fetch_calendar"], active: true }],
-      ["browser", { id: "browser", name: "Browser Agent", role: "browser", capabilities: ["navigate", "click", "scroll"], active: true }],
-      ["vision", { id: "vision", name: "Vision Agent", role: "vision", capabilities: ["detect_humans", "detect_emotion"], active: true }],
+      [
+        "research",
+        {
+          id: "research",
+          name: "Research Agent",
+          role: "research",
+          capabilities: ["web_search", "summarize"],
+          active: true,
+        },
+      ],
+      [
+        "system",
+        {
+          id: "system",
+          name: "System Agent",
+          role: "system",
+          capabilities: ["open_app", "list_apps"],
+          active: true,
+        },
+      ],
+      [
+        "weather",
+        {
+          id: "weather",
+          name: "Weather Agent",
+          role: "data",
+          capabilities: ["fetch_weather"],
+          active: true,
+        },
+      ],
+      [
+        "calendar",
+        {
+          id: "calendar",
+          name: "Calendar Agent",
+          role: "data",
+          capabilities: ["fetch_calendar"],
+          active: true,
+        },
+      ],
+      [
+        "browser",
+        {
+          id: "browser",
+          name: "Browser Agent",
+          role: "browser",
+          capabilities: ["navigate", "click", "scroll"],
+          active: true,
+        },
+      ],
+      [
+        "vision",
+        {
+          id: "vision",
+          name: "Vision Agent",
+          role: "vision",
+          capabilities: ["detect_humans", "detect_emotion"],
+          active: true,
+        },
+      ],
     ]);
 
     this.factories = new Map([
@@ -617,10 +717,13 @@ export class InProcessAgentPool implements AgentPool {
       ["calendar", async () => ({ events: [{ title: "Meeting", time: "10:00" }] })],
       ["browser", async () => ({ loaded: true })],
       ["vision", async () => ({ humans: 1, emotion: "neutral" })],
-      ["slow", async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return { slow: true };
-      }],
+      [
+        "slow",
+        async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return { slow: true };
+        },
+      ],
     ]);
   }
 
@@ -639,7 +742,9 @@ export class InProcessAgentPool implements AgentPool {
       const timeoutMs = route.timeoutMs ?? 30000;
       const output = await Promise.race([
         factory(context),
-        new Promise((_resolve, reject) => setTimeout(() => reject(new Error("timeout")), timeoutMs)),
+        new Promise((_resolve, reject) =>
+          setTimeout(() => reject(new Error("timeout")), timeoutMs),
+        ),
       ]);
       return { agentId: route.agentId, success: true, output, durationMs: Date.now() - start };
     } catch (err) {
@@ -671,6 +776,7 @@ git commit -m "feat(nexus): implement InProcessAgentPool with timeout and health
 ## Task 5: Synthesizer
 
 **Files:**
+
 - Create: `packages/jarvis/src/nexus/synthesizer.ts`
 - Test: `packages/jarvis/test/nexus/synthesizer.test.ts`
 
@@ -693,8 +799,15 @@ describe("RuleBasedSynthesizer", () => {
   };
 
   it("synthesizes weather result", async () => {
-    const intent: Intent = { action: "check_weather", params: {}, confidence: 0.9, ambiguous: false };
-    const results: AgentResult[] = [{ agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } }];
+    const intent: Intent = {
+      action: "check_weather",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
+    const results: AgentResult[] = [
+      { agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } },
+    ];
     const synthesis = await synthesizer.synthesize(results, intent, context);
     expect(synthesis.spoken).toMatch(/72/);
     expect(synthesis.spoken).toMatch(/sunny/);
@@ -704,7 +817,11 @@ describe("RuleBasedSynthesizer", () => {
     const intent: Intent = { action: "get_updates", params: {}, confidence: 0.9, ambiguous: false };
     const results: AgentResult[] = [
       { agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } },
-      { agentId: "calendar", success: true, output: { events: [{ title: "Meeting", time: "10:00" }] } },
+      {
+        agentId: "calendar",
+        success: true,
+        output: { events: [{ title: "Meeting", time: "10:00" }] },
+      },
     ];
     const synthesis = await synthesizer.synthesize(results, intent, context);
     expect(synthesis.spoken).toMatch(/72/);
@@ -738,11 +855,19 @@ Expected: FAIL
 import type { Synthesizer, AgentResult, Intent, JarvisContext, Synthesis } from "./types.js";
 
 export interface Synthesizer {
-  synthesize(results: AgentResult[], originalIntent: Intent, context: JarvisContext): Promise<Synthesis>;
+  synthesize(
+    results: AgentResult[],
+    originalIntent: Intent,
+    context: JarvisContext,
+  ): Promise<Synthesis>;
 }
 
 export class RuleBasedSynthesizer implements Synthesizer {
-  async synthesize(results: AgentResult[], originalIntent: Intent, _context: JarvisContext): Promise<Synthesis> {
+  async synthesize(
+    results: AgentResult[],
+    originalIntent: Intent,
+    _context: JarvisContext,
+  ): Promise<Synthesis> {
     const parts: string[] = [];
     const visual: Synthesis["visual"] = [];
 
@@ -834,6 +959,7 @@ git commit -m "feat(nexus): implement RuleBasedSynthesizer with agent-specific f
 ## Task 6: NexusEngine
 
 **Files:**
+
 - Create: `packages/jarvis/src/nexus/engine.ts`
 - Test: `packages/jarvis/test/nexus/engine.test.ts`
 
@@ -869,7 +995,12 @@ describe("NexusEngine", () => {
   };
 
   it("executes a single-agent intent", async () => {
-    const intent: Intent = { action: "search", params: { query: "weather" }, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "search",
+      params: { query: "weather" },
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const synthesis = await engine.execute(intent, context);
     expect(synthesis.spoken).toBeDefined();
     expect(synthesis.spoken.length).toBeGreaterThan(0);
@@ -937,7 +1068,14 @@ Expected: FAIL
 import type { EventBus } from "../event-bus/simple.js";
 import type { AuditLog } from "@openjarvis/core";
 import type { MemoryStore } from "@openjarvis/core";
-import type { Intent, JarvisContext, Synthesis, AgentResult, AgentRoute, DispatchPlan } from "./types.js";
+import type {
+  Intent,
+  JarvisContext,
+  Synthesis,
+  AgentResult,
+  AgentRoute,
+  DispatchPlan,
+} from "./types.js";
 import type { IntentRouter } from "./router.js";
 import type { AgentPool } from "./pool.js";
 import type { Synthesizer } from "./synthesizer.js";
@@ -1029,7 +1167,12 @@ export class NexusEngine {
 
     const agentContext = {
       sessionId,
-      intent: context.recentIntents[context.recentIntents.length - 1] ?? { action: "unknown", params: {}, confidence: 0, ambiguous: true },
+      intent: context.recentIntents[context.recentIntents.length - 1] ?? {
+        action: "unknown",
+        params: {},
+        confidence: 0,
+        ambiguous: true,
+      },
       memory: undefined,
     };
 
@@ -1102,6 +1245,7 @@ git commit -m "feat(nexus): implement NexusEngine with parallel/sequential dispa
 ## Task 7: TaskBoard
 
 **Files:**
+
 - Create: `packages/jarvis/src/nexus/task-board.ts`
 - Test: `packages/jarvis/test/nexus/task-board.test.ts`
 
@@ -1121,7 +1265,14 @@ describe("TaskBoard", () => {
   it("tracks active tasks", async () => {
     await eventBus.publish({
       topic: "nexus",
-      payload: { type: "task_started", taskId: "t1", agentId: "weather", description: "Get weather", sessionId: "s1", at: Date.now() },
+      payload: {
+        type: "task_started",
+        taskId: "t1",
+        agentId: "weather",
+        description: "Get weather",
+        sessionId: "s1",
+        at: Date.now(),
+      },
       timestamp: Date.now(),
       source: "nexus",
     });
@@ -1135,7 +1286,14 @@ describe("TaskBoard", () => {
   it("moves task to completed", async () => {
     await eventBus.publish({
       topic: "nexus",
-      payload: { type: "task_completed", taskId: "t1", agentId: "weather", success: true, sessionId: "s1", at: Date.now() },
+      payload: {
+        type: "task_completed",
+        taskId: "t1",
+        agentId: "weather",
+        success: true,
+        sessionId: "s1",
+        at: Date.now(),
+      },
       timestamp: Date.now(),
       source: "nexus",
     });
@@ -1200,7 +1358,9 @@ export class TaskBoard {
   async getActiveTasks(sessionId?: string): Promise<Task[]> {
     const tasks = Array.from(this.tasks.values());
     if (sessionId) {
-      return tasks.filter((t) => t.status === "running" && this.tasks.get(t.id)?.id.startsWith(sessionId));
+      return tasks.filter(
+        (t) => t.status === "running" && this.tasks.get(t.id)?.id.startsWith(sessionId),
+      );
     }
     return tasks.filter((t) => t.status === "running");
   }
@@ -1234,6 +1394,7 @@ git commit -m "feat(nexus): implement TaskBoard with real-time event subscriptio
 ## Task 8: ReplayEngine
 
 **Files:**
+
 - Create: `packages/jarvis/src/nexus/replay.ts`
 - Test: `packages/jarvis/test/nexus/replay.test.ts`
 
@@ -1342,6 +1503,7 @@ git commit -m "feat(nexus): implement ReplayEngine for event replay debugging"
 ## Task 9: Integration Test
 
 **Files:**
+
 - Create: `packages/jarvis/test/nexus/integration.test.ts`
 
 **Context:** End-to-end test of the full Nexus pipeline with all components wired together.
@@ -1453,6 +1615,7 @@ git commit -m "test(nexus): add integration test for full Nexus pipeline"
 ## Task 10: Export Barrel + Final Gate
 
 **Files:**
+
 - Modify: `packages/jarvis/src/index.ts`
 - Modify: `packages/jarvis/src/nexus/index.ts` (create barrel)
 
@@ -1497,6 +1660,7 @@ git commit -m "feat(nexus): export all Nexus components from jarvis package"
 ## Plan Self-Review
 
 **1. Spec coverage:**
+
 - ✅ NexusEngine (Task 6) — implements §4.1
 - ✅ IntentRouter (Task 3) — implements §4.2
 - ✅ AgentPool (Task 4) — implements §4.3
@@ -1507,16 +1671,19 @@ git commit -m "feat(nexus): export all Nexus components from jarvis package"
 - ✅ Pulse loop is Hub-level, not Nexus (covered in Hub spec)
 
 **2. Placeholder scan:**
+
 - ✅ No TBDs
 - ✅ No vague "add error handling" — specific timeout/failure handling in tests
 - ✅ No "write tests for the above" — every task has concrete test code
 
 **3. Type consistency:**
+
 - ✅ `AgentRoute` defined in Task 2, used in Tasks 3, 4, 6
 - ✅ `NexusEvent` defined in Task 1, used in Tasks 6, 7, 8
 - ✅ `Synthesis` defined in Task 2, used in Tasks 5, 6
 
 **4. Gate compliance:**
+
 - ✅ Every task has a test file
 - ✅ Unit tests for every component
 - ✅ Integration test for full pipeline

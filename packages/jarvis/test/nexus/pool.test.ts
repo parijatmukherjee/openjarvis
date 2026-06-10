@@ -4,7 +4,10 @@ import type { AgentRoute, AgentContext } from "../../src/nexus/types.js";
 
 describe("InProcessAgentPool", () => {
   const pool = new InProcessAgentPool();
-  const context: AgentContext = { sessionId: "sess-1", intent: { action: "search", params: {}, confidence: 0.9, ambiguous: false } };
+  const context: AgentContext = {
+    sessionId: "sess-1",
+    intent: { action: "search", params: {}, confidence: 0.9, ambiguous: false },
+  };
 
   it("lists available agents", async () => {
     const agents = await pool.list();

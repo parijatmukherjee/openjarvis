@@ -117,7 +117,7 @@ export interface NexusConfig {
 
 export class NexusEngine {
   constructor(private cfg: NexusConfig);
-  
+
   /** Execute a parsed intent through the full pipeline */
   async execute(intent: Intent, context: JarvisContext): Promise<Synthesis>;
 }
@@ -142,10 +142,10 @@ export interface DispatchPlan {
 
 export interface AgentRoute {
   agentId: string;
-  confidence: number;    // how sure the router is this agent fits
-  timeoutMs?: number;     // override default timeout
-  required: boolean;      // if true, failure aborts the whole turn
-  input?: unknown;        // pre-computed input (for sequential chains)
+  confidence: number; // how sure the router is this agent fits
+  timeoutMs?: number; // override default timeout
+  required: boolean; // if true, failure aborts the whole turn
+  input?: unknown; // pre-computed input (for sequential chains)
 }
 ```
 
@@ -165,6 +165,7 @@ export interface AgentPool {
 ```
 
 **Process model:**
+
 - Agents are loaded from `@openjarvis/agents` package
 - Each agent runs in-process (v1), worker thread (v1.1), or child process (v1.2)
 - The pool manages agent lifecycle (spawn, reuse, kill on timeout)
@@ -176,7 +177,7 @@ export interface Synthesizer {
   synthesize(
     results: AgentResult[],
     originalIntent: Intent,
-    context: JarvisContext
+    context: JarvisContext,
   ): Promise<Synthesis>;
 }
 ```
@@ -216,15 +217,16 @@ The Pulse is the **higher-level loop** that manages a multi-turn conversation be
 
 **Phase details:**
 
-| Phase | What happens | Emits events |
-|-------|--------------|--------------|
-| **1. Await Input** | Wake word detected → STT active → text captured | `wake_detected`, `transcription_complete` |
-| **2. Parse Intent** | IntentParser analyzes text → produces Intent | `intent_parsed` |
-| **3. Route & Dispatch** | Nexus routes intent → dispatches agents → collects results | `agent_dispatched`, `agent_completed`, `result_collected` |
-| **4. Synthesize & Output** | Nexus synthesizes → TTS speaks → Display shows | `synthesis_complete`, `tts_spoken`, `display_command` |
-| **5. Await Feedback** | Wait for user response or proactive trigger | `session_idle`, `session_resumed` |
+| Phase                      | What happens                                               | Emits events                                              |
+| -------------------------- | ---------------------------------------------------------- | --------------------------------------------------------- |
+| **1. Await Input**         | Wake word detected → STT active → text captured            | `wake_detected`, `transcription_complete`                 |
+| **2. Parse Intent**        | IntentParser analyzes text → produces Intent               | `intent_parsed`                                           |
+| **3. Route & Dispatch**    | Nexus routes intent → dispatches agents → collects results | `agent_dispatched`, `agent_completed`, `result_collected` |
+| **4. Synthesize & Output** | Nexus synthesizes → TTS speaks → Display shows             | `synthesis_complete`, `tts_spoken`, `display_command`     |
+| **5. Await Feedback**      | Wait for user response or proactive trigger                | `session_idle`, `session_resumed`                         |
 
 **Pulse ≠ Hub lifecycle:**
+
 - Hub lifecycle: IDLE → LISTENING → THINKING → RESPONDING → IDLE (per turn)
 - Pulse: manages the **conversation arc** across multiple turns
 - Pulse runs on top of the Hub, not replacing it
@@ -239,25 +241,52 @@ Every Nexus step emits an event:
 type NexusEvent =
   // Routing
   | { type: "intent_routed"; intent: Intent; plan: DispatchPlan; sessionId: string; at: number }
-  
+
   // Dispatch
   | { type: "agent_dispatched"; agentId: string; route: AgentRoute; sessionId: string; at: number }
-  
+
   // Completion
-  | { type: "agent_completed"; agentId: string; result: AgentResult; durationMs: number; sessionId: string; at: number }
+  | {
+      type: "agent_completed";
+      agentId: string;
+      result: AgentResult;
+      durationMs: number;
+      sessionId: string;
+      at: number;
+    }
   | { type: "agent_failed"; agentId: string; error: string; sessionId: string; at: number }
   | { type: "agent_timeout"; agentId: string; timeoutMs: number; sessionId: string; at: number }
-  
+
   // Collection
-  | { type: "results_collected"; results: AgentResult[]; failed: string[]; sessionId: string; at: number }
-  
+  | {
+      type: "results_collected";
+      results: AgentResult[];
+      failed: string[];
+      sessionId: string;
+      at: number;
+    }
+
   // Synthesis
   | { type: "synthesis_complete"; synthesis: Synthesis; sessionId: string; at: number }
-  
+
   // Task Board
-  | { type: "task_started"; taskId: string; agentId: string; description: string; sessionId: string; at: number }
-  | { type: "task_completed"; taskId: string; agentId: string; success: boolean; sessionId: string; at: number }
-  
+  | {
+      type: "task_started";
+      taskId: string;
+      agentId: string;
+      description: string;
+      sessionId: string;
+      at: number;
+    }
+  | {
+      type: "task_completed";
+      taskId: string;
+      agentId: string;
+      success: boolean;
+      sessionId: string;
+      at: number;
+    }
+
   // Session
   | { type: "pulse_phase_changed"; from: PulsePhase; to: PulsePhase; sessionId: string; at: number }
   | { type: "session_context_loaded"; memoryFragments: number; sessionId: string; at: number };

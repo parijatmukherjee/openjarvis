@@ -1,6 +1,11 @@
 import type { Intent, DispatchPlan, AgentRoute, AgentResult, Synthesis } from "./types.js";
 
-export type PulsePhase = "await_input" | "parse_intent" | "route_dispatch" | "synthesize_output" | "await_feedback";
+export type PulsePhase =
+  | "await_input"
+  | "parse_intent"
+  | "route_dispatch"
+  | "synthesize_output"
+  | "await_feedback";
 
 export interface IntentRoutedEvent {
   type: "intent_routed";

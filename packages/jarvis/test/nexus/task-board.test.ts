@@ -9,7 +9,14 @@ describe("TaskBoard", () => {
   it("tracks active tasks", async () => {
     await eventBus.publish({
       topic: "nexus",
-      payload: { type: "task_started", taskId: "t1", agentId: "weather", description: "Get weather", sessionId: "s1", at: Date.now() },
+      payload: {
+        type: "task_started",
+        taskId: "t1",
+        agentId: "weather",
+        description: "Get weather",
+        sessionId: "s1",
+        at: Date.now(),
+      },
       timestamp: Date.now(),
       source: "nexus",
     });
@@ -23,7 +30,14 @@ describe("TaskBoard", () => {
   it("moves task to completed", async () => {
     await eventBus.publish({
       topic: "nexus",
-      payload: { type: "task_completed", taskId: "t1", agentId: "weather", success: true, sessionId: "s1", at: Date.now() },
+      payload: {
+        type: "task_completed",
+        taskId: "t1",
+        agentId: "weather",
+        success: true,
+        sessionId: "s1",
+        at: Date.now(),
+      },
       timestamp: Date.now(),
       source: "nexus",
     });

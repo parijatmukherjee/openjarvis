@@ -25,7 +25,12 @@ describe("NexusEngine", () => {
   };
 
   it("executes a single-agent intent", async () => {
-    const intent: Intent = { action: "search", params: { query: "weather" }, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "search",
+      params: { query: "weather" },
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const synthesis = await engine.execute(intent, context);
     expect(synthesis.spoken).toBeDefined();
     expect(synthesis.spoken.length).toBeGreaterThan(0);

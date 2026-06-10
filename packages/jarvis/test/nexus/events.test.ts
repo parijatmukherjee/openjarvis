@@ -1,12 +1,21 @@
 import { describe, it, expect } from "vitest";
-import type { NexusEvent, IntentRoutedEvent, AgentDispatchedEvent } from "../../../src/nexus/events.js";
+import type { IntentRoutedEvent, AgentDispatchedEvent } from "../../src/nexus/events.js";
 
 describe("NexusEvent types", () => {
   it("IntentRoutedEvent has correct shape", () => {
     const event: IntentRoutedEvent = {
       type: "intent_routed",
-      intent: { action: "search", params: { query: "weather" }, confidence: 0.95, ambiguous: false },
-      plan: { parallel: [], sequential: [], primary: { agentId: "research", confidence: 0.95, required: true } },
+      intent: {
+        action: "search",
+        params: { query: "weather" },
+        confidence: 0.95,
+        ambiguous: false,
+      },
+      plan: {
+        parallel: [],
+        sequential: [],
+        primary: { agentId: "research", confidence: 0.95, required: true },
+      },
       sessionId: "sess-1",
       at: Date.now(),
     };
