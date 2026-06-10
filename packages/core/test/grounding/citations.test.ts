@@ -33,12 +33,53 @@ describe("parseAnswer", () => {
 describe("verifyCitations", () => {
   const results = [toolResult("t1", true, { path: "/", freeBytes: 12345 })];
 
-  it("passes when the cited id exists and the numeric value matches the result", () => {
+  it("passes when the cited id exists and the numeric value matches at the claimed field", () => {
     const answer: CitedAnswer = {
       text: "12345 bytes free",
-      claims: [{ statement: "12345 bytes free", citesToolResultId: "t1", value: 12345 }],
+      claims: [
+        {
+          statement: "12345 bytes free",
+          citesToolResultId: "t1",
+          value: 12345,
+          field: "freeBytes",
+        },
+      ],
     };
     expect(verifyCitations(answer, results)).toEqual([]);
+  });
+
+  it("rejects a value that exists elsewhere in the payload but not at the claimed field (spoofing vector)", () => {
+    const resultsSpoofed = [toolResult("t1", true, { usedBytes: 999, freeBytes: 123 })];
+    const answer: CitedAnswer = {
+      text: "999 bytes free",
+      claims: [
+        {
+          statement: "999 bytes free",
+          citesToolResultId: "t1",
+          value: 999,
+          field: "freeBytes", // the field claims 999, but freeBytes is 123
+        },
+      ],
+    };
+    const issues = verifyCitations(answer, resultsSpoofed);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].reason).toBe("value-mismatch");
+  });
+
+  it("accepts a value when it matches exactly at a nested field path", () => {
+    const resultsNested = [toolResult("t1", true, { nested: { size: 42 } })];
+    const answer: CitedAnswer = {
+      text: "42",
+      claims: [
+        {
+          statement: "42",
+          citesToolResultId: "t1",
+          value: 42,
+          field: "nested.size",
+        },
+      ],
+    };
+    expect(verifyCitations(answer, resultsNested)).toEqual([]);
   });
 
   it("flags a citation to a non-existent / failed tool result", () => {
@@ -51,10 +92,12 @@ describe("verifyCitations", () => {
     expect(issues[0].reason).toBe("unknown-citation");
   });
 
-  it("flags a numeric value that the cited result does not contain (the fabrication catch)", () => {
+  it("flags a numeric value that the cited result does not contain at the field (the fabrication catch)", () => {
     const answer: CitedAnswer = {
       text: "999 bytes free",
-      claims: [{ statement: "999 bytes free", citesToolResultId: "t1", value: 999 }],
+      claims: [
+        { statement: "999 bytes free", citesToolResultId: "t1", value: 999, field: "freeBytes" },
+      ],
     };
     const issues = verifyCitations(answer, results);
     expect(issues).toHaveLength(1);
