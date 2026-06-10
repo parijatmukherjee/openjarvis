@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { ScriptedOperator, weakHostFactsModel, ValidateGate, JsonLogger } from "@openhawkins/core";
 import { buildDurableAgentRun, verifyDurable } from "../build-durable-agent-run.js";
 import { checkHealth } from "../health.js";
+import { anchorAuditChain, verifyAnchor, FileVault, resolveAuditKey } from "@openhawkins/core";
+import { openDatabase } from "../driver/driver.js";
+import { SqliteAuditLog } from "../audit-store.js";
 
 /**
  * `openhawkins-run` — a durable, keyed-audit agent run over SQLite (A1b: F-C1/F-C2 at
@@ -12,6 +15,8 @@ import { checkHealth } from "../health.js";
  * keyed chain still verifies — the cross-process durability proof.
  * `--health` reports DB connectivity, vault unlock status, last audit verification, and
  * recent error rate.
+ * `--anchor` writes an external tamper-evident anchor after the run.
+ * `--verify-anchor` checks the external anchor against the current audit tip before running.
  */
 function flag(args: string[], name: string, fallback: string): string {
   const i = args.indexOf(name);
@@ -28,6 +33,28 @@ async function main(): Promise<void> {
     process.env.OPENHAWKINS_VAULT_PASS ?? "openhawkins",
   );
   const asJson = args.includes("--json");
+  const anchorPath = flag(args, "--anchor", "");
+  const verifyAnchorPath = flag(args, "--verify-anchor", "");
+
+  if (verifyAnchorPath) {
+    const db = openDatabase({ path: dbPath });
+    try {
+      const key = await resolveAuditKey(new FileVault({ path: vaultPath, passphrase }));
+      const audit = new SqliteAuditLog(db, key);
+      const v = await verifyAnchor(audit, verifyAnchorPath);
+      console.log(
+        asJson
+          ? JSON.stringify({ mode: "verify-anchor", ...v })
+          : `verify-anchor: ${v.ok ? "ok" : "TAMPERED or MISMATCHED"}`,
+      );
+      if (!v.ok) {
+        process.exitCode = 1;
+      }
+      return;
+    } finally {
+      db.close();
+    }
+  }
 
   if (args.includes("--health")) {
     const h = await checkHealth({ dbPath, vaultPath, passphrase });
@@ -57,12 +84,15 @@ async function main(): Promise<void> {
     logger: new JsonLogger(),
   });
   const result = await built.run.run();
-  const verified = await built.audit.verify();
+  const verified = (await built.audit.verify()).ok;
+  if (anchorPath) {
+    await anchorAuditChain(built.audit, anchorPath);
+  }
   built.close();
   console.log(
     asJson
-      ? JSON.stringify({ mode: "run", result, auditVerified: verified })
-      : `run ${result.kind}; audit ${verified ? "verified" : "TAMPERED"}; db ${dbPath}`,
+      ? JSON.stringify({ mode: "run", result, auditVerified: verified, anchored: !!anchorPath })
+      : `run ${result.kind}; audit ${verified ? "verified" : "TAMPERED"}; db ${dbPath}${anchorPath ? `; anchored ${anchorPath}` : ""}`,
   );
 }
 

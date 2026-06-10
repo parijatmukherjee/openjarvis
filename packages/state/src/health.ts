@@ -43,8 +43,7 @@ export async function checkHealth(opts: HealthOpts): Promise<HealthCheck> {
       try {
         const key = await resolveAuditKey(vault);
         const audit = new SqliteAuditLog(db, key);
-        const result = await audit.verify();
-        lastAuditVerified = result.ok;
+        lastAuditVerified = (await audit.verify()).ok;
       } catch {
         lastAuditVerified = false;
       }
