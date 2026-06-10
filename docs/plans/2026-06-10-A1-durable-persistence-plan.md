@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make the OpenHawkins runtime actually durable. Today it runs entirely on `InMemoryEventStore`/`InMemoryAuditLog`, so all state and the audit trail are lost on restart (finding **F-C1**). This wires the existing durable `SqliteEventStore` plus a NEW durable `SqliteAuditLog` into the runtime, proves replay + audit parity with an integration test that reopens the database, and enables SQLite WAL + `busy_timeout` (partial **F-C5**; also closes **F-H3** by serializing audit appends).
+**Goal:** Make the OpenJarvis runtime actually durable. Today it runs entirely on `InMemoryEventStore`/`InMemoryAuditLog`, so all state and the audit trail are lost on restart (finding **F-C1**). This wires the existing durable `SqliteEventStore` plus a NEW durable `SqliteAuditLog` into the runtime, proves replay + audit parity with an integration test that reopens the database, and enables SQLite WAL + `busy_timeout` (partial **F-C5**; also closes **F-H3** by serializing audit appends).
 
 **Architecture:** A durable hash-chained `AuditLog` lives in `packages/state` alongside `SqliteEventStore`, reusing core's `hashEntry`/`redact`/`GENESIS` so the chain algorithm is identical to the in-memory one. `buildAgentRun` gains **injectable** `store`/`audit` (core types only — no `core → state` import, which would be a package cycle); the concrete `SqliteEventStore` + `SqliteAuditLog` are wired over ONE shared `SqlDriver` by a composition root that depends on both — here, the integration test in `packages/state`. The single-writer chain integrity that the in-memory audit got from `log.length` is replaced by reading the persisted tail under a serialized append queue (also closing F-H3). A user-facing `run --db` CLI is deferred to a dedicated composition-root package.
 
@@ -17,7 +17,7 @@
 - `packages/state/src/{schema,migrate}.ts` — `SCHEMA: Migration[]`, `migrate(db, migrations)`.
 - `packages/core/src/security/audit.ts` — `AuditLog`, `AuditInput`, `AuditEntry`, `hashEntry(prevHash, {seq,at,kind,data})`, `InMemoryAuditLog`; `redact()` (exported via the core barrel).
 - `packages/core/src/playbook/build-agent-run.ts` — `buildAgentRun(opts)` (today hardcodes in-memory stores).
-- `packages/core/src/bin/run.ts` — the `openhawkins run` CLI.
+- `packages/core/src/bin/run.ts` — the `openjarvis run` CLI.
 
 **Conventions:** Unit tests at `packages/<pkg>/test/...`. ESM `.js` specifiers. Coverage ≥99%; new src files 100%. `select.ts` is coverage-excluded (runtime glue). Never run the real repo gate inside a test.
 
@@ -182,7 +182,7 @@ import {
   hashEntry,
   redact,
   GENESIS,
-} from "@openhawkins/core";
+} from "@openjarvis/core";
 import { type SqlDriver, type SqlStatement, openDatabase } from "./driver/driver.js";
 import { migrate } from "./migrate.js";
 import { SCHEMA } from "./schema.js";
@@ -197,7 +197,7 @@ interface AuditRow {
 }
 
 /**
- * VINES — a durable implementation of core's hash-chained `AuditLog` over embedded
+ * JarvisStateStore — a durable implementation of core's hash-chained `AuditLog` over embedded
  * SQLite. The chain algorithm is core's `hashEntry` over redacted data, identical to
  * `InMemoryAuditLog`, so a durable log verifies the same way. `seq`/`prevHash` are read
  * from the persisted tail (not an in-memory counter), and appends are serialized so
@@ -278,7 +278,7 @@ export class SqliteAuditLog implements AuditLog {
 - [ ] **Step 3c: Export it** — append to `packages/state/src/index.ts`: `export * from "./audit-store.js";`
 
 - [ ] **Step 4: Run → pass + 100% coverage** of `audit-store.ts`:
-      `npx vitest run packages/state/test/audit-store.test.ts --coverage.enabled --coverage.include='packages/state/src/audit-store.ts'` — all PASS, 100%. If `redact`/`hashEntry`/`GENESIS` aren't exported from `@openhawkins/core`, fix the core barrel (`security/audit.js` is already re-exported; `GENESIS` was exported in Task 1; `redact` is exported via `security/redact.js`).
+      `npx vitest run packages/state/test/audit-store.test.ts --coverage.enabled --coverage.include='packages/state/src/audit-store.ts'` — all PASS, 100%. If `redact`/`hashEntry`/`GENESIS` aren't exported from `@openjarvis/core`, fix the core barrel (`security/audit.js` is already re-exported; `GENESIS` was exported in Task 1; `redact` is exported via `security/redact.js`).
 
 - [ ] **Step 5: Quality gates + `npm run build`.** All clean.
 
@@ -298,7 +298,7 @@ git commit -m "feat(state): durable hash-chained SqliteAuditLog (F-C1); serializ
 - Modify: `packages/core/src/playbook/build-agent-run.ts` (accept injected `store`/`audit`)
 - Test: `packages/core/test/playbook/build-agent-run.test.ts` (add an injected-store test)
 
-> **No package cycle.** `@openhawkins/state` already depends on `@openhawkins/core`, so `core` must NOT import `state` (a manifest cycle that `tsc -b` rejects). The fix here is purely a core-types change: `buildAgentRun` accepts **injected** `store?: EventStore` + `audit?: AuditLog` (types core already owns). The _concrete_ `SqliteEventStore`/`SqliteAuditLog` are wired by a composition root that depends on both — here, the **Task 4 integration test** in `packages/state`. A user-facing durable CLI (`run --db`) is deferred to a later dedicated composition-root entry (a small `@openhawkins/cli`-style package), so it isn't squeezed into `core` and reintroduces the cycle. Note this deferral in the roadmap.
+> **No package cycle.** `@openjarvis/state` already depends on `@openjarvis/core`, so `core` must NOT import `state` (a manifest cycle that `tsc -b` rejects). The fix here is purely a core-types change: `buildAgentRun` accepts **injected** `store?: EventStore` + `audit?: AuditLog` (types core already owns). The _concrete_ `SqliteEventStore`/`SqliteAuditLog` are wired by a composition root that depends on both — here, the **Task 4 integration test** in `packages/state`. A user-facing durable CLI (`run --db`) is deferred to a later dedicated composition-root entry (a small `@openjarvis/cli`-style package), so it isn't squeezed into `core` and reintroduces the cycle. Note this deferral in the roadmap.
 
 - [ ] **Step 1: Write the failing test.** Append to `packages/core/test/playbook/build-agent-run.test.ts` (add the two imports at the top if absent):
 
@@ -363,7 +363,7 @@ git commit -m "feat(playbook): inject durable store + audit into buildAgentRun (
 
 - Test: `packages/state/test/durable-run.integration.test.ts`
 
-> This test lives in `packages/state` (which depends on `core`) so it can import BOTH `@openhawkins/core` (`buildAgentRun`, `AgentRun`, scenarios) and the durable stores — without creating a `core → state` dependency.
+> This test lives in `packages/state` (which depends on `core`) so it can import BOTH `@openjarvis/core` (`buildAgentRun`, `AgentRun`, scenarios) and the durable stores — without creating a `core → state` dependency.
 
 - [ ] **Step 1: Write the integration test** — `packages/state/test/durable-run.integration.test.ts`:
 
@@ -380,7 +380,7 @@ import {
   isPhaseEvent,
   foldPlaybook,
   type PhaseEvent,
-} from "@openhawkins/core";
+} from "@openjarvis/core";
 import { openDatabase, SqliteEventStore, SqliteAuditLog } from "../src/index.js";
 
 const PROMPT = "How much disk space is free on this machine?";
@@ -429,13 +429,13 @@ describe("durable run — replay + audit parity across a reopen", () => {
 });
 ```
 
-- [ ] **Step 2: Run → pass.** `npx vitest run packages/state/test/durable-run.integration.test.ts` — PASS. If `buildAgentRun`/`ScriptedOperator`/`weakHostFactsModel`/`isPhaseEvent`/`foldPlaybook`/`ValidateGate`/`PhaseEvent` are not all exported from the `@openhawkins/core` barrel, add the missing ones to `packages/core/src/index.ts` (they should already be exported — verify).
+- [ ] **Step 2: Run → pass.** `npx vitest run packages/state/test/durable-run.integration.test.ts` — PASS. If `buildAgentRun`/`ScriptedOperator`/`weakHostFactsModel`/`isPhaseEvent`/`foldPlaybook`/`ValidateGate`/`PhaseEvent` are not all exported from the `@openjarvis/core` barrel, add the missing ones to `packages/core/src/index.ts` (they should already be exported — verify).
 
 - [ ] **Step 3: Run the FULL repo gate.**
       `npm run build && npm run lint && npm run format:check && npm run coverage && npm run test:functional` — all green; aggregate ≥99%; new `packages/state/src/*.ts` at 100%. If `format:check` complains, `npm run format` first. Paste the coverage table tail.
 
 - [ ] **Step 4: Run the Docker gate.**
-      `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test` → `✅ ALL GATES PASSED`.
+      `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test` → `✅ ALL GATES PASSED`.
 
 - [ ] **Step 5: Commit + update the roadmap status.**
 

@@ -89,4 +89,24 @@ describe("buildAgentRun", () => {
     });
     expect(await built.run.run()).toEqual({ kind: "completed" });
   });
+
+  it("accepts an injected memory store and recalls fragments into the system prompt", async () => {
+    let recalledQuery = "";
+    const memory = {
+      recall: async (query: string) => {
+        recalledQuery = query;
+        return ["Memory: the disk is 1TB."];
+      },
+    };
+    const built = await buildAgentRun({
+      adapter: weakHostFactsModel(tmpdir()),
+      grounding: "cited",
+      prompts: { Execute: "How much disk space is free on this machine?" },
+      operator: approve(),
+      validateGate: new ValidateGate(async () => ({ ok: true })),
+      memory,
+    });
+    expect(await built.run.run()).toEqual({ kind: "completed" });
+    expect(recalledQuery).toBe("How much disk space is free on this machine?");
+  });
 });

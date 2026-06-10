@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up `@openhawkins/markdownify` — a self-contained TS document→Markdown converter — with its `Converter`/registry/detection core and the five **text-format** converters (text, HTML, CSV, JSON, XML), so any text-ish document can be turned into token-lean Markdown that never throws.
+**Goal:** Stand up `@openjarvis/markdownify` — a self-contained TS document→Markdown converter — with its `Converter`/registry/detection core and the five **text-format** converters (text, HTML, CSV, JSON, XML), so any text-ish document can be turned into token-lean Markdown that never throws.
 
 **Architecture:** A standalone workspace package with no workspace dependency. A `ConverterRegistry` picks a `Converter` by mime → file extension → content sniff, falling back to a plain-text converter; `markdownify()` runs the chosen converter inside a try/catch so a bad document degrades to text + a warning rather than throwing. Each converter is a small, independently-tested unit. M2 (Office) and M3 (PDF + CLI) add converters to the same registry later.
 
@@ -18,7 +18,7 @@
 
 ```
 packages/markdownify/
-  package.json            # @openhawkins/markdownify (deps: turndown, fast-xml-parser)
+  package.json            # @openjarvis/markdownify (deps: turndown, fast-xml-parser)
   tsconfig.json           # extends base
   tsconfig.test.json      # typecheck src+test
   src/
@@ -41,7 +41,7 @@ tsconfig.json             # root: + references to packages/markdownify (+ test)
 
 ---
 
-### Task 1: Scaffold `@openhawkins/markdownify`
+### Task 1: Scaffold `@openjarvis/markdownify`
 
 **Files:**
 
@@ -55,7 +55,7 @@ tsconfig.json             # root: + references to packages/markdownify (+ test)
 
 ```json
 {
-  "name": "@openhawkins/markdownify",
+  "name": "@openjarvis/markdownify",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -129,15 +129,15 @@ In the root `tsconfig.json`, extend `references` to include the new package and 
 - [ ] **Step 6: Install + verify the type stubs resolve**
 
 Run (repo root): `npm install`
-Expected: completes; `node_modules/@openhawkins/markdownify` symlink exists; `turndown`, `fast-xml-parser`, and `@types/turndown` resolve (`@types/turndown` comes in transitively or is added — if `npm run build` later complains about missing turndown types, add `"@types/turndown": "^5.0.5"` to `devDependencies` and re-install). Commit the lockfile.
+Expected: completes; `node_modules/@openjarvis/markdownify` symlink exists; `turndown`, `fast-xml-parser`, and `@types/turndown` resolve (`@types/turndown` comes in transitively or is added — if `npm run build` later complains about missing turndown types, add `"@types/turndown": "^5.0.5"` to `devDependencies` and re-install). Commit the lockfile.
 
-Note: `npm run build` FAILS after this step (the barrel imports `types.js`/`registry.js`/`markdownify.js` which don't exist until Tasks 2–7). Expected — verify only the symlink: `ls -la node_modules/@openhawkins/` shows `markdownify -> ../../packages/markdownify`.
+Note: `npm run build` FAILS after this step (the barrel imports `types.js`/`registry.js`/`markdownify.js` which don't exist until Tasks 2–7). Expected — verify only the symlink: `ls -la node_modules/@openjarvis/` shows `markdownify -> ../../packages/markdownify`.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add packages/markdownify/package.json packages/markdownify/tsconfig.json packages/markdownify/tsconfig.test.json packages/markdownify/src/index.ts tsconfig.json package-lock.json
-git commit -m "chore(markdownify): scaffold @openhawkins/markdownify package"
+git commit -m "chore(markdownify): scaffold @openjarvis/markdownify package"
 ```
 
 ---
@@ -942,7 +942,7 @@ Expected: all green; coverage ≥99% across all metrics; `markdownify/src` 100% 
 
 - [ ] **Step 6: Run the Docker gate (the required PR check)**
 
-Run: `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test`
+Run: `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test`
 Expected: ends with `✅ ALL GATES PASSED`.
 
 - [ ] **Step 7: Commit**
@@ -968,4 +968,4 @@ git commit -m "feat(markdownify): XML -> nested Markdown converter; default-regi
 ## Next plans (after M1 lands)
 
 - **M2** — Office converters: DOCX (`mammoth`), XLSX (`xlsx`), PPTX (`jszip` + `fast-xml-parser`); in-test fixtures via jszip / `xlsx.write`.
-- **M3** — PDF converter (`pdfjs-dist`, worker disabled, `standardFontDataUrl`), the `markdownify` CLI (`src/bin/`), and a black-box functional test (generate a PDF with `pdf-lib`, run the CLI). Then wire `markdownify()` into the first ingestion consumer (tool results / VECNA memory).
+- **M3** — PDF converter (`pdfjs-dist`, worker disabled, `standardFontDataUrl`), the `markdownify` CLI (`src/bin/`), and a black-box functional test (generate a PDF with `pdf-lib`, run the CLI). Then wire `markdownify()` into the first ingestion consumer (tool results / JarvisMemoryStore memory).

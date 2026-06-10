@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement the `@openhawkins/jarvis` hub architecture as specified in [`docs/specs/2026-06-10-jarvis-hub-architecture.md`](../specs/2026-06-10-jarvis-hub-architecture.md), making the codebase match the Jarvis vision.
+**Goal:** Implement the `@openjarvis/jarvis` hub architecture as specified in [`docs/specs/2026-06-10-jarvis-hub-architecture.md`](../specs/2026-06-10-jarvis-hub-architecture.md), making the codebase match the Jarvis vision.
 
-**Architecture:** Create `@openhawkins/jarvis` as the top-level orchestrator package that reuses all existing packages (`core`, `state`, `memory`, `security`) as libraries. All new interfaces are pluggable; v1 ships with mock implementations for voice and display.
+**Architecture:** Create `@openjarvis/jarvis` as the top-level orchestrator package that reuses all existing packages (`core`, `state`, `memory`, `security`) as libraries. All new interfaces are pluggable; v1 ships with mock implementations for voice and display.
 
 **Tech Stack:** TypeScript (strict ESM, `.js` specifiers), Vitest, Node.js `worker_threads`, `child_process`, SQLite.
 
@@ -12,7 +12,7 @@
 
 ## Phase 1: Foundation (packages and interfaces)
 
-### Task 1.1: Create `@openhawkins/jarvis` package skeleton
+### Task 1.1: Create `@openjarvis/jarvis` package skeleton
 
 **Files:**
 
@@ -27,7 +27,7 @@
 ```json
 // packages/jarvis/package.json
 {
-  "name": "@openhawkins/jarvis",
+  "name": "@openjarvis/jarvis",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -39,11 +39,11 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@openhawkins/core": "*",
-    "@openhawkins/state": "*",
-    "@openhawkins/memory": "*",
-    "@openhawkins/agents": "*",
-    "@openhawkins/skills": "*"
+    "@openjarvis/core": "*",
+    "@openjarvis/state": "*",
+    "@openjarvis/memory": "*",
+    "@openjarvis/agents": "*",
+    "@openjarvis/skills": "*"
   }
 }
 ```
@@ -247,7 +247,7 @@ export interface AgentInfo {
 
 ---
 
-### Task 1.7: Create `@openhawkins/agents` package skeleton
+### Task 1.7: Create `@openjarvis/agents` package skeleton
 
 **Files:**
 
@@ -260,7 +260,7 @@ export interface AgentInfo {
 
 ---
 
-### Task 1.8: Create `@openhawkins/skills` package skeleton
+### Task 1.8: Create `@openjarvis/skills` package skeleton
 
 **Files:**
 
@@ -274,7 +274,7 @@ export interface AgentInfo {
 
 ---
 
-### Task 1.9: Create `@openhawkins/desktop` package skeleton (Electron)
+### Task 1.9: Create `@openjarvis/desktop` package skeleton (Electron)
 
 **Files:**
 
@@ -692,7 +692,7 @@ console.log("Jarvis is running. Press Ctrl+J to wake.");
 **Files:**
 
 - Modify: `packages/cli/src/index.ts` (or create `packages/cli` if not exists)
-- Add: `openhawkins jarvis` command
+- Add: `openjarvis jarvis` command
 
 ---
 
@@ -762,7 +762,7 @@ npm run build && npm run lint && npm run format:check && npm run coverage && npm
 Then:
 
 ```bash
-docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test
+docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test
 ```
 
 All must pass before merge.

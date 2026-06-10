@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 const run = promisify(execFile);
 const DIST_CLI = "packages/core/dist/bin/run.js";
 
-describe("openhawkins run — functional (black-box)", () => {
+describe("openjarvis run — functional (black-box)", () => {
   it("drives an unattended Playbook-governed run to completion with a verified audit", async () => {
     const { stdout } = await run("node", [DIST_CLI, "--approve-all", "--json"]);
     const line = stdout.trim().split("\n").filter(Boolean).pop() ?? "";

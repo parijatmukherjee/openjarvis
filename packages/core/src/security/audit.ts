@@ -3,7 +3,7 @@ import { redact } from "./redact.js";
 import type { Vault } from "./vault.js";
 
 /**
- * Murray — append-only, keyed-hash-chained audit (spec §8.5). Every grounding decision,
+ * Audit — append-only, keyed-hash-chained audit (spec §8.5). Every grounding decision,
  * tool call, and correction is recorded; `entry.hash = HMAC-SHA256(key, prevHash + canonical(entry))`
  * so any later edit to a past entry breaks the chain and `verify()` returns false. Keying the
  * chain makes it tamper-PROOF under the held key: a writer without the key cannot forge a chain

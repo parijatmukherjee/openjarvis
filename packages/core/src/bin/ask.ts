@@ -2,13 +2,13 @@ import { tmpdir } from "node:os";
 import type { ModelAdapter } from "../models/adapter.js";
 import { OllamaAdapter } from "../models/ollama.js";
 import { OpenAiCompatAdapter } from "../models/openai-compat.js";
-import type { GroundingMode } from "../grounding/eleven.js";
+import type { GroundingMode } from "../grounding/grounding-engine.js";
 import { buildProbeAgent, weakHostFactsModel } from "../eval/scenarios.js";
 import { FileVault } from "../security/vault.js";
 import { JsonLogger } from "../observability/logger.js";
 
 /**
- * `openhawkins ask` — the tiny CLI driver for the vertical slice (spec §2 non-goals:
+ * `openjarvis ask` — the tiny CLI driver for the vertical slice (spec §2 non-goals:
  * "exercised via the eval harness + a tiny CLI driver"). This is the command a user
  * actually runs:
  *
@@ -79,8 +79,8 @@ async function buildAdapter(kind: string, path: string, vault?: FileVault): Prom
     case "scripted":
       return weakHostFactsModel(path);
     case "ollama": {
-      const model = await loadStr(vault, "ollama-model", "OPENHAWKINS_OLLAMA_MODEL", "llama3.1");
-      const baseUrl = await loadOpt(vault, "ollama-url", "OPENHAWKINS_OLLAMA_URL");
+      const model = await loadStr(vault, "ollama-model", "OPENJARVIS_OLLAMA_MODEL", "llama3.1");
+      const baseUrl = await loadOpt(vault, "ollama-url", "OPENJARVIS_OLLAMA_URL");
       return new OllamaAdapter({
         model,
         ...(baseUrl ? { baseUrl } : {}),
@@ -88,11 +88,11 @@ async function buildAdapter(kind: string, path: string, vault?: FileVault): Prom
       });
     }
     case "openai": {
-      const model = await loadStr(vault, "openai-model", "OPENHAWKINS_OPENAI_MODEL", "gpt-4o-mini");
+      const model = await loadStr(vault, "openai-model", "OPENJARVIS_OPENAI_MODEL", "gpt-4o-mini");
       const baseUrl = await loadStr(
         vault,
         "openai-url",
-        "OPENHAWKINS_OPENAI_URL",
+        "OPENJARVIS_OPENAI_URL",
         "https://api.openai.com/v1",
       );
       return new OpenAiCompatAdapter({

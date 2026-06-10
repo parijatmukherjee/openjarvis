@@ -38,7 +38,7 @@ describe("ask CLI — grounding (black-box, exactly as a user runs it)", () => {
 
     expect(trace.grounding).toBe("cited");
     expect(trace.accepted).toBe(true);
-    // The pre-tool fabrication was rejected (Eleven enforced grounding).
+    // The pre-tool fabrication was rejected (the engine enforced grounding).
     expect(trace.corrections).toBeGreaterThanOrEqual(1);
     // The real tool ran on this real machine and succeeded.
     expect(trace.toolCalls).toHaveLength(1);
@@ -77,7 +77,7 @@ describe("ask CLI — grounding (black-box, exactly as a user runs it)", () => {
 // Opt-in: run the slice against a user's REAL local Ollama. Skipped unless the
 // machine actually has Ollama and the operator asks for it, so CI stays
 // deterministic. This is the fullest "real user on their machine" check.
-const ollamaLive = process.env.OPENHAWKINS_OLLAMA_E2E === "1";
+const ollamaLive = process.env.OPENJARVIS_OLLAMA_E2E === "1";
 const hasOllama = spawnSync("ollama", ["--version"], { encoding: "utf8" }).status === 0;
 
 describe.skipIf(!(ollamaLive && hasOllama))("ask CLI — live Ollama (opt-in)", () => {

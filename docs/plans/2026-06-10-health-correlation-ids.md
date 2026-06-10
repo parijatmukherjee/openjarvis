@@ -1,8 +1,8 @@
 # Health Probe + Correlation IDs Implementation Plan
 
-> **Goal:** Add `--health` CLI flag to `openhawkins-run` and add `traceId` correlation to all log entries per turn.
+> **Goal:** Add `--health` CLI flag to `openjarvis-run` and add `traceId` correlation to all log entries per turn.
 
-**Architecture:** Health check is a standalone module in `@openhawkins/state` that probes DB, Vault, audit, and error rate; correlation IDs flow through `Logger.log` → `AgentLoopConfig` → `TurnRecord` → audit data.
+**Architecture:** Health check is a standalone module in `@openjarvis/state` that probes DB, Vault, audit, and error rate; correlation IDs flow through `Logger.log` → `AgentLoopConfig` → `TurnRecord` → audit data.
 
 **Tech Stack:** TypeScript strict, ESM, vitest, Node `crypto.randomUUID`.
 
@@ -21,11 +21,11 @@
 - [ ] **Step 2: Implement checkHealth**
 - [ ] **Step 3: Verify tests pass**
 
-### Task 1.2: Wire `--health` into `openhawkins-run` CLI
+### Task 1.2: Wire `--health` into `openjarvis-run` CLI
 
 **Files:**
 
-- Modify: `packages/state/src/bin/openhawkins-run.ts`
+- Modify: `packages/state/src/bin/openjarvis-run.ts`
 
 - [ ] **Step 4: Add `--health` flag handling**
 - [ ] **Step 5: Export `checkHealth` from `packages/state/src/index.ts`**

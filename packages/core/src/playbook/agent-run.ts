@@ -33,7 +33,7 @@ export interface AgentRunDeps {
  * Sequences a real agent run through a `PlaybookRun`: run a phase's work, let the runtime
  * gate the transition, and on a soft-phase pause consult the operator to override (audited)
  * or halt. Adds no events of its own — the `PlaybookRun` it drives owns the event log and
- * Murray audit, so a full run is replayable and tamper-evident.
+ * audit, so a full run is replayable and tamper-evident.
  */
 export class AgentRun {
   constructor(private readonly deps: AgentRunDeps) {}

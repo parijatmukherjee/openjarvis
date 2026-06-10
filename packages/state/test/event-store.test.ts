@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Session, rebuildState, fixedClock } from "@openhawkins/core";
+import { Session, rebuildState, fixedClock } from "@openjarvis/core";
 import { SqliteEventStore } from "../src/event-store.js";
 
 const dbPath = (): string => join(mkdtempSync(join(tmpdir(), "oh-state-")), "oh.sqlite");
 
-describe("SqliteEventStore (VINES)", () => {
+describe("SqliteEventStore (JarvisStateStore)", () => {
   it("appends and reads events back in order, scoped by session", async () => {
     const store = SqliteEventStore.open(":memory:");
     await store.append({ type: "SessionStarted", sessionId: "s-1", agentId: "a", at: 1 });

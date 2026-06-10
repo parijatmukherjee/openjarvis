@@ -9,7 +9,7 @@ import {
 } from "../../src/security/audit.js";
 import { InMemoryVault } from "../../src/security/vault.js";
 
-describe("InMemoryAuditLog (Murray)", () => {
+describe("InMemoryAuditLog (Audit)", () => {
   it("chains entries and verifies a clean log", async () => {
     const log = new InMemoryAuditLog();
     await log.append({ kind: "ToolCalled", data: { tool: "disk_free" }, at: 1 });

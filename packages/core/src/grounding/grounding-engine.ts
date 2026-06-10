@@ -5,9 +5,9 @@ import type { MetricsCollector } from "../observability/metrics.js";
 import { noopMetricsCollector } from "../observability/metrics.js";
 
 /**
- * Eleven — the grounding engine (spec §6). It sits between the model and the
+ * GroundingEngine — the grounding engine (spec §6). It sits between the model and the
  * acceptance of a final answer: the agent loop never accepts a "final" directly, it
- * asks Eleven. The model proposes; Eleven enforces. This is the structural fix for
+ * asks GroundingEngine. The model proposes; GroundingEngine enforces. This is the structural fix for
  * P1 (hallucination): a weak model cannot shortcut grounding because the runtime —
  * not the model — owns the accept decision, and checks tool calls and citations.
  */
@@ -17,19 +17,22 @@ export type GroundingMode =
   | "required" // MUST have >=1 successful qualifying tool call before a final
   | "cited"; // required + the final must cite tool-result ids (strongest)
 
-export interface ElevenConfig {
+export interface GroundingEngineConfig {
   mode: GroundingMode;
   /** Tool names that count as grounding. Undefined = any successful tool call. */
   qualifyingTools?: string[];
   metrics?: MetricsCollector;
 }
 
-export class Eleven implements AcceptPolicy {
+/** Backward-compatible alias for the renamed class. */
+export type ElevenConfig = GroundingEngineConfig;
+
+export class GroundingEngine implements AcceptPolicy {
   private readonly mode: GroundingMode;
   private readonly qualifyingTools: string[] | undefined;
   private readonly metrics: MetricsCollector;
 
-  constructor(cfg: ElevenConfig, metrics?: MetricsCollector) {
+  constructor(cfg: GroundingEngineConfig, metrics?: MetricsCollector) {
     this.mode = cfg.mode;
     this.qualifyingTools = cfg.qualifyingTools;
     this.metrics = metrics ?? cfg.metrics ?? noopMetricsCollector;
@@ -146,3 +149,6 @@ export function groundingInstruction(mode: GroundingMode, qualifyingTools?: stri
       );
   }
 }
+
+/** Backward-compatible alias for the renamed class. */
+export { GroundingEngine as Eleven };

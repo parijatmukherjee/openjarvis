@@ -3,9 +3,14 @@ import { ScriptedAdapter } from "../models/scripted.js";
 import { ToolRegistry } from "../tools/registry.js";
 import { diskFreeTool } from "../tools/disk-free.js";
 import type { ToolDefinition } from "../tools/tool.js";
-import type { GroundingMode } from "../grounding/eleven.js";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyToolDefinition = ToolDefinition<any, any>;
+import type { GroundingMode } from "../grounding/grounding-engine.js";
 import { Agent } from "./agent.js";
 import type { Logger } from "../observability/logger.js";
+import type { MemoryStore } from "../memory.js";
+import { createDocumentTool, type DocumentConverter } from "../tools/document-tool.js";
 
 type DiskFreeTool = ToolDefinition<{ path: string }, { path: string; freeBytes: number }>;
 
@@ -20,7 +25,7 @@ function fixedDiskFreeTool(freeBytes: number): DiskFreeTool {
  * The vertical slice's agent (spec §3): one agent (`probe-agent`), one tool
  * (`disk_free`), one skill (`host-facts`, grounding `cited`). The grounding mode is
  * a parameter so the SAME agent powers both the headline test (cited) and the
- * negative control (off) — proving Eleven is what makes the difference.
+ * negative control (off) — proving the grounding engine is what makes the difference.
  *
  * `diskFree`, when set, swaps the real `disk_free` for one that reports that fixed
  * number — so a determinism test gets a fully reproducible run without a live disk read.
@@ -30,19 +35,31 @@ export function buildProbeAgent(opts: {
   grounding: GroundingMode;
   diskFree?: number;
   logger?: Logger;
+  /** Optional memory store for context injection (e.g. JarvisMemoryStore). */
+  memory?: MemoryStore;
+  /** Optional document converter for token reduction (e.g. `@openjarvis/markdownify`).
+   *  When provided, a `convert_document` tool is registered. */
+  documentConverter?: DocumentConverter;
 }): Promise<Agent> {
   const tool: DiskFreeTool =
     opts.diskFree === undefined ? diskFreeTool : fixedDiskFreeTool(opts.diskFree);
   const registry = new ToolRegistry(opts.logger);
   registry.register(tool);
+  const tools: AnyToolDefinition[] = [tool];
+  if (opts.documentConverter) {
+    const docTool = createDocumentTool(opts.documentConverter);
+    registry.register(docTool);
+    tools.push(docTool);
+  }
   return Agent.start({
     agentId: "probe-agent",
     adapter: opts.adapter,
     registry,
     grant: { agentId: "probe-agent", capabilities: [{ name: "host:info" }] },
-    tools: [tool],
+    tools,
     grounding: { mode: opts.grounding, qualifyingTools: ["disk_free"] },
     systemPrompt: "You are probe-agent. Answer questions about this host accurately.",
+    ...(opts.memory ? { memory: opts.memory } : {}),
   });
 }
 
@@ -51,11 +68,11 @@ export function buildProbeAgent(opts: {
  * faithfully reproduces the failure-then-recovery a real weak model exhibits:
  *
  *   1. fabricate a plausible number WITHOUT calling the tool;
- *   2. (after Eleven's correction) call `disk_free`;
+ *   2. (after the engine's correction) call `disk_free`;
  *   3. answer as a cited JSON object using the REAL number the tool returned.
  *
  * Under `off` grounding the loop accepts step 1 (the fabrication) and never advances
- * — which is exactly the negative control. Under `cited` grounding Eleven rejects
+ * — which is exactly the negative control. Under `cited` grounding the engine rejects
  * step 1, forcing 2 and 3. Same model, opposite outcomes.
  */
 export function weakHostFactsModel(path: string): ScriptedAdapter {

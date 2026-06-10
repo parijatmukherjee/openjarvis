@@ -1,7 +1,7 @@
 import type { VisualCommand } from "../synthesis.js";
 import type { VisionEvent } from "../vision/events.js";
 import type { BusEvent } from "../event-bus.js";
-import type { AuditEntry } from "@openhawkins/core";
+import type { AuditEntry } from "@openjarvis/core";
 
 export interface JarvisHub {
   wakeWordEngine: { start(callback: () => void): Promise<void> };

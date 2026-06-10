@@ -2,14 +2,14 @@
 
 **Date:** 2026-06-09
 **Status:** Draft for review
-**Parent:** [`2026-06-05-openhawkins-design.md`](./2026-06-05-openhawkins-design.md) (umbrella)
+**Parent:** [`2026-06-05-openjarvis-design.md`](./2026-06-05-openjarvis-design.md) (umbrella)
 **Decision:** [ADR 0002 — Runtime-enforced agent process, not n8n](../adr/0002-process-enforcement-native-not-n8n.md)
 **Targeted subproject:** a thin `core` layer (ships before S3; the S3 orchestrator drives it later)
 
 > A runtime-owned state machine that forces every agent run through a fixed process —
 > **Research → Plan → Tasks → Execute → Validate → Present**, with a fail→replan loop —
 > via **code-enforced transitions**. The process becomes an enforced invariant, the way
-> **Eleven** makes grounding one. The model proposes "I'm done with this phase"; the
+> **GroundingEngine** makes grounding one. The model proposes "I'm done with this phase"; the
 > runtime decides. Not n8n (ADR 0002).
 
 ---
@@ -43,7 +43,7 @@ say-so — they pause for a capability-gated, audited operator decision.
 | Where it lives            | A thin layer in `packages/core` now; the S3 orchestrator drives it later                 |
 | Granularity               | Per agent **run** (nestable per-task later, §3.5)                                        |
 | Enforcement of soft gates | **Hard** transitions; soft gates pause for a capability-gated, audited operator override |
-| Phase-state model         | New **PhaseTransition domain events** in VINES; current phase is a fold                  |
+| Phase-state model         | New **PhaseTransition domain events** in JarvisStateStore; current phase is a fold       |
 | Phase/gate declaration    | A **declarative manifest** (data) the runtime interprets; one built-in default           |
 | Validate gate             | A **pluggable async predicate**; default runs the repo gate command                      |
 
@@ -56,15 +56,15 @@ run is in**, and **whether a proposed transition is allowed**. It owns no model 
 work — that stays in the agent loop (`loop/agent-loop.ts`). It composes the four
 existing primitives rather than duplicating them:
 
-- **VINES** (`session/events.ts`, `session/state.ts`) — phase changes are new
+- **JarvisStateStore** (`session/events.ts`, `session/state.ts`) — phase changes are new
   `DomainEvent` variants appended to the same `EventStore` and folded into
   `SessionState`. Replay and crash-recovery come for free.
-- **Eleven's accept-policy shape** (`loop/turn.ts` `AcceptPolicy`) — a phase gate
+- **GroundingEngine's accept-policy shape** (`loop/turn.ts` `AcceptPolicy`) — a phase gate
   mirrors `evaluate(ctx) → accept | { accept:false, correction }`. The model proposes
   "phase complete"; the runtime owns the decision.
-- **The Lab** (`security/capability.ts` `grantSatisfies`) — a phase override is a
+- **the Lab** (`security/capability.ts` `grantSatisfies`) — a phase override is a
   capability-gated action (default-deny).
-- **Murray** (`security/audit.ts` `AuditLog`) — every transition and override is a
+- **Audit** (`security/audit.ts` `AuditLog`) — every transition and override is a
   hash-chained audit entry.
 
 ### 3.1 Components
@@ -98,7 +98,7 @@ Research ──▶ Plan ──▶ Tasks ──▶ Execute ──▶ Validate ─
 The pure transition function `step(manifest, state, verdict)` (in `machine.ts`) is
 exhaustively testable; the runner performs the IO around it.
 
-### 3.3 State model — PhaseTransition events (VINES)
+### 3.3 State model — PhaseTransition events (JarvisStateStore)
 
 Current phase is **never** held only in memory — it is a fold over the event log, so a
 crash mid-run restores the exact phase on restart (each transition is a single
@@ -119,7 +119,7 @@ the log — being in a soft phase with no following `PhaseOverridden`, or a `Val
 `PhaseGateFailed{escalate:true}` — so it is not stored as a field; the P3 runner adds
 that derivation rather than a persisted flag.)
 
-### 3.4 Gates (the Eleven-style accept policy)
+### 3.4 Gates (the GroundingEngine-style accept policy)
 
 ```ts
 type GateVerdict =
@@ -162,7 +162,7 @@ carry `runId` (not just `sessionId`) precisely so a future nested per-task loop 
 its own machine instances under the `Execute` phase without changing the event model or
 the reducer. Nesting is explicitly out of scope here (§1) but designed-for.
 
-### 3.6 Overrides — capability-gated, audited (The Lab + Murray)
+### 3.6 Overrides — capability-gated, audited (the Lab + Audit)
 
 A `needs-operator` verdict **pauses** the run. Advancing requires an operator action
 that carries a capability satisfying `grantSatisfies(grant, { name: "playbook:override" })`
@@ -189,7 +189,7 @@ The current phase after every step equals `fold(events)`.
 ## 4. Error handling & edge cases
 
 - **Gate predicate throws** → caught, treated as `failed` with the error as `reason`;
-  the runner never throws out (Eleven/registry never-throw discipline).
+  the runner never throws out (GroundingEngine/registry never-throw discipline).
 - **Replan budget.** The manifest carries `maxReplans` (default **3**). A `Validate`
   failure increments a counter; exceeding the budget commits
   `PhaseGateFailed{ escalate: true }` and pauses for an operator instead of looping to
@@ -206,13 +206,13 @@ The current phase after every step equals `fold(events)`.
 
 ## 5. Reuse of existing primitives (no parallels invented)
 
-- **Agent loop / Eleven accept-policy** — the per-phase gate is the same
-  accept-or-correct mechanism Eleven already uses for grounding (`AcceptPolicy`).
-- **VINES (event-sourced session)** — each transition is a `DomainEvent`; process state
+- **Agent loop / GroundingEngine accept-policy** — the per-phase gate is the same
+  accept-or-correct mechanism GroundingEngine already uses for grounding (`AcceptPolicy`).
+- **JarvisStateStore (event-sourced session)** — each transition is a `DomainEvent`; process state
   is a fold over the log → deterministic replay.
-- **Murray (audit)** — transitions are hash-chained; "did this run skip the plan?" is
+- **Audit (audit)** — transitions are hash-chained; "did this run skip the plan?" is
   answerable and tamper-evident (`verify()`).
-- **The Lab (capabilities)** — overrides are capability-gated, audited actions.
+- **the Lab (capabilities)** — overrides are capability-gated, audited actions.
 
 ---
 
@@ -253,7 +253,7 @@ The current phase after every step equals `fold(events)`.
   tested, no IO.
 - **P2 — Gates.** `PhaseGate` interface; `SoftGate`; `ValidateGate` over an injected
   predicate + the real repo-gate-command predicate.
-- **P3 — Runner.** `PlaybookRun` single-writer driver: commit events, write Murray
+- **P3 — Runner.** `PlaybookRun` single-writer driver: commit events, write Audit
   audit, enforce the `playbook:override` capability and the replan budget; the full
   event-sequence + audit-chain tests.
 

@@ -1,5 +1,5 @@
 {
-  "name": "@openhawkins/agents",
+  "name": "@openjarvis/agents",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@openhawkins/jarvis": "*",
-    "@openhawkins/core": "*"
+    "@openjarvis/jarvis": "*",
+    "@openjarvis/core": "*"
   }
 }

@@ -16,7 +16,7 @@ const PROMPT = "How much disk space is free on this machine?";
 const PATH = tmpdir();
 
 // The headline acceptance (spec §3): the SAME weak model, run with grounding on vs
-// off, produces a verified-real answer vs a fabrication — proving Eleven, not the
+// off, produces a verified-real answer vs a fabrication — proving the engine, not the
 // model, is what kills the hallucination. The disk number is REAL (the real tool runs
 // on the real machine); only the "model" is scripted, which is the spec's
 // deterministic-replay mechanism (§7.2).
@@ -55,7 +55,7 @@ describe("the hallucination test (cited grounding)", () => {
 
   it("is deterministic — same scenario replays to an identical decision trace", async () => {
     // Pin the disk number so the run is fully reproducible: the model is scripted and
-    // Eleven is deterministic, so the only live input is the real disk's free bytes,
+    // the engine is deterministic, so the only live input is the real disk's free bytes,
     // which drift between calls. A fixed tool result isolates replay determinism.
     const a = await runScenario(scenario(123_456_789));
     const b = await runScenario(scenario(123_456_789));
@@ -89,7 +89,7 @@ describe("the runtime records and audits the grounded turn", () => {
     });
     await agent.ask(PROMPT);
 
-    // Murray: every model/tool/correction/final step is auditable and tamper-evident.
+    // Audit: every model/tool/correction/final step is auditable and tamper-evident.
     const entries = await agent.audit.entries();
     const kinds = entries.map((e) => e.kind);
     expect(kinds).toContain("ToolReturned");

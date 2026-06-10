@@ -1,5 +1,5 @@
-import type { AgentResult } from "@openhawkins/jarvis";
-import type { DetectedObject, PresenceState } from "@openhawkins/jarvis";
+import type { AgentResult } from "@openjarvis/jarvis";
+import type { DetectedObject, PresenceState } from "@openjarvis/jarvis";
 
 export interface VisionAgent {
   execute(intent: VisionIntent, context: VisionContext): Promise<VisionAgentResult>;

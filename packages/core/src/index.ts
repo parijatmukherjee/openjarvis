@@ -28,7 +28,7 @@ export * from "./memory.js";
 export * from "./loop/turn.js";
 export * from "./loop/agent-loop.js";
 export * from "./grounding/citations.js";
-export * from "./grounding/eleven.js";
+export * from "./grounding/grounding-engine.js";
 export * from "./eval/agent.js";
 export * from "./eval/harness.js";
 export * from "./eval/scenarios.js";

@@ -286,7 +286,7 @@ git commit -m "feat(models): request timeout + bounded retry/backoff (F-H1)"
 
 - [ ] **Step 1: Roadmap.** In `docs/reviews/2026-06-09-production-readiness-review.md` §3, mark **A4** done: `4. **A4 — Harden the model/IO boundary (F-C4/F-H1/F-M4) ✅ DONE (PR pending).**` keep the rest. (Note: `runCommand` timeout from F-H1 — the gate-command spawn — is deferred to A4b if not done here; the model-call path, the higher-frequency one, is hardened.)
 - [ ] **Step 2: Full repo gate.** `npm run build && npm run lint && npm run format:check && npm run coverage && npm run test:functional` — all green; aggregate ≥99%; `http.ts` + both adapters 100%. Paste the coverage tail.
-- [ ] **Step 3: Docker gate.** `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test` → `✅ ALL GATES PASSED`.
+- [ ] **Step 3: Docker gate.** `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test` → `✅ ALL GATES PASSED`.
 - [ ] **Step 4: Commit.**
 
 ```bash

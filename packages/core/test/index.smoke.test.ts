@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import * as oh from "../src/index.js";
 
 // Importing the public barrel executes every module's top level and is what a
-// consumer of @openhawkins/core actually does. It also keeps the barrel honest:
+// consumer of @openjarvis/core actually does. It also keeps the barrel honest:
 // if an export is renamed/removed, this fails.
-describe("@openhawkins/core public surface", () => {
+describe("@openjarvis/core public surface", () => {
   it("re-exports the core runtime building blocks", () => {
     const expected = [
       "Session",

@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-09
 **Status:** Draft for review
-**Parent:** [`2026-06-05-openhawkins-design.md`](./2026-06-05-openhawkins-design.md) (umbrella)
+**Parent:** [`2026-06-05-openjarvis-design.md`](./2026-06-05-openjarvis-design.md) (umbrella)
 **Builds on:** [`2026-06-09-playbook-process-engine-design.md`](./2026-06-09-playbook-process-engine-design.md) (the Playbook engine — P1 core + P2 gates + P3 runner, all merged)
 
 > The Playbook engine (`PlaybookRun`) is a process state machine — it gates transitions
@@ -127,7 +127,7 @@ loop:
   exhausted → `escalated`.
 - The terminal `Present` is observed at the top of the loop → `completed`.
 
-Every transition the loop triggers is already a committed `PhaseEvent` + Murray audit
+Every transition the loop triggers is already a committed `PhaseEvent` + Audit audit
 entry inside `PlaybookRun`; `AgentRun` adds no events of its own. A full run is therefore
 replayable and tamper-evident, and `foldPlaybook(events)` reconstructs the final phase.
 
@@ -140,7 +140,7 @@ replayable and tamper-evident, and `foldPlaybook(events)` reconstructs the final
 
 ### 3.4 Production wiring (the CLI)
 
-A thin entry (e.g. `openhawkins run`, `packages/core/src/bin/run.ts`, exercised by the
+A thin entry (e.g. `openjarvis run`, `packages/core/src/bin/run.ts`, exercised by the
 functional suite) builds the production `AgentRun`:
 
 - a `PlaybookRun` over `DEFAULT_MANIFEST` with `softGate: new SoftGate()`,
@@ -178,13 +178,13 @@ orchestrator + operators + tests are the core.)
 
 ## 5. Reuse of existing primitives (no parallels invented)
 
-- **`PlaybookRun`** (P3) — owns the gate evaluation, event commits, Murray audit, and the
+- **`PlaybookRun`** (P3) — owns the gate evaluation, event commits, Audit audit, and the
   capability-gated override. `AgentRun` only calls its `state`/`status`/`advance`/`override`.
 - **`SoftGate`/`ValidateGate` + `gateCommandPredicate`** (P2) — the gates; the real one
   wired in production.
 - **`Agent`** (S1) — used _inside_ handlers by the caller; `AgentRun` does not depend on
   it directly, keeping the orchestrator agent-agnostic and the dependency direction clean.
-- **VINES / Murray / The Lab** — reached only through `PlaybookRun`.
+- **JarvisStateStore / Audit / the Lab** — reached only through `PlaybookRun`.
 
 ---
 
@@ -230,7 +230,7 @@ orchestrator + operators + tests are the core.)
   real gate — pure orchestration over an injected `PlaybookRun`.
 - **A2 — Production wiring.** `HumanOperator` (stdin), the production factory that builds
   an `AgentRun` with the real repo-gate `ValidateGate` + `Agent`-backed handlers, the
-  `openhawkins run` CLI entry, and a black-box functional test of an end-to-end run on the
+  `openjarvis run` CLI entry, and a black-box functional test of an end-to-end run on the
   scripted adapter.
 
 Each milestone is independently reviewable and lands behind the same gate. No code until

@@ -275,7 +275,7 @@ Expected: FAIL — cannot find module `../../src/playbook/events.js`.
 ```ts
 import type { Phase } from "./manifest.js";
 
-/** The PhaseTransition domain events. Appended to the VINES event store (the session
+/** The PhaseTransition domain events. Appended to the JarvisStateStore event store (the session
  *  `DomainEvent` union includes these); the current run state is a fold over them. */
 export type PhaseEvent =
   | { type: "PhaseEntered"; sessionId: string; runId: string; phase: Phase; at: number }
@@ -608,7 +608,7 @@ Expected: FAIL — cannot find module `../../src/playbook/machine.js`.
 import { type PlaybookManifest, phaseSpec, nextPhase } from "./manifest.js";
 import type { PlaybookRunState } from "./events.js";
 
-/** A phase gate's verdict — the Eleven-style accept-or-correct decision for a phase.
+/** A phase gate's verdict — the GroundingEngine-style accept-or-correct decision for a phase.
  *  `needs-operator` is a soft phase pausing for a capability-gated override (P3). */
 export type GateVerdict =
   | { status: "passed" }
@@ -701,7 +701,7 @@ git commit -m "feat(playbook): pure phase-transition machine (step)"
 import { describe, it, expect } from "vitest";
 import * as playbook from "../../src/playbook/index.js";
 
-describe("@openhawkins/core playbook barrel", () => {
+describe("@openjarvis/core playbook barrel", () => {
   it("re-exports the manifest, events, and machine surface", () => {
     expect(playbook.DEFAULT_MANIFEST.phases.length).toBe(6);
     expect(typeof playbook.nextPhase).toBe("function");
@@ -747,7 +747,7 @@ Expected: all green; coverage ≥99% across all metrics, with every `packages/co
 
 - [ ] **Step 6: Run the Docker gate (the required PR check)**
 
-Run: `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test`
+Run: `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test`
 Expected: ends with `✅ ALL GATES PASSED`.
 
 - [ ] **Step 7: Commit**
@@ -766,7 +766,7 @@ git commit -m "feat(playbook): barrel exports; P1 machine+events complete"
 - **Spec §3.3 — PhaseTransition events; current phase is a fold; reduceEvent extended; SessionState carries PlaybookRunState:** four `PhaseEvent` variants + `reducePlaybook`/`foldPlaybook` (Task 2); union + `SessionState.playbook` + delegation (Task 3). ✓
 - **Spec §4 — replan budget (maxReplans default 3 → escalate):** `DEFAULT_MANIFEST.maxReplans = 3` (Task 1); `escalated` outcome when `replans > maxReplans` (Task 4). ✓
 - **Spec §6 — testing (pure machine exhaustive; fold/replay; behavior-level; ≥99%):** every task is TDD with behavior assertions; full gate + Docker gate in Task 5. ✓
-- **Deferred to later milestones (not this plan):** `GateContext`/`PhaseGate`/`SoftGate`/`ValidateGate` predicate (P2); `PlaybookRun` runner, Murray audit writes, the `playbook:override` capability + denied-override handling, operator-override flow, and the event-emission mapping from `Transition.outcome` (P3). The `GateVerdict` type ships in P1 (Task 4) because `step` consumes it; the gates that produce it are P2.
+- **Deferred to later milestones (not this plan):** `GateContext`/`PhaseGate`/`SoftGate`/`ValidateGate` predicate (P2); `PlaybookRun` runner, Audit audit writes, the `playbook:override` capability + denied-override handling, operator-override flow, and the event-emission mapping from `Transition.outcome` (P3). The `GateVerdict` type ships in P1 (Task 4) because `step` consumes it; the gates that produce it are P2.
 - **Type consistency:** `Phase`, `PhaseSpec`, `PlaybookManifest`, `DEFAULT_MANIFEST`, `phaseSpec`, `nextPhase`, `PhaseEvent`, `PlaybookRunState`, `isPhaseEvent`, `reducePlaybook`, `foldPlaybook`, `GateVerdict`, `Transition`, `step` — names used identically across Tasks 1–5 and the tests. ✓
 
 ---
@@ -774,4 +774,4 @@ git commit -m "feat(playbook): barrel exports; P1 machine+events complete"
 ## Next plans (after P1 lands)
 
 - **P2** — `gates.ts`: the `PhaseGate` interface + `GateContext`; `SoftGate` (always `needs-operator`); `ValidateGate` over an injected `() => Promise<{ ok; detail? }>` predicate, plus the real repo-gate-command predicate.
-- **P3** — `runner.ts`: `PlaybookRun` single-writer driver mapping `Transition.outcome` → emitted `PhaseEvent`s + Murray audit; the `playbook:override` capability (added to `CapabilityName`) with denied-override auditing; the replan-budget/escalation flow; full event-sequence + audit-chain tests.
+- **P3** — `runner.ts`: `PlaybookRun` single-writer driver mapping `Transition.outcome` → emitted `PhaseEvent`s + Audit audit; the `playbook:override` capability (added to `CapabilityName`) with denied-override auditing; the replan-budget/escalation flow; full event-sequence + audit-chain tests.

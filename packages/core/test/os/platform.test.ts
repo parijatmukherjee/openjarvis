@@ -31,20 +31,20 @@ describe("configDir/dataDir", () => {
   const env = { HOME: "/home/x", APPDATA: "C:\\Users\\x\\AppData\\Roaming" };
 
   it("configDir uses APPDATA on windows", () => {
-    expect(configDir("windows", env)).toBe(join(env.APPDATA, "openhawkins"));
+    expect(configDir("windows", env)).toBe(join(env.APPDATA, "openjarvis"));
   });
   it("configDir uses Application Support on macos", () => {
     expect(configDir("macos", env)).toBe(
-      join(env.HOME, "Library", "Application Support", "openhawkins"),
+      join(env.HOME, "Library", "Application Support", "openjarvis"),
     );
   });
   it("configDir uses .config on linux", () => {
-    expect(configDir("linux", env)).toBe(join(env.HOME, ".config", "openhawkins"));
+    expect(configDir("linux", env)).toBe(join(env.HOME, ".config", "openjarvis"));
   });
   it("dataDir uses LOCALAPPDATA fallback on windows", () => {
-    expect(dataDir("windows", env)).toBe(join(env.HOME, "AppData", "Local", "openhawkins"));
+    expect(dataDir("windows", env)).toBe(join(env.HOME, "AppData", "Local", "openjarvis"));
   });
   it("dataDir uses .local/share on linux", () => {
-    expect(dataDir("linux", env)).toBe(join(env.HOME, ".local", "share", "openhawkins"));
+    expect(dataDir("linux", env)).toBe(join(env.HOME, ".local", "share", "openjarvis"));
   });
 });

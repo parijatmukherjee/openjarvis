@@ -201,7 +201,7 @@ git commit -m "feat(security): resolveAuditKey — persistent audit HMAC key fro
 - [ ] **Step 1: Update the tests to pass a key.** In `packages/state/test/audit-store.test.ts`, import a key and thread it through every construction:
 
 ```ts
-import { mintAuditKey } from "@openhawkins/core";
+import { mintAuditKey } from "@openjarvis/core";
 const KEY = mintAuditKey();
 const fresh = () => new SqliteAuditLog(openDatabase({ path: ":memory:" }), KEY);
 ```
@@ -252,20 +252,20 @@ git commit -m "feat(state): SqliteAuditLog requires a persistent HMAC key (F-C2)
 - Modify: `docs/security-model.md` (correct any "tamper-evident" over-claim for the audit)
 - Modify: `docs/reviews/2026-06-09-production-readiness-review.md` (mark A2; add A2b)
 
-- [ ] **Step 1: Correct the security docs.** In `docs/security-model.md`, find the audit "tamper-evident" claim(s) and reword to: the audit chain is a **keyed HMAC** chain — tamper-proof against a writer who does not hold the Cabin-held key; external anchoring for evidence against full host compromise is future work (A2b). (grep `tamper` in docs to find the lines.)
+- [ ] **Step 1: Correct the security docs.** In `docs/security-model.md`, find the audit "tamper-evident" claim(s) and reword to: the audit chain is a **keyed HMAC** chain — tamper-proof against a writer who does not hold the Vault-held key; external anchoring for evidence against full host compromise is future work (A2b). (grep `tamper` in docs to find the lines.)
 
 - [ ] **Step 2: Update the roadmap.** In `docs/reviews/2026-06-09-production-readiness-review.md` §3, mark **A2** done — change its line to begin `2. **A2 — Keyed HMAC audit chain (F-C2) ✅ DONE (PR pending).**` keeping the rest, and append a new item: `**A2b — External audit anchoring (future).** Publish the chain head hash to an append-only external store / periodic signatures, for tamper-evidence even against a full host compromise (beyond keyed HMAC).`
 
 - [ ] **Step 3: Run the FULL repo gate.**
       `npm run build && npm run lint && npm run format:check && npm run coverage && npm run test:functional` — all green; aggregate ≥99%; `audit.ts` + `audit-store.ts` 100%. If `format:check` complains, `npm run format` first. Paste the coverage tail.
 
-- [ ] **Step 4: Docker gate.** `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test` → `✅ ALL GATES PASSED`.
+- [ ] **Step 4: Docker gate.** `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test` → `✅ ALL GATES PASSED`.
 
 - [ ] **Step 5: Commit.**
 
 ```bash
 git add docs/security-model.md docs/reviews/2026-06-09-production-readiness-review.md
-git commit -m "docs: audit is keyed HMAC (tamper-proof under the Cabin key), not a checksum (F-C2); track A2b"
+git commit -m "docs: audit is keyed HMAC (tamper-proof under the Vault key), not a checksum (F-C2); track A2b"
 ```
 
 ---

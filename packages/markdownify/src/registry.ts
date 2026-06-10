@@ -70,6 +70,10 @@ export class ConverterRegistry {
     // Bound input before any parser runs: `.length` is the char count for a string and the
     // byte count for a Uint8Array, so this caps both without decoding (review F-M2).
     if (input.data.length > this.maxInputChars) {
+      this.logger.log("warn", "input_truncated", {
+        size: input.data.length,
+        cap: this.maxInputChars,
+      });
       return {
         markdown: asString(input.data).slice(0, this.maxInputChars),
         format: "text",

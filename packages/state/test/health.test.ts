@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { checkHealth } from "../src/health.js";
 import { openDatabase } from "../src/driver/driver.js";
 import { SqliteAuditLog } from "../src/audit-store.js";
-import { resolveAuditKey, FileVault } from "@openhawkins/core";
-import type { Logger } from "@openhawkins/core";
+import { resolveAuditKey, FileVault } from "@openjarvis/core";
+import type { Logger } from "@openjarvis/core";
 
 describe("checkHealth", () => {
   it("reports healthy on a clean empty db+vault", async () => {

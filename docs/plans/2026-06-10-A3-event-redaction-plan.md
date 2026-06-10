@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stop secrets/PII from landing in the persisted event store (finding **F-C3**). Today `redact()` is wired into the audit path ONLY — the VINES event store commits raw user `input` / model `final`, and the matcher only catches `sk-`/`Bearer`. This (1) broadens `redact()` to real provider key shapes + JWT/PEM + email PII, and (2) applies redaction at the **event-store boundary** via a `RedactingEventStore` decorator wired into `buildAgentRun` — so every persisted event (in-memory or durable) is redacted, while structural fields needed for replay (`sessionId`, `runId`, `type`, `phase`, `at`) are preserved.
+**Goal:** Stop secrets/PII from landing in the persisted event store (finding **F-C3**). Today `redact()` is wired into the audit path ONLY — the JarvisStateStore event store commits raw user `input` / model `final`, and the matcher only catches `sk-`/`Bearer`. This (1) broadens `redact()` to real provider key shapes + JWT/PEM + email PII, and (2) applies redaction at the **event-store boundary** via a `RedactingEventStore` decorator wired into `buildAgentRun` — so every persisted event (in-memory or durable) is redacted, while structural fields needed for replay (`sessionId`, `runId`, `type`, `phase`, `at`) are preserved.
 
 **Architecture:** `redact()` gains provider/value patterns and a few more secret key-names (carefully — NOT `session`/`id`/bare `key`, which would corrupt replay). A `RedactingEventStore` (`packages/core/src/session/redacting-store.ts`) wraps any `EventStore`: `append` redacts the event then delegates; `read` passes through. `buildAgentRun` wraps the (injected-or-default) store with it. Redaction is value-shape + secret-key-name based, so it never touches `sessionId`/`phase`/`type` (those don't match), keeping `read(sessionId)` and `foldPlaybook` intact.
 
@@ -300,7 +300,7 @@ it("a secret planted in a prompt never lands in the event store or audit (F-C3)"
 - [ ] **Step 3: Full repo gate.**
       `npm run build && npm run lint && npm run format:check && npm run coverage && npm run test:functional` — all green; aggregate ≥99%; `redact.ts` + `redacting-store.ts` 100%. Paste the coverage tail.
 
-- [ ] **Step 4: Docker gate.** `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test` → `✅ ALL GATES PASSED`.
+- [ ] **Step 4: Docker gate.** `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test` → `✅ ALL GATES PASSED`.
 
 - [ ] **Step 5: Roadmap.** Mark **A3** done in `docs/reviews/2026-06-09-production-readiness-review.md` §3 (`3. **A3 — … (F-C3) ✅ DONE (PR pending).** …`). Note the residual: redaction is pattern-based (recognizable shapes + email); generic high-entropy/other-PII detection is future work.
 

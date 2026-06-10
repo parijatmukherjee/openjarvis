@@ -1,13 +1,13 @@
-# S1 — Core Runtime + Grounding Engine (Eleven) — Design
+# S1 — Core Runtime + Grounding Engine (GroundingEngine) — Design
 
 **Date:** 2026-06-05
 **Status:** Draft for review
-**Parent:** [`2026-06-05-openhawkins-design.md`](./2026-06-05-openhawkins-design.md) (umbrella)
+**Parent:** [`2026-06-05-openjarvis-design.md`](./2026-06-05-openjarvis-design.md) (umbrella)
 **Subproject:** S1 of the build order (§9 of the umbrella)
 
 > S1 is the foundation **and** the direct fix for the #1 pain point (P1:
 > hallucination when the model doesn't call tools). It delivers the core runtime,
-> the **Eleven** grounding engine, event-sourced replay/eval, and the _interfaces_
+> the **GroundingEngine** grounding engine, event-sourced replay/eval, and the _interfaces_
 > for the S1 security foundations — proven end-to-end by a thin vertical slice on
 > Windows, macOS, and Linux.
 
@@ -17,20 +17,20 @@
 
 ### 1.1 In scope (S1)
 
-1. **`@openhawkins/core`** package: the agent loop, session model, event bus,
-   typed tool registry, model-adapter interface, and the Eleven grounding engine.
+1. **`@openjarvis/core`** package: the agent loop, session model, event bus,
+   typed tool registry, model-adapter interface, and the GroundingEngine grounding engine.
 2. **Model adapters:** **Ollama (local + `:cloud`) is mandatory**, plus **one
    second adapter** to prove provider-agnosticism (decision: an
    **OpenAI-compatible** adapter, since Groq/OpenRouter/local servers and many
    free tiers speak that wire format — one adapter unlocks several providers).
-3. **Eleven grounding engine** (§6): native tool-calling, grounding modes,
+3. **GroundingEngine grounding engine** (§6): native tool-calling, grounding modes,
    tool-required enforcement, claim-citation verification, structured outputs,
    the "unknown" path.
 4. **Event sourcing + deterministic replay + eval harness** (§7) — designed in
    from turn one (umbrella §10.1).
-5. **Security foundation _interfaces_** (§8): `Vault` (The Cabin), capability
-   model (The Lab), taint tags (The Gate), single-writer session, append-only
-   hash-chained audit (Murray). S1 ships the interfaces + a minimal local
+5. **Security foundation _interfaces_** (§8): `Vault` (the Vault), capability
+   model (the Lab), taint tags (the Gate), single-writer session, append-only
+   hash-chained audit (Audit). S1 ships the interfaces + a minimal local
    implementation; full hardening lands in later subprojects.
 6. **Cross-platform proof** + a **Bun `--compile` spike** (§9).
 7. **The vertical slice** (§3): one agent, one real tool, grounding enforced,
@@ -39,8 +39,8 @@
 ### 1.2 Out of scope (deferred to later subprojects)
 
 - The Nexus orchestrator and the 5-phase Pulse (**S3**).
-- Multiple tendrils, in-process multi-agent dispatch (**S3**).
-- Durable SQLite state ledger / VINES, VECNA memory store (**S2**) — S1 uses an
+- Multiple agents, in-process multi-agent dispatch (**S3**).
+- Durable SQLite state ledger / JarvisStateStore, JarvisMemoryStore memory store (**S2**) — S1 uses an
   in-memory event store behind the same interface; S2 swaps in SQLite.
 - Channels, gateway, dashboard, plugin loader, packaging (**S4–S7**).
 - Sandboxed process isolation for tools (**S6 hardening**) — S1 defines the
@@ -81,7 +81,7 @@ A single agent, `probe-agent`, with exactly one tool, `disk_free`, and one skill
 GIVEN  probe-agent on any model (free local Ollama incl.)
 WHEN   asked "How much disk space is free on this machine?"
 THEN   the runtime REJECTS any final answer produced before `disk_free` is
-       called successfully, re-prompting Eleven's correction;
+       called successfully, re-prompting GroundingEngine's correction;
 AND    the accepted final answer cites the `disk_free` tool-result id;
 AND    the number in the answer equals the tool result (claim-citation check);
 AND    the entire run replays deterministically and the eval harness asserts all
@@ -97,7 +97,7 @@ engine is what makes the difference (this becomes a regression fixture).
 
 ---
 
-## 4. Package & module layout (`@openhawkins/core`)
+## 4. Package & module layout (`@openjarvis/core`)
 
 ```
 packages/core/
@@ -123,10 +123,10 @@ packages/core/
       citations.ts        # claim-citation extraction + verification
       verifier.ts         # optional second-pass verifier agent
     security/
-      vault.ts            # The Cabin: secrets interface (+ keychain/file impls)
-      capability.ts       # The Lab: capability grants + checks
-      taint.ts            # The Gate: provenance/taint tags on content
-      audit.ts            # Murray: append-only hash-chained audit log
+      vault.ts            # the Vault: secrets interface (+ keychain/file impls)
+      capability.ts       # the Lab: capability grants + checks
+      taint.ts            # the Gate: provenance/taint tags on content
+      audit.ts            # Audit: append-only hash-chained audit log
     os/
       platform.ts         # OS detection + shell/pkgmgr/path abstraction
     index.ts
@@ -151,7 +151,7 @@ type Role = "system" | "user" | "assistant" | "tool";
 interface Message {
   role: Role;
   content: ContentPart[]; // text + structured parts
-  provenance: Provenance; // The Gate: where this content came from
+  provenance: Provenance; // the Gate: where this content came from
 }
 
 interface ToolCall {
@@ -172,7 +172,7 @@ interface Turn {
   input: Message;
   modelCalls: ModelCall[]; // 1..n (re-prompts count)
   toolCalls: { call: ToolCall; result: ToolResult }[];
-  final?: Message; // present only once accepted by Eleven
+  final?: Message; // present only once accepted by GroundingEngine
   grounding: GroundingOutcome; // why it was accepted / what was enforced
 }
 
@@ -185,7 +185,7 @@ interface Session {
 }
 ```
 
-### 5.2 Provenance / taint (The Gate)
+### 5.2 Provenance / taint (the Gate)
 
 ```ts
 type Trust = "system" | "operator" | "tool" | "external"; // external = untrusted
@@ -204,10 +204,10 @@ subprojects inherit them.
 
 ---
 
-## 6. Eleven — the Grounding engine (the centerpiece)
+## 6. GroundingEngine — the Grounding engine (the centerpiece)
 
-Eleven sits **between the model and the acceptance of a final answer**. The agent
-loop never accepts a model's "final" message directly; it asks Eleven.
+GroundingEngine sits **between the model and the acceptance of a final answer**. The agent
+loop never accepts a model's "final" message directly; it asks GroundingEngine.
 
 ### 6.1 Grounding modes (per skill / per task)
 
@@ -261,7 +261,7 @@ citesToolResultId }] }` (a Zod-structured output, §6.4).
 
 ### 6.4 Structured outputs
 
-For data answers, Eleven asks the adapter for a **schema-constrained response**
+For data answers, GroundingEngine asks the adapter for a **schema-constrained response**
 (JSON-schema from Zod). Providers that support native structured output use it;
 others get a "respond ONLY as this JSON" instruction + a parse/repair step. This
 makes "fill fields from tool output" the path of least resistance vs. prose.
@@ -278,7 +278,7 @@ makes "fill fields from tool output" the path of least resistance vs. prose.
 
 The model is _structurally unable_ to shortcut grounding: the runtime owns the
 accept decision, validates tool args, and checks citations. Weak/free models —
-which hallucinate most — are exactly the ones this protects, which is why Eleven
+which hallucinate most — are exactly the ones this protects, which is why GroundingEngine
 is mandatory, not optional (umbrella §6.1).
 
 ---
@@ -322,7 +322,7 @@ swaps in SQLite** with zero changes to callers.
 S1 designs and minimally implements these so later subprojects inherit a safe
 core (umbrella §5.5). Brand names in prose; functional ids in code.
 
-### 8.1 The Cabin — `Vault` (secrets)
+### 8.1 the Vault — `Vault` (secrets)
 
 ```ts
 interface Vault {
@@ -336,7 +336,7 @@ Impls: `KeychainVault` (macOS Keychain / Windows Credential Manager / libsecret)
 with a `FileVault` fallback (age/libsodium-encrypted, 0600). Config files refuse
 secret values. The slice needs it for the OpenAI-compatible / Ollama-cloud key.
 
-### 8.2 The Lab — capability model
+### 8.2 the Lab — capability model
 
 ```ts
 interface Capability { name: "shell"|"network"|"fs:read"|"fs:write"|...; scope?: string }
@@ -347,7 +347,7 @@ Each tool declares the capabilities it needs; the registry checks the calling
 agent's grant **before** executing a tool. `probe-agent` is granted only what
 `disk_free` needs. Default-deny.
 
-### 8.3 The Gate — taint
+### 8.3 the Gate — taint
 
 Provenance/taint tags (§5.2) attached to all content; the taint→approval rule is
 defined and unit-tested with a stub side-effecting tool, even though the slice
@@ -360,7 +360,7 @@ is across sessions only. Prevents the state corruption of P16. Enforced by the
 event-sourced aggregate (state only changes by appending events through the
 single writer).
 
-### 8.5 Murray — audit
+### 8.5 Audit — audit
 
 ```ts
 interface AuditLog {
@@ -409,11 +409,11 @@ secret-redacted. Every grounding decision, tool call, and correction is audited.
 3. **S1.2** Tool registry (Zod → native schema) + capability checks + `disk_free`.
 4. **S1.3** Model-adapter interface + Ollama (local+cloud) + OpenAI-compat + Vault for keys.
 5. **S1.4** Agent loop + native tool-calling round-trip (no grounding yet).
-6. **S1.5** **Eleven**: modes, enforcement loop, citations, structured output, the "unknown" path.
-7. **S1.6** Murray audit (hash-chained) + Gate taint tags + redaction.
+6. **S1.5** **GroundingEngine**: modes, enforcement loop, citations, structured output, the "unknown" path.
+7. **S1.6** Audit audit (hash-chained) + Gate taint tags + redaction.
 8. **S1.7** Eval harness + the hallucination test + negative control; CI on 3 OSes; green.
 
-Each milestone is independently reviewable; S1.6 (Eleven) is the keystone.
+Each milestone is independently reviewable; S1.6 (GroundingEngine) is the keystone.
 
 ---
 
@@ -438,5 +438,5 @@ Each milestone is independently reviewable; S1.6 (Eleven) is the keystone.
 ## 13. Dependencies on the umbrella decisions (already locked)
 
 Bun (spike) · Zod · Ollama local+cloud + OpenAI-compat · SQLite-default (S2; S1
-in-memory behind the interface) · MIT · Stranger Things naming (Eleven, The Gate,
-The Lab, The Cabin, Hopper, Murray) per [`docs/branding.md`](../branding.md).
+in-memory behind the interface) · MIT · OpenJarvis naming (GroundingEngine, the Gate,
+the Lab, the Vault, Hopper, Audit) per [`docs/branding.md`](../branding.md).

@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up the OpenHawkins monorepo and the event-sourced, single-writer session core — a cross-platform, single-binary-capable foundation with a deterministic replay primitive — proven by tests on Windows, macOS, and Linux.
+**Goal:** Stand up the OpenJarvis monorepo and the event-sourced, single-writer session core — a cross-platform, single-binary-capable foundation with a deterministic replay primitive — proven by tests on Windows, macOS, and Linux.
 
-**Architecture:** An npm-workspaces TypeScript monorepo. The first package, `@openhawkins/core`, contains an OS-abstraction layer (no shelling out — uses `fs.statfs`) and an event-sourced session aggregate whose state is a pure fold over an append-only event log, mutated only through a single-writer serialized queue. Bun `--compile` is validated as the single-binary path; Node is the dev/test runtime. Everything non-deterministic (time) is injected so the fold and replay are deterministic.
+**Architecture:** An npm-workspaces TypeScript monorepo. The first package, `@openjarvis/core`, contains an OS-abstraction layer (no shelling out — uses `fs.statfs`) and an event-sourced session aggregate whose state is a pure fold over an append-only event log, mutated only through a single-writer serialized queue. Bun `--compile` is validated as the single-binary path; Node is the dev/test runtime. Everything non-deterministic (time) is injected so the fold and replay are deterministic.
 
 **Tech Stack:** TypeScript (strict) · npm workspaces · Vitest · ESLint (typescript-eslint) · Prettier · Bun (compile spike + CI runtime) · Node ≥ 20 · GitHub Actions.
 
@@ -22,7 +22,7 @@ eslint.config.js                     # flat config, type-checked
 .prettierrc.json                     # formatting rules
 .github/workflows/ci.yml             # win/mac/linux × node+bun matrix
 packages/core/
-  package.json                       # @openhawkins/core
+  package.json                       # @openjarvis/core
   tsconfig.json                      # extends base; references
   src/
     index.ts                         # public barrel
@@ -64,7 +64,7 @@ packages/core/
 
 ```json
 {
-  "name": "openhawkins",
+  "name": "openjarvis",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -181,7 +181,7 @@ git commit -m "chore(s1.0): root monorepo scaffold (workspaces, ts, vitest, esli
 
 ---
 
-### Task 2: `@openhawkins/core` package scaffold
+### Task 2: `@openjarvis/core` package scaffold
 
 **Files:**
 
@@ -193,7 +193,7 @@ git commit -m "chore(s1.0): root monorepo scaffold (workspaces, ts, vitest, esli
 
 ```json
 {
-  "name": "@openhawkins/core",
+  "name": "@openjarvis/core",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -247,7 +247,7 @@ Expected: fails because the barrel imports files that don't exist yet — that's
 
 ```bash
 git add packages/core/package.json packages/core/tsconfig.json packages/core/src/index.ts tsconfig.json
-git commit -m "chore(s1.0): scaffold @openhawkins/core package + TS project references"
+git commit -m "chore(s1.0): scaffold @openjarvis/core package + TS project references"
 ```
 
 ---
@@ -522,15 +522,15 @@ describe("configDir/dataDir", () => {
   const env = { HOME: "/home/x", APPDATA: "C:\\Users\\x\\AppData\\Roaming" };
 
   it("uses APPDATA on windows", () => {
-    expect(configDir("windows", env)).toBe("C:\\Users\\x\\AppData\\Roaming\\openhawkins");
+    expect(configDir("windows", env)).toBe("C:\\Users\\x\\AppData\\Roaming\\openjarvis");
   });
 
   it("uses Application Support on macos", () => {
-    expect(configDir("macos", env)).toBe("/home/x/Library/Application Support/openhawkins");
+    expect(configDir("macos", env)).toBe("/home/x/Library/Application Support/openjarvis");
   });
 
   it("uses XDG-style path on linux", () => {
-    expect(configDir("linux", env)).toBe("/home/x/.config/openhawkins");
+    expect(configDir("linux", env)).toBe("/home/x/.config/openjarvis");
   });
 });
 ```
@@ -546,7 +546,7 @@ Expected: FAIL — `configDir`/`dataDir` not exported.
 import { join } from "node:path";
 
 type Env = Record<string, string | undefined>;
-const APP = "openhawkins";
+const APP = "openjarvis";
 
 export function configDir(os: OsName = detectPlatform().os, env: Env = process.env): string {
   const home = env.HOME ?? env.USERPROFILE ?? "";
@@ -580,7 +580,7 @@ Update the windows test assertion to:
 
 ```ts
 import { join } from "node:path";
-expect(configDir("windows", env)).toBe(join(env.APPDATA!, "openhawkins"));
+expect(configDir("windows", env)).toBe(join(env.APPDATA!, "openjarvis"));
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -1180,7 +1180,7 @@ Expected: `node` and `bun` jobs green on ubuntu/macos/windows.
 - **Session integrity (spec §8.4):** single-writer serialization property test (Task 12). ✓
 - **Cross-platform (spec §9):** `fs.statfs`, OS-path resolution, and the win/mac/linux CI matrix (Tasks 6, 7, 9). ✓
 - **Type consistency:** `DomainEvent`, `SessionState`/`TurnState`, `Clock`, `IdFactory`, `EventStore` names are used identically across Tasks 10–13. ✓
-- **Not yet covered (by design — later S1 plans):** EventStore→SQLite (S2), model adapters + agent loop (S1.3/S1.4), Eleven grounding (S1.5/S1.6), Murray/Cabin/Lab/Gate (S1.6), the `disk_free` tool + the hallucination eval (S1.2 + S1.7).
+- **Not yet covered (by design — later S1 plans):** EventStore→SQLite (S2), model adapters + agent loop (S1.3/S1.4), GroundingEngine grounding (S1.5/S1.6), Audit/Cabin/Lab/Gate (S1.6), the `disk_free` tool + the hallucination eval (S1.2 + S1.7).
 
 ---
 
@@ -1189,5 +1189,5 @@ Expected: `node` and `bun` jobs green on ubuntu/macos/windows.
 - **S1.2** — tool registry (Zod→native schema) + capability checks + `disk_free`.
 - **S1.3** — model-adapter interface + Ollama (local+cloud) + OpenAI-compat + FileVault.
 - **S1.4** — agent loop + native tool-calling round-trip.
-- **S1.5/S1.6** — Eleven grounding + Murray/Gate/Lab.
+- **S1.5/S1.6** — GroundingEngine grounding + Audit/Gate/Lab.
 - **S1.7** — eval harness + the hallucination test + negative control; green on 3 OSes.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mintAuditKey } from "@openhawkins/core";
+import { mintAuditKey } from "@openjarvis/core";
 import { openDatabase } from "../src/driver/driver.js";
 import { SqliteAuditLog } from "../src/audit-store.js";
 

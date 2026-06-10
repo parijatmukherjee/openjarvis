@@ -7,7 +7,7 @@ export interface GateContext {
   phase: Phase;
 }
 
-/** A phase gate — the Eleven-style accept-or-correct policy for one phase. */
+/** A phase gate — the accept-or-correct accept-or-correct policy for one phase. */
 export interface PhaseGate {
   evaluate(ctx: GateContext): Promise<GateVerdict>;
 }

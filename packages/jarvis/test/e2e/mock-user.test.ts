@@ -4,7 +4,7 @@ import { MockUser } from "../../src/e2e/mock-user.js";
 import type { VisualCommand } from "../../src/synthesis.js";
 import type { VisionEvent } from "../../src/vision/events.js";
 import type { BusEvent } from "../../src/event-bus.js";
-import type { AuditEntry } from "@openhawkins/core";
+import type { AuditEntry } from "@openjarvis/core";
 
 function makeHub(): JarvisHub {
   return {

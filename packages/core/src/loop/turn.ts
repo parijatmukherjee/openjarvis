@@ -17,7 +17,7 @@ export interface ToolCallRecord {
 
 /**
  * The full, replayable record of one turn. The agent loop (S1.4) owns the
- * model↔tool round-trips and produces this; Eleven (S1.5) decides acceptance and
+ * model↔tool round-trips and produces this; the grounding engine (S1.5) decides acceptance and
  * the eval harness (S1.7) asserts over it.
  */
 export interface TurnRecord {
@@ -48,14 +48,14 @@ export interface AcceptDecision {
   flagged?: string;
   /**
    * When accepting, the cleaned final to record instead of the model's raw output
-   * (e.g. Eleven returns the human-readable `text` of a structured cited answer).
+   * (e.g. the engine returns the human-readable `text` of a structured cited answer).
    */
   final?: string;
 }
 
 /**
  * The seam between the agent loop and grounding. In S1.4 the default policy accepts
- * any final; in S1.5 Eleven implements this to enforce grounding modes. The loop
+ * any final; in S1.5 the engine implements this to enforce grounding modes. The loop
  * never accepts a model "final" directly — it always asks the policy (spec §6).
  */
 export interface AcceptPolicy {

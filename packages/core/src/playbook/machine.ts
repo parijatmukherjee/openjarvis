@@ -1,7 +1,7 @@
 import { type PlaybookManifest, type Phase, phaseSpec, nextPhase } from "./manifest.js";
 import type { PlaybookRunState } from "./events.js";
 
-/** A phase gate's verdict — the Eleven-style accept-or-correct decision for a phase.
+/** A phase gate's verdict — the accept-or-correct accept-or-correct decision for a phase.
  *  `needs-operator` is a soft phase pausing for a capability-gated override (P3). */
 export type GateVerdict =
   | { status: "passed" }

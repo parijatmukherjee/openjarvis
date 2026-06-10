@@ -1,5 +1,5 @@
 import type { ChildProcess } from "node:child_process";
-import type { AgentGrant } from "@openhawkins/core";
+import type { AgentGrant } from "@openjarvis/core";
 
 export interface AgentPool {
   getAvailableAgents(): Promise<AgentInfo[]>;

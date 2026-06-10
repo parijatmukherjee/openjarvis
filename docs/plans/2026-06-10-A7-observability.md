@@ -15,11 +15,11 @@
 ## File Structure
 
 - `packages/core/src/observability/logger.ts` — `LogLevel`, `LogFields`, `Logger`, `noopLogger`, `JsonLogger`.
-- `packages/core/src/index.ts` — re-export the above so `@openhawkins/core` consumers (state CLI) and the core CLIs can construct a `JsonLogger`.
+- `packages/core/src/index.ts` — re-export the above so `@openjarvis/core` consumers (state CLI) and the core CLIs can construct a `JsonLogger`.
 - `packages/core/src/tools/registry.ts` — `ToolRegistry` takes an injected `logger`; emits at its swallow points.
 - `packages/core/src/playbook/gates.ts` — `ValidateGate` takes an injected `logger`; emits on predicate throw.
 - `packages/core/src/playbook/build-agent-run.ts` — accept `logger?`, thread into the registry + default gate.
-- `packages/core/src/bin/ask.ts`, `bin/run.ts`, `packages/state/src/bin/openhawkins-run.ts` — construct a `JsonLogger` and pass it (turns logging ON in the runnable entrypoints).
+- `packages/core/src/bin/ask.ts`, `bin/run.ts`, `packages/state/src/bin/openjarvis-run.ts` — construct a `JsonLogger` and pass it (turns logging ON in the runnable entrypoints).
 - Tests: `packages/core/test/observability/logger.test.ts`; emission assertions added to `test/tools/registry.test.ts`, `test/playbook/gates.test.ts`, `test/playbook/build-agent-run.test.ts`.
 
 ---
@@ -434,11 +434,11 @@ git commit -m "feat(observability): emit at tool-registry + validate-gate swallo
 
 **Files:**
 
-- Modify: `packages/core/src/bin/run.ts`, `packages/state/src/bin/openhawkins-run.ts`
+- Modify: `packages/core/src/bin/run.ts`, `packages/state/src/bin/openjarvis-run.ts`
 - Modify: `docs/reviews/2026-06-09-production-readiness-review.md`
 
 > **CLI scope:** wire the two CLIs that route through `buildAgentRun`'s new `logger` seam —
-> `bin/run.ts` (the demo playbook run) and `openhawkins-run` (the durable production
+> `bin/run.ts` (the demo playbook run) and `openjarvis-run` (the durable production
 > entrypoint). **`bin/ask.ts` is intentionally NOT wired here:** it uses `buildProbeAgent`
 > (`eval/scenarios.ts`) — a separate no-playbook path that builds its own `ToolRegistry` — so
 > wiring it would add a logger seam (and a covered branch) to `scenarios.ts`. That is deferred
@@ -450,7 +450,7 @@ git commit -m "feat(observability): emit at tool-registry + validate-gate swallo
 
 - `packages/core/src/bin/run.ts`: import `JsonLogger` from `../observability/logger.js` and add
   `logger: new JsonLogger()` to the `buildAgentRun({ ... })` opts.
-- `packages/state/src/bin/openhawkins-run.ts`: import `JsonLogger` from `@openhawkins/core` and
+- `packages/state/src/bin/openjarvis-run.ts`: import `JsonLogger` from `@openjarvis/core` and
   add `logger: new JsonLogger()` to the `buildDurableAgentRun({ ... })` opts (it flows through
   `...runOpts` into `buildAgentRun` automatically).
 
@@ -465,7 +465,7 @@ goes to stderr.
 In `docs/reviews/2026-06-09-production-readiness-review.md`, replace the A7 line (item 7) with:
 
 ```md
-7. **A7 — Observability (F-M1) ✅ DONE (PR pending).** A dependency-free structured `Logger` (`log(level, event, fields?)`) with a `noopLogger` default and a `JsonLogger` that emits one redacted JSON object per event to stderr (log fields run through `redact`, so the F-C3 guarantee covers the log plane). Wired at the live swallow points: `ToolRegistry.invoke` (capability denial → warn, confused-deputy agent mismatch → error, swallowed handler exception → error) and `ValidateGate.evaluate` (predicate throw → warn), threaded through `buildAgentRun` and turned on in the playbook CLIs (`bin/run.ts` + the durable `openhawkins-run`, both to stderr). **A7b (future)** — (a) instrument the markdownify `ConverterRegistry` degrade-to-fallback warnings once markdownify is wired into the agent path (F-H6) — it will take a structural log-sink, since markdownify must not import `core`; (b) thread the logger through `buildProbeAgent`/`bin/ask.ts` (the no-playbook vertical-slice path).
+7. **A7 — Observability (F-M1) ✅ DONE (PR pending).** A dependency-free structured `Logger` (`log(level, event, fields?)`) with a `noopLogger` default and a `JsonLogger` that emits one redacted JSON object per event to stderr (log fields run through `redact`, so the F-C3 guarantee covers the log plane). Wired at the live swallow points: `ToolRegistry.invoke` (capability denial → warn, confused-deputy agent mismatch → error, swallowed handler exception → error) and `ValidateGate.evaluate` (predicate throw → warn), threaded through `buildAgentRun` and turned on in the playbook CLIs (`bin/run.ts` + the durable `openjarvis-run`, both to stderr). **A7b (future)** — (a) instrument the markdownify `ConverterRegistry` degrade-to-fallback warnings once markdownify is wired into the agent path (F-H6) — it will take a structural log-sink, since markdownify must not import `core`; (b) thread the logger through `buildProbeAgent`/`bin/ask.ts` (the no-playbook vertical-slice path).
 ```
 
 - [ ] **Step 4: Full repo gate**
@@ -480,13 +480,13 @@ Expected: all green, coverage 100%.
 
 - [ ] **Step 5: Docker gate**
 
-Run: `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test`
+Run: `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test`
 Expected: `✅ ALL GATES PASSED`
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add packages/core/src/bin/ask.ts packages/core/src/bin/run.ts \
-  packages/state/src/bin/openhawkins-run.ts docs/reviews/2026-06-09-production-readiness-review.md
+  packages/state/src/bin/openjarvis-run.ts docs/reviews/2026-06-09-production-readiness-review.md
 git commit -m "feat(observability): enable JsonLogger in the CLIs; mark A7 done (F-M1)"
 ```

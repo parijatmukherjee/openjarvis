@@ -17,7 +17,7 @@ import { tokenBucket, calculateBackoff } from "../util/rate-limiter.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyToolDefinition = ToolDefinition<any, any>;
 
-/** Accept any final answer — the S1.4 default, before Eleven (S1.5) takes over. */
+/** Accept any final answer — the S1.4 default, before the grounding engine (S1.5) takes over. */
 export const acceptAlways: AcceptPolicy = {
   evaluate: () => ({ accept: true }),
 };
@@ -28,7 +28,7 @@ export interface AgentLoopConfig {
   grant: AgentGrant;
   /** Tools exposed to the model this turn (their schemas become native functions). */
   tools: AnyToolDefinition[];
-  /** Grounding policy; defaults to accept-always until Eleven is wired in. */
+  /** Grounding policy; defaults to accept-always until the engine is wired in. */
   policy?: AcceptPolicy;
   systemPrompt?: string;
   /** Hard ceiling on model round-trips; on exceed the turn ends ungrounded. */

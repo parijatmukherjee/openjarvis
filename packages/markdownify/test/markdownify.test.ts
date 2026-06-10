@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { markdownify } from "../src/markdownify.js";
+import type { Logger } from "../src/logger.js";
 
 describe("markdownify (default registry)", () => {
   it("routes HTML, CSV, JSON, XML, and plain text", async () => {
@@ -23,5 +24,21 @@ describe("markdownify (default registry)", () => {
   it("routes by content sniff when there is no mime or extension", async () => {
     expect((await markdownify({ data: "<p>x</p>" })).format).toBe("html");
     expect((await markdownify({ data: '{"a":1}' })).format).toBe("json");
+  });
+
+  it("logs converter failures when a logger is provided", async () => {
+    const records: {
+      level: string;
+      event: string;
+      fields?: Record<string, unknown> | undefined;
+    }[] = [];
+    const logger: Logger = {
+      log: (level, event, fields) => void records.push({ level, event, fields }),
+    };
+    // Oversized input triggers the cap path, which logs a warning
+    const oversized = "x".repeat(6_000_000);
+    const result = await markdownify({ data: oversized }, logger);
+    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(records.some((r) => r.level === "warn" && r.event === "input_truncated")).toBe(true);
   });
 });

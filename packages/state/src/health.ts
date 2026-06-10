@@ -1,10 +1,10 @@
 import { openDatabase } from "./driver/driver.js";
-import { FileVault } from "@openhawkins/core";
+import { FileVault } from "@openjarvis/core";
 import { SqliteAuditLog } from "./audit-store.js";
-import { resolveAuditKey } from "@openhawkins/core";
+import { resolveAuditKey } from "@openjarvis/core";
 import { SqliteEventStore } from "./event-store.js";
-import type { Logger } from "@openhawkins/core";
-import { noopLogger } from "@openhawkins/core";
+import type { Logger } from "@openjarvis/core";
+import { noopLogger } from "@openjarvis/core";
 
 export interface HealthCheck {
   dbOk: boolean;

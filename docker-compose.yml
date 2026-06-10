@@ -9,4 +9,4 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
-    image: openhawkins-test
+    image: openjarvis-test

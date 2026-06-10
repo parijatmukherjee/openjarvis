@@ -1,5 +1,5 @@
 {
-  "name": "@openhawkins/state",
+  "name": "@openjarvis/state",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@openhawkins/core": "*",
-    "@openhawkins/markdownify": "*"
+    "@openjarvis/core": "*",
+    "@openjarvis/markdownify": "*"
   }
 }

@@ -26,7 +26,7 @@
 - `packages/core/src/playbook/gate-command.ts` — gate spawn: add timeout
 - `packages/core/src/observability/logger.ts` — add traceId/correlation ID support
 - `packages/core/src/observability/metrics.ts` — new: `Metrics` interface + `NoopMetrics`
-- `packages/state/src/bin/openhawkins-run.ts` — add `--health` flag
+- `packages/state/src/bin/openjarvis-run.ts` — add `--health` flag
 
 ---
 
@@ -150,7 +150,7 @@ export function grantSatisfies(grant: AgentGrant, required: Capability): boolean
 **Files:**
 
 - Modify: `packages/core/src/bin/ask.ts`
-- Modify: `packages/state/src/bin/openhawkins-run.ts`
+- Modify: `packages/state/src/bin/openjarvis-run.ts`
 - Test: `packages/core/test/bin/ask.test.ts` (new)
 
 - [ ] **Step 1: Add Vault-resolved key loading to ask.ts**
@@ -187,7 +187,7 @@ async function buildAdapter(kind: string, path: string, vault?: FileVault): Prom
 - [ ] **Step 1: Create DocumentTool**
 
 ```ts
-import { ConverterRegistry } from "@openhawkins/markdownify";
+import { ConverterRegistry } from "@openjarvis/markdownify";
 
 export const documentTool: ToolDefinition<
   { data: string; mime?: string; filename?: string },
@@ -215,7 +215,7 @@ export const documentTool: ToolDefinition<
 
 ---
 
-### Task 5: Wire memory (VECNA) into agent path
+### Task 5: Wire memory (JarvisMemoryStore) into agent path
 
 **Files:**
 
@@ -321,7 +321,7 @@ it("handles 502 Bad Gateway", async () => { ... });
 
 **Files:**
 
-- Modify: `packages/state/src/bin/openhawkins-run.ts`
+- Modify: `packages/state/src/bin/openjarvis-run.ts`
 - Create: `packages/state/src/health.ts`
 - Test: `packages/state/test/health.test.ts`
 
@@ -463,7 +463,7 @@ npm run build && npm run lint && npm run format:check && npm run coverage && npm
 - [x] **Step 2: Docker gate** ✅
 
 ```bash
-docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test
+docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test
 ```
 
 - [x] **Step 3: Update CHECKPOINT.md and architecture assessment** ✅

@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build `PlaybookRun` — the single-writer driver that turns the pure `step` transitions into committed `PhaseEvent`s + hash-chained Murray audit entries, resolves each phase's gate, and enforces a capability-gated, audited operator override.
+**Goal:** Build `PlaybookRun` — the single-writer driver that turns the pure `step` transitions into committed `PhaseEvent`s + hash-chained Audit audit entries, resolves each phase's gate, and enforces a capability-gated, audited operator override.
 
-**Architecture:** One new file `packages/core/src/playbook/runner.ts` (plus one line added to `security/capability.ts` for a new `playbook:override` capability). `PlaybookRun` composes the merged P1/P2 pieces: it folds state with `reducePlaybook`, decides transitions with `step`, evaluates `SoftGate`/`ValidateGate` per `PhaseSpec.gate`, appends events to a VINES `EventStore`, audits every event + every denied override through a Murray `AuditLog`, and gates overrides with `grantSatisfies`. It is the IO layer; all logic it drives is already pure and tested.
+**Architecture:** One new file `packages/core/src/playbook/runner.ts` (plus one line added to `security/capability.ts` for a new `playbook:override` capability). `PlaybookRun` composes the merged P1/P2 pieces: it folds state with `reducePlaybook`, decides transitions with `step`, evaluates `SoftGate`/`ValidateGate` per `PhaseSpec.gate`, appends events to a JarvisStateStore `EventStore`, audits every event + every denied override through a Audit `AuditLog`, and gates overrides with `grantSatisfies`. It is the IO layer; all logic it drives is already pure and tested.
 
 **Tech Stack:** TypeScript (strict: `exactOptionalPropertyTypes`, `verbatimModuleSyntax`), ESM with `.js` import specifiers, Vitest, Node 24 + Bun 1.3. Prettier printWidth 100, double quotes.
 
@@ -175,7 +175,7 @@ import { type PlaybookRunState, type PhaseEvent, reducePlaybook } from "./events
 import { step } from "./machine.js";
 import type { PhaseGate } from "./gates.js";
 
-/** Everything a run needs: the manifest, the session/run ids, the VINES store + Murray
+/** Everything a run needs: the manifest, the session/run ids, the JarvisStateStore store + Audit
  *  audit it writes to, the operator's capability grant, and the two gates it dispatches to. */
 export interface PlaybookRunDeps {
   manifest: PlaybookManifest;
@@ -200,7 +200,7 @@ const OVERRIDE_CAPABILITY = "playbook:override" as const;
 
 /**
  * The single-writer driver for one Playbook run. It evaluates each phase's gate, applies
- * the pure `step` transition, and commits the resulting `PhaseEvent`s to VINES + Murray
+ * the pure `step` transition, and commits the resulting `PhaseEvent`s to JarvisStateStore + Audit
  * (so the run replays and is tamper-evident). Soft phases pause for a capability-gated,
  * audited operator `override`. Methods are awaited in order; one run = one writer.
  */
@@ -346,7 +346,7 @@ export class PlaybookRun {
     });
   }
 
-  /** Append to VINES, mirror to Murray, fold into local state — in that order. */
+  /** Append to JarvisStateStore, mirror to Audit, fold into local state — in that order. */
   private async commit(event: PhaseEvent): Promise<void> {
     await this.deps.store.append(event);
     await this.deps.audit.append({ kind: event.type, data: { ...event }, at: event.at });
@@ -364,7 +364,7 @@ Expected: PASS (2 tests). Coverage is completed in Tasks 3-4; do not measure per
 
 ```bash
 git add packages/core/src/playbook/runner.ts packages/core/test/playbook/runner.test.ts
-git commit -m "feat(playbook): PlaybookRun start + commit pipeline (VINES + Murray)"
+git commit -m "feat(playbook): PlaybookRun start + commit pipeline (JarvisStateStore + Audit)"
 ```
 
 ---
@@ -566,7 +566,7 @@ Expected: all green; aggregate ≥99%, every `packages/core/src/playbook/*.ts` a
 
 - [ ] **Step 6: Run the Docker gate (the required PR check)**
 
-Run: `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test`
+Run: `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test`
 Expected: ends with `✅ ALL GATES PASSED`. If docker is unavailable, report explicitly.
 
 - [ ] **Step 7: Commit**
@@ -584,7 +584,7 @@ git commit -m "feat(playbook): export PlaybookRun; P3 runner complete"
 - **Spec §3.7 — data flow: gate → `step` → emit events + audit; advanced/replan/escalated/paused map to the right events:** Task 2 (`commit` pipeline + `start`) + Task 3 (`advance` all outcomes). ✓
 - **Spec §3.2/§4 — Validate-fail → Plan; budget exhaustion → escalate (pause):** Task 3 (replan + escalate tests via a failing `ValidateGate`). ✓
 - **Spec §3.3 — every transition is a committed `DomainEvent`; current phase is a fold:** `commit` appends `PhaseEvent`s and folds via `reducePlaybook`; tests assert the exact event sequence + `audit.verify()`. ✓
-- **Spec §5 — composes VINES (`EventStore`), Murray (`AuditLog`), The Lab (`grantSatisfies`):** the runner imports and uses each; no parallels invented. ✓
+- **Spec §5 — composes JarvisStateStore (`EventStore`), Audit (`AuditLog`), the Lab (`grantSatisfies`):** the runner imports and uses each; no parallels invented. ✓
 - **Spec §6 — behavior-level tests asserting the emitted event sequence + audit chain (`verify() === true`) for clean run, replan, escalation, granted + denied override:** Tasks 2-4. ✓
 - **Type consistency:** `PlaybookRunDeps`, `RunStatus`, `PlaybookRun`, `OVERRIDE_CAPABILITY`, and the reused `PhaseEvent`/`PlaybookRunState`/`step`/`PhaseGate`/`grantSatisfies`/`AuditLog`/`EventStore` names are used identically across tasks and tests. ✓
 

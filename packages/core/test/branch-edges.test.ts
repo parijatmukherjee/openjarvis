@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { OllamaAdapter } from "../src/models/ollama.js";
 import { OpenAiCompatAdapter } from "../src/models/openai-compat.js";
-import { Eleven } from "../src/grounding/eleven.js";
+import { GroundingEngine } from "../src/grounding/grounding-engine.js";
 import type { HttpFetch } from "../src/models/http.js";
 
 const stub =
@@ -27,7 +27,7 @@ describe("remaining defensive branches", () => {
   });
 
   it("Eleven uses a generic tool name in its correction when none are configured", () => {
-    const decision = new Eleven({ mode: "required" }).evaluate({
+    const decision = new GroundingEngine({ mode: "required" }).evaluate({
       final: "a guess",
       toolResults: [],
     });
