@@ -9,6 +9,7 @@ import { runAgentTurn, type AgentLoopConfig } from "../loop/agent-loop.js";
 import type { TurnRecord } from "../loop/turn.js";
 import { Eleven, groundingInstruction, type ElevenConfig } from "../grounding/eleven.js";
 import { type AuditLog, InMemoryAuditLog } from "../security/audit.js";
+import type { MemoryStore } from "../memory.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyToolDefinition = ToolDefinition<any, any>;
@@ -31,6 +32,8 @@ export interface AgentConfig {
   store?: EventStore;
   audit?: AuditLog;
   clock?: Clock;
+  /** Optional memory store for context injection before each turn. */
+  memory?: MemoryStore;
 }
 
 export class Agent {
@@ -61,7 +64,16 @@ export class Agent {
       this.cfg.grounding.mode,
       this.cfg.grounding.qualifyingTools,
     );
-    const systemPrompt = [this.cfg.systemPrompt, instruction].filter(Boolean).join("\n\n");
+    let systemPrompt = [this.cfg.systemPrompt, instruction].filter(Boolean).join("\n\n");
+
+    // Inject recalled memory fragments into the system prompt before the turn.
+    if (this.cfg.memory) {
+      const fragments = await this.cfg.memory.recall(input);
+      if (fragments.length > 0) {
+        const memoryBlock = `Relevant context:\n${fragments.join("\n")}`;
+        systemPrompt = systemPrompt ? `${memoryBlock}\n\n${systemPrompt}` : memoryBlock;
+      }
+    }
 
     const loopCfg: AgentLoopConfig = {
       adapter: this.cfg.adapter,
@@ -71,6 +83,7 @@ export class Agent {
       policy,
       ...(systemPrompt ? { systemPrompt } : {}),
       ...(this.cfg.maxModelCalls ? { maxModelCalls: this.cfg.maxModelCalls } : {}),
+      ...(this.cfg.memory ? { memory: this.cfg.memory } : {}),
     };
 
     let record!: TurnRecord;

@@ -4,6 +4,7 @@ import type { ToolDefinition, ToolCall, ToolContext } from "../tools/tool.js";
 import type { AgentGrant } from "../security/capability.js";
 import { toJsonSchema } from "../tools/to-json-schema.js";
 import type { AcceptPolicy, AcceptContext, TurnRecord } from "./turn.js";
+import type { MemoryStore } from "../memory.js";
 
 // Tools are heterogeneous in their <A,R> type parameters; the loop only reads
 // name/description/args, so it stores them with erased type variables (same
@@ -27,6 +28,8 @@ export interface AgentLoopConfig {
   systemPrompt?: string;
   /** Hard ceiling on model round-trips; on exceed the turn ends ungrounded. */
   maxModelCalls?: number;
+  /** Optional memory store for context injection before each turn. */
+  memory?: MemoryStore;
 }
 
 /**
