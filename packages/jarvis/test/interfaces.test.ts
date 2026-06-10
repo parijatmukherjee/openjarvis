@@ -33,6 +33,8 @@ import type {
   DetectedObject,
   PresenceState,
   DetectionModel,
+  VisionEvent,
+  VisionEventType,
 } from "../src/index.js";
 
 describe("jarvis interface compilation", () => {
@@ -166,5 +168,13 @@ describe("jarvis interface compilation", () => {
 
   it("DetectionModel compiles", () => {
     expectTypeOf<DetectionModel>().toBeObject();
+  });
+
+  it("VisionEvent compiles", () => {
+    expectTypeOf<VisionEvent>().toBeObject();
+  });
+
+  it("VisionEventType compiles", () => {
+    expectTypeOf<VisionEventType>().toBeString();
   });
 });
