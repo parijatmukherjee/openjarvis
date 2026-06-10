@@ -476,10 +476,10 @@ docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhaw
 
 | Phase     | Tasks                   | Status   |
 | --------- | ----------------------- | -------- |
-| P0        | 5 critical runtime gaps | 🔴 OPEN  |
-| P1        | 5 boundary hardening    | 🔴 OPEN  |
-| P2        | 4 observability/scale   | 🔴 OPEN  |
-| P3        | 10 operational polish   | 🔴 OPEN  |
-| **Total** | **24**                  | **0/24** |
+| P0        | 5 critical runtime gaps | ✅ DONE  |
+| P1        | 5 boundary hardening    | ✅ DONE  |
+| P2        | 4 observability/scale   | ✅ DONE  |
+| P3        | 10 operational polish   | 🟡 OPEN  |
+| **Total** | **24**                  | **14/24** |
 
 **Target: 24/24 ✅ (ZERO flaws, ZERO bugs)**

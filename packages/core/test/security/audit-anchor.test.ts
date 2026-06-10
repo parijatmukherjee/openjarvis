@@ -55,9 +55,7 @@ describe("anchorAuditChain", () => {
     expect(lines.length).toBe(2);
     const second = JSON.parse(lines[1]);
     expect(second.seq).toBe(1);
-    expect(second.previousAnchorHash).toBe(
-      createHash("sha256").update(lines[0]).digest("hex"),
-    );
+    expect(second.previousAnchorHash).toBe(createHash("sha256").update(lines[0]).digest("hex"));
   });
 });
 

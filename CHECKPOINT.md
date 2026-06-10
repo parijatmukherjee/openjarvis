@@ -5,7 +5,7 @@
 > trackers live under `docs/` and are linked below.
 >
 > **Last updated:** 2026-06-10 · **Default branch:** `main` (protected; required
-> `docker-gate`) · **Tests:** 374 passing / 1 skipped, **100% coverage** (gate floor 99%).
+> `docker-gate`) · **Tests:** 436 passing / 1 skipped, **99.65% coverage** (gate floor 99%).
 
 ---
 

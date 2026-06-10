@@ -44,7 +44,10 @@ export async function anchorAuditChain(audit: AuditLog, anchorPath: string): Pro
 }
 
 /** Verify that the current audit chain tip matches the latest anchor. */
-export async function verifyAnchor(audit: AuditLog, anchorPath: string): Promise<VerifyAnchorResult> {
+export async function verifyAnchor(
+  audit: AuditLog,
+  anchorPath: string,
+): Promise<VerifyAnchorResult> {
   let anchorText: string;
   try {
     anchorText = await readFile(anchorPath, "utf8");

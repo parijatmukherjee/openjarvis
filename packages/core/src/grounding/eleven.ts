@@ -93,19 +93,19 @@ export class Eleven implements AcceptPolicy {
     if (parsed.kind === "invalid") {
       return this.reject(
         'Respond ONLY as JSON: {"text": "...", "claims": [{"statement": "...", ' +
-          '"citesToolResultId": "<a tool-result id>", "value": <number, optional>}]}.'
+          '"citesToolResultId": "<a tool-result id>", "value": <number, optional>}]}.',
       );
     }
     if (parsed.answer.claims.length === 0) {
       return this.reject(
-        "Your answer must cite at least one tool result. Add a claim with its tool-result id."
+        "Your answer must cite at least one tool result. Add a claim with its tool-result id.",
       );
     }
     const issues = verifyCitations(parsed.answer, ctx.toolResults);
     if (issues.length > 0) {
       const detail = issues.map((i) => `- "${i.statement}": ${i.detail}`).join("\n");
       return this.reject(
-        `These claims are not supported by tool results:\n${detail}\nFix the citations or the values.`
+        `These claims are not supported by tool results:\n${detail}\nFix the citations or the values.`,
       );
     }
     return { accept: true, final: parsed.answer.text };

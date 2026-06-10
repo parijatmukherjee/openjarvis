@@ -148,9 +148,7 @@ export function rotateAuditKey(
   let prevNew = GENESIS;
   for (const e of entries) {
     if (e.prevHash !== prevOld) {
-      throw new Error(
-        `rotateAuditKey: chain broken at seq ${e.seq} — prevHash mismatch`,
-      );
+      throw new Error(`rotateAuditKey: chain broken at seq ${e.seq} — prevHash mismatch`);
     }
     const expectedOld = hashEntry(oldKey, prevOld, {
       seq: e.seq,
