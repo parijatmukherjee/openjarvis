@@ -36,6 +36,8 @@ import type {
   VisionEvent,
   VisionEventType,
   PresenceStateMachine,
+  VisualResolver,
+  VisualResolverConfig,
 } from "../src/index.js";
 
 describe("jarvis interface compilation", () => {
@@ -181,5 +183,13 @@ describe("jarvis interface compilation", () => {
 
   it("PresenceStateMachine compiles", () => {
     expectTypeOf<PresenceStateMachine>().toBeObject();
+  });
+
+  it("VisualResolver compiles", () => {
+    expectTypeOf<VisualResolver>().toBeObject();
+  });
+
+  it("VisualResolverConfig compiles", () => {
+    expectTypeOf<VisualResolverConfig>().toBeObject();
   });
 });

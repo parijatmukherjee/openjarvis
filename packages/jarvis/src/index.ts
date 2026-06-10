@@ -8,3 +8,4 @@ export * from "./agents/index.js";
 export * from "./scheduler.js";
 export * from "./event-bus.js";
 export * from "./vision/index.js";
+export * from "./visual-resolver.js";
