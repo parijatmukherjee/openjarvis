@@ -1,6 +1,8 @@
 import type { AcceptPolicy, AcceptContext, AcceptDecision } from "../loop/turn.js";
 import { toJsonSchema } from "../tools/to-json-schema.js";
 import { citedAnswerSchema, parseAnswer, verifyCitations } from "./citations.js";
+import type { MetricsCollector } from "../observability/metrics.js";
+import { noopMetricsCollector } from "../observability/metrics.js";
 
 /**
  * Eleven — the grounding engine (spec §6). It sits between the model and the
@@ -19,15 +21,18 @@ export interface ElevenConfig {
   mode: GroundingMode;
   /** Tool names that count as grounding. Undefined = any successful tool call. */
   qualifyingTools?: string[];
+  metrics?: MetricsCollector;
 }
 
 export class Eleven implements AcceptPolicy {
   private readonly mode: GroundingMode;
   private readonly qualifyingTools: string[] | undefined;
+  private readonly metrics: MetricsCollector;
 
-  constructor(cfg: ElevenConfig) {
+  constructor(cfg: ElevenConfig, metrics?: MetricsCollector) {
     this.mode = cfg.mode;
     this.qualifyingTools = cfg.qualifyingTools;
+    this.metrics = metrics ?? cfg.metrics ?? noopMetricsCollector;
   }
 
   evaluate(ctx: AcceptContext): AcceptDecision {
@@ -61,12 +66,17 @@ export class Eleven implements AcceptPolicy {
     );
   }
 
+  private reject(correction: string): AcceptDecision {
+    this.metrics.increment("GroundingRejections");
+    return { accept: false, correction };
+  }
+
   private evaluateRequired(ctx: AcceptContext): AcceptDecision {
     if (parseAnswer(ctx.final).kind === "unknown") {
       return { accept: true, flagged: "unknown" };
     }
     if (!this.hasQualifyingCall(ctx)) {
-      return { accept: false, correction: this.requireToolCorrection() };
+      return this.reject(this.requireToolCorrection());
     }
     return { accept: true };
   }
@@ -78,30 +88,25 @@ export class Eleven implements AcceptPolicy {
     }
     // Required-tool gate applies before we even look at citations.
     if (!this.hasQualifyingCall(ctx)) {
-      return { accept: false, correction: this.requireToolCorrection() };
+      return this.reject(this.requireToolCorrection());
     }
     if (parsed.kind === "invalid") {
-      return {
-        accept: false,
-        correction:
-          'Respond ONLY as JSON: {"text": "...", "claims": [{"statement": "...", ' +
-          '"citesToolResultId": "<a tool-result id>", "value": <number, optional>}]}.',
-      };
+      return this.reject(
+        'Respond ONLY as JSON: {"text": "...", "claims": [{"statement": "...", ' +
+          '"citesToolResultId": "<a tool-result id>", "value": <number, optional>}]}.'
+      );
     }
     if (parsed.answer.claims.length === 0) {
-      return {
-        accept: false,
-        correction:
-          "Your answer must cite at least one tool result. Add a claim with its tool-result id.",
-      };
+      return this.reject(
+        "Your answer must cite at least one tool result. Add a claim with its tool-result id."
+      );
     }
     const issues = verifyCitations(parsed.answer, ctx.toolResults);
     if (issues.length > 0) {
       const detail = issues.map((i) => `- "${i.statement}": ${i.detail}`).join("\n");
-      return {
-        accept: false,
-        correction: `These claims are not supported by tool results:\n${detail}\nFix the citations or the values.`,
-      };
+      return this.reject(
+        `These claims are not supported by tool results:\n${detail}\nFix the citations or the values.`
+      );
     }
     return { accept: true, final: parsed.answer.text };
   }

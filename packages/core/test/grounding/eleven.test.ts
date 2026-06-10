@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Eleven, groundingInstruction, citedAnswerJsonSchema } from "../../src/grounding/eleven.js";
 import type { AcceptContext, ToolCallRecord } from "../../src/loop/turn.js";
+import type { MetricsCollector } from "../../src/observability/metrics.js";
 
 function okDiskFree(id = "oc-1", freeBytes = 12345): ToolCallRecord {
   return {
@@ -109,6 +110,32 @@ describe("Eleven — cited mode (strongest)", () => {
     });
     const decision = eleven.evaluate({ final, toolResults: [okDiskFree("oc-1", 12345)] });
     expect(decision).toEqual({ accept: true, final: "12345 bytes are free." });
+  });
+});
+
+describe("Eleven — metrics", () => {
+  it("increments GroundingRejections when a final is rejected", () => {
+    const counters: { name: string; value: number }[] = [];
+    const metrics: MetricsCollector = {
+      increment: (name, value = 1) => void counters.push({ name, value: value ?? 1 }),
+      histogram() {},
+    };
+    const eleven = new Eleven({ mode: "required", qualifyingTools: ["disk_free"] }, metrics);
+    const decision = eleven.evaluate(ungroundedFinal("about 250 GB free"));
+    expect(decision.accept).toBe(false);
+    expect(counters.some((c) => c.name === "GroundingRejections" && c.value === 1)).toBe(true);
+  });
+
+  it("does NOT increment GroundingRejections when a final is accepted", () => {
+    const counters: { name: string; value: number }[] = [];
+    const metrics: MetricsCollector = {
+      increment: (name, value = 1) => void counters.push({ name, value: value ?? 1 }),
+      histogram() {},
+    };
+    const eleven = new Eleven({ mode: "required", qualifyingTools: ["disk_free"] }, metrics);
+    const decision = eleven.evaluate({ final: "12345 bytes", toolResults: [okDiskFree()] });
+    expect(decision.accept).toBe(true);
+    expect(counters.some((c) => c.name === "GroundingRejections")).toBe(false);
   });
 });
 
