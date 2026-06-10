@@ -27,10 +27,20 @@ describe("grantSatisfies (The Lab)", () => {
     expect(grantSatisfies(g, { name: "fs:read", scope: "/etc" })).toBe(false);
   });
 
-  it("a scoped grant satisfies a scope-less requirement", () => {
+  it("a scoped grant does NOT satisfy a scope-less requirement (deny-by-default)", () => {
     expect(grantSatisfies(grant([{ name: "fs:read", scope: "/var" }]), { name: "fs:read" })).toBe(
-      true,
+      false,
     );
+  });
+
+  it("a scope-less grant satisfies a scope-less requirement", () => {
+    expect(grantSatisfies(grant([{ name: "fs:read" }]), { name: "fs:read" })).toBe(true);
+  });
+
+  it("a scoped grant satisfies a scoped requirement when the grant's scope is a prefix", () => {
+    const g = grant([{ name: "fs:read", scope: "/var" }]);
+    expect(grantSatisfies(g, { name: "fs:read", scope: "/var/log" })).toBe(true);
+    expect(grantSatisfies(g, { name: "fs:read", scope: "/etc" })).toBe(false);
   });
 });
 
