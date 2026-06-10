@@ -16,3 +16,6 @@ export * from "./display/mock.js";
 export * from "./agents/mock-delegator.js";
 export * from "./scheduler/simple.js";
 export * from "./event-bus/simple.js";
+
+// Nexus exports are available via deep import: @openjarvis/jarvis/nexus
+// export * from "./nexus/index.js";
