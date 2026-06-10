@@ -23,14 +23,15 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 4. **Battery-aware, capability-aware.** The phone handles notifications and quick queries. The PC handles heavy document processing. The laptop handles code. The system routes work to the right device.
 5. **User-controlled device approval.** The user explicitly approves each device. A device cannot join the brain without the user's consent on an already-approved device.
 6. **End-to-end encrypted sync.** Sync traffic is encrypted with keys derived from the Vault passphrase. The sync network is trustless — even devices on the same LAN cannot read each other's sync data.
+7. **Native apps everywhere.** Electron for desktop (Windows, macOS, Linux), Flutter for mobile (iOS, Android). Native notifications, file system access, camera, SMS, biometrics — all first-class.
 
 ### Non-goals
 
 - **No multi-tenancy.** One user, one brain. There is no `tenantId`.
 - **No cloud hosting.** No AWS, no hosted backend, no relay server. If the user has only one device, it works fine standalone.
-- **No web dashboard.** The dashboard is a local Astro app served by the daemon on each device, accessed via `http://localhost`.
 - **No public API.** No external clients connect to OpenHawkins. The only network surface is device-to-device sync.
 - **No federation.** Alice's brain does not talk to Bob's brain. This is a single-user system.
+- **No web app / PWA.** The primary UI is native (Electron on desktop, Flutter on mobile), not a browser-based web app.
 
 ---
 
@@ -40,33 +41,105 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 ┌─────────────────────────────────────────────────────────────┐
 │                    THE USER'S HOME NETWORK                     │
 │                                                               │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐      │
-│  │   PC (Win)   │   │ Laptop (Mac) │   │  Phone (iOS) │      │
-│  │              │   │              │   │              │      │
-│  │  ┌────────┐  │   │  ┌────────┐  │   │  ┌────────┐  │      │
-│  │  │OpenHawkins│  │   │OpenHawkins│  │   │OpenHawkins│  │      │
-│  │  │ Daemon │  │   │  │ Daemon │  │   │  │ Daemon │  │      │
-│  │  └────┬───┘  │   │  └────┬───┘  │   │  └────┬───┘  │      │
-│  │       │      │   │       │      │   │       │      │      │
-│  │  ┌────▼────┐ │   │  ┌────▼────┐ │   │  ┌────▼────┐ │      │
-│  │  │SQLite   │ │   │  │SQLite   │ │   │  │SQLite   │ │      │
-│  │  │(Brain)  │ │   │  │(Brain)  │ │   │  │(Brain)  │ │      │
-│  │  │+Vault   │ │   │  │+Vault   │ │   │  │+Vault   │ │      │
-│  │  └─────────┘ │   │  └─────────┘ │   │  └─────────┘ │      │
-│  └──────────────┘   └──────────────┘   └──────────────┘      │
-│          │                  │                  │              │
-│          └──────────────────┼──────────────────┘              │
-│                             │                                 │
-│                        ┌────▼────┐                            │
-│                        │ mDNS    │  ← devices discover each   │
-│                        │ discovery│    other on the LAN         │
-│                        └────┬────┘                            │
-│                             │                                 │
-│                        ┌────▼────┐                            │
-│                        │ Noise   │  ← encrypted p2p sync       │
-│                        │ sync    │    channel                 │
-│                        └─────────┘                            │
+│  ┌──────────────────────┐   ┌──────────────────────┐           │
+│  │   PC / Laptop / Mac  │   │      Phone / Tablet  │           │
+│  │                      │   │                      │           │
+│  │  ┌────────────────┐  │   │  ┌────────────────┐  │           │
+│  │  │ Electron App    │  │   │  │ Flutter App     │  │           │
+│  │  │ (UI + Daemon)   │  │   │  │ (UI + Daemon)   │  │           │
+│  │  │                 │  │   │  │                 │  │           │
+│  │  │  ┌──────────┐   │  │   │  │  ┌──────────┐   │  │           │
+│  │  │  │OpenHawkins│   │  │   │  │  │OpenHawkins│   │  │           │
+│  │  │  │ Daemon   │   │  │   │  │  │ Daemon   │   │  │           │
+│  │  │  └────┬─────┘   │  │   │  │  └────┬─────┘   │  │           │
+│  │  │       │         │  │   │  │       │         │  │           │
+│  │  │  ┌────▼────┐    │  │   │  │  ┌────▼────┐    │  │           │
+│  │  │  │SQLite   │    │  │   │  │  │SQLite   │    │  │           │
+│  │  │  │(Brain)  │    │  │   │  │  │(Brain)  │    │  │           │
+│  │  │  │+Vault   │    │  │   │  │  │+Vault   │    │  │           │
+│  │  │  └─────────┘    │  │   │  │  └─────────┘    │  │           │
+│  │  └────────────────┘  │   │  └────────────────┘  │           │
+│  └──────────────────────┘   └──────────────────────┘           │
+│          │                          │                          │
+│          └──────────────┬─────────────┘                          │
+│                         │                                       │
+│                    ┌────▼────┐                                  │
+│                    │ mDNS    │  ← devices discover each        │
+│                    │ discovery│    other on the LAN              │
+│                    └────┬────┘                                  │
+│                         │                                       │
+│                    ┌────▼────┐                                  │
+│                    │ Noise   │  ← encrypted p2p sync             │
+│                    │ sync    │    channel                        │
+│                    └─────────┘                                  │
 └─────────────────────────────────────────────────────────────┘
+```
+
+### 3.1 App architecture
+
+**Desktop (Electron):**
+- **Frontend:** React/Vue/Svelte inside Electron Chromium (or the existing Astro dashboard rendered in a WebView)
+- **Backend:** The OpenHawkins daemon runs as a hidden Node.js process inside Electron (via `child_process` or `NodeIntegration`)
+- **IPC:** Electron's `ipcMain`/`ipcRenderer` for UI ↔ daemon communication
+- **Packaging:** Electron Builder (`electron-builder`) for `.exe` (Windows), `.dmg` (macOS), `.AppImage`/`.deb` (Linux)
+- **Auto-update:** Electron's `autoUpdater` (or `electron-updater`) with update files served from the user's primary device (no external server)
+
+**Mobile (Flutter):**
+- **Frontend:** Flutter UI (Dart) — one codebase for iOS and Android
+- **Backend:** The OpenHawkins daemon compiled to a native library (via `dart:ffi` binding to a Rust/C++ wrapper around the TypeScript core, or via a headless Flutter isolate running the daemon)
+- **Communication:** Flutter `MethodChannel`/`EventChannel` for UI ↔ daemon
+- **Packaging:** Flutter build for `.ipa` (iOS) and `.apk`/`.aab` (Android)
+- **Background sync:** Flutter's `workmanager` for periodic sync when app is backgrounded
+
+### 3.2 Why Electron for desktop
+
+- **Single codebase:** One TypeScript codebase serves both the daemon and the UI (via the Astro dashboard in a WebView, or a React app)
+- **Native feel:** Desktop notifications, tray icon, global shortcuts (e.g., `Cmd+Shift+O` to open the assistant)
+- **File system access:** Full access to the user's files for the `fs:read`/`fs:write` tools
+- **No browser sandbox:** Unlike a PWA, Electron has no CORS/file-access restrictions
+- **Offline-first:** The app works without internet; sync is local-only
+
+### 3.3 Why Flutter for mobile
+
+- **Single codebase:** One Dart codebase for iOS + Android (and potentially desktop in the future)
+- **Native performance:** Compiled to ARM/x86 machine code, not interpreted JS
+- **Battery efficient:** Flutter's rendering engine (Impeller) is optimized for mobile GPUs
+- **Platform channels:** Easy integration with native OS features (camera, SMS, biometrics, keychain)
+- **Small bundle size:** Flutter apps are smaller than Electron (~10-20 MB vs ~100+ MB)
+
+### 3.4 Shared core
+
+Both Electron and Flutter apps embed the same OpenHawkins daemon (the TypeScript core compiled to a native binary or run via Node.js). The daemon exposes a JSON-RPC or gRPC interface over a local Unix socket / TCP port, which the UI connects to.
+
+```
+┌─────────────────────────────────────┐
+│  Electron App                       │
+│  ┌─────────────┐  ┌──────────────┐  │
+│  │  UI (React) │  │  Daemon      │  │
+│  │  (Chromium) │  │  (Node.js)   │  │
+│  └──────┬──────┘  └──────┬───────┘  │
+│         │                │           │
+│         └──────┬─────────┘           │
+│                │ IPC / localhost    │
+└────────────────┼────────────────────┘
+                 │
+┌────────────────┼────────────────────┐
+│  Flutter App   │                    │
+│  ┌─────────────┐  ┌──────────────┐  │
+│  │  UI (Dart)  │  │  Daemon      │  │
+│  │  (Impeller) │  │  (Node.js /  │  │
+│  │             │  │   compiled)   │  │
+│  └──────┬──────┘  └──────┬───────┘  │
+│         │                │           │
+│         └──────┬─────────┘           │
+│                │ MethodChannel      │
+└────────────────┼────────────────────┘
+                 │
+         ┌───────▼────────┐
+         │  Shared Core   │
+         │  (TypeScript   │
+         │   → native)    │
+         └────────────────┘
 ```
 
 ---
