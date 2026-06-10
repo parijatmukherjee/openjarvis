@@ -9,7 +9,7 @@ import type { MetricsCollector } from "../observability/metrics.js";
 import { noopMetricsCollector } from "../observability/metrics.js";
 import type { Logger } from "../observability/logger.js";
 import { noopLogger } from "../observability/logger.js";
-import { tokenBucket } from "../util/rate-limiter.js";
+import { tokenBucket, calculateBackoff } from "../util/rate-limiter.js";
 
 // Tools are heterogeneous in their <A,R> type parameters; the loop only reads
 // name/description/args, so it stores them with erased type variables (same
@@ -87,15 +87,19 @@ export async function runAgentTurn(cfg: AgentLoopConfig, input: string): Promise
 
   const limiter = cfg.rateLimit ? tokenBucket("agent-loop-model-call", cfg.rateLimit) : null;
   const logger = cfg.rateLimit?.logger ?? noopLogger;
+  let rateLimitAttempt = 0;
 
   while (record.modelCalls.length < maxModelCalls) {
     if (limiter && !limiter.allow()) {
       logger.log("warn", "rate-limited", {
         detail: `model call rate limit exceeded (capacity=${cfg.rateLimit!.capacity}, refillRate=${cfg.rateLimit!.refillRate})`,
       });
-      await new Promise((r) => setTimeout(r, 100));
+      const backoff = calculateBackoff(rateLimitAttempt++, 100);
+      logger.log("debug", "rate-limit-backoff", { ms: backoff });
+      await new Promise((r) => setTimeout(r, backoff));
       continue;
     }
+    rateLimitAttempt = 0;
     const out = await cfg.adapter.generate({ messages, tools: toolSchemas });
     record.modelCalls.push({
       request: messages.map((m) => ({ ...m })),

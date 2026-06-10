@@ -81,11 +81,10 @@ async function buildAdapter(kind: string, path: string, vault?: FileVault): Prom
     case "ollama": {
       const model = await loadStr(vault, "ollama-model", "OPENHAWKINS_OLLAMA_MODEL", "llama3.1");
       const baseUrl = await loadOpt(vault, "ollama-url", "OPENHAWKINS_OLLAMA_URL");
-      const apiKey = await loadOpt(vault, "ollama-key", "OPENHAWKINS_OLLAMA_KEY");
       return new OllamaAdapter({
         model,
         ...(baseUrl ? { baseUrl } : {}),
-        ...(apiKey ? { apiKey } : {}),
+        ...(vault ? { apiKeyName: "ollama-key", vault } : {}),
       });
     }
     case "openai": {
@@ -96,8 +95,11 @@ async function buildAdapter(kind: string, path: string, vault?: FileVault): Prom
         "OPENHAWKINS_OPENAI_URL",
         "https://api.openai.com/v1",
       );
-      const apiKey = await loadOpt(vault, "openai-key", "OPENHAWKINS_OPENAI_KEY");
-      return new OpenAiCompatAdapter({ model, baseUrl, ...(apiKey ? { apiKey } : {}) });
+      return new OpenAiCompatAdapter({
+        model,
+        baseUrl,
+        ...(vault ? { apiKeyName: "openai-key", vault } : {}),
+      });
     }
     default:
       throw new Error(`unknown --model "${kind}" (use scripted | ollama | openai)`);

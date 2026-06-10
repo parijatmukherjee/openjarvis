@@ -13,6 +13,7 @@ import {
   withRetry,
   type HttpFetch,
 } from "./http.js";
+import type { Vault } from "../security/vault.js";
 
 /**
  * Ollama adapter — one code path for both **local** (default
@@ -24,8 +25,12 @@ export interface OllamaConfig {
   model: string;
   /** Defaults to the local daemon. Point at `https://ollama.com` for cloud. */
   baseUrl?: string;
-  /** Bearer key for Ollama cloud; resolved from the Vault by the caller. */
+  /** Vault key name to resolve at request time (preferred over raw `apiKey`). */
+  apiKeyName?: string;
+  /** Raw bearer key — only used when `apiKeyName` is absent. */
   apiKey?: string;
+  /** Vault instance for resolving `apiKeyName`. */
+  vault?: Vault;
   /** Injected for tests; defaults to the real transport. */
   http?: HttpFetch;
   /** Per-request deadline in ms before the call is aborted (default 30000). */
@@ -47,7 +52,9 @@ export class OllamaAdapter implements ModelAdapter {
   readonly name = "ollama";
   private readonly model: string;
   private readonly baseUrl: string;
+  private readonly apiKeyName: string | undefined;
   private readonly apiKey: string | undefined;
+  private readonly vault: Vault | undefined;
   private readonly http: HttpFetch;
   private readonly timeoutMs: number;
   private readonly retries: number;
@@ -56,8 +63,10 @@ export class OllamaAdapter implements ModelAdapter {
   constructor(cfg: OllamaConfig) {
     this.model = cfg.model;
     this.baseUrl = (cfg.baseUrl ?? "http://127.0.0.1:11434").replace(/\/$/, "");
-    assertSafeBaseUrl(this.baseUrl);
+    assertSafeBaseUrl(this.baseUrl, { requireHttpsWhenKey: !!(cfg.apiKeyName || cfg.apiKey) });
+    this.apiKeyName = cfg.apiKeyName;
     this.apiKey = cfg.apiKey;
+    this.vault = cfg.vault;
     this.http = cfg.http ?? defaultHttp;
     this.timeoutMs = cfg.timeoutMs ?? 30000;
     this.retries = cfg.retries ?? 2;
@@ -81,8 +90,12 @@ export class OllamaAdapter implements ModelAdapter {
     }
 
     const headers: Record<string, string> = { "content-type": "application/json" };
-    if (this.apiKey) {
-      headers.authorization = `Bearer ${this.apiKey}`;
+    // Resolve the key inside generate() so it never outlives the request.
+    const apiKey = this.apiKeyName && this.vault
+      ? await this.vault.get(this.apiKeyName) ?? undefined
+      : this.apiKey;
+    if (apiKey) {
+      headers.authorization = `Bearer ${apiKey}`;
     }
 
     const url = `${this.baseUrl}/api/chat`;

@@ -239,10 +239,14 @@ describe("runAgentTurn (native tool-calling round-trip)", () => {
 
   it("pauses and logs warning when model call rate is exceeded", async () => {
     const warnings: string[] = [];
+    const backoffs: number[] = [];
     const logger: Logger = {
       log(level, event, fields) {
         if (level === "warn" && event === "rate-limited") {
           warnings.push(String(fields?.detail));
+        }
+        if (level === "debug" && event === "rate-limit-backoff") {
+          backoffs.push(Number(fields?.ms));
         }
       },
     };
@@ -268,5 +272,9 @@ describe("runAgentTurn (native tool-calling round-trip)", () => {
     expect(elapsed).toBeGreaterThanOrEqual(80);
     expect(warnings.length).toBeGreaterThanOrEqual(1);
     expect(warnings[0]).toMatch(/rate limit exceeded/);
+    // backoff is now exponential, not fixed 100ms
+    expect(backoffs.length).toBeGreaterThanOrEqual(1);
+    expect(backoffs[0]).toBeGreaterThanOrEqual(100);
+    expect(backoffs[0]).toBeLessThan(200);
   });
 });

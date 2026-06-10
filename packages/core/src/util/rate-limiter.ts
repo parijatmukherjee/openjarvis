@@ -10,6 +10,12 @@ export interface TokenBucketOptions {
   refillRate: number; // tokens per second
 }
 
+/** Calculate exponential backoff with full jitter for a given attempt. */
+export function calculateBackoff(attempt: number, baseMs: number): number {
+  const interval = baseMs * 2 ** attempt;
+  return interval + Math.floor(Math.random() * interval);
+}
+
 export function tokenBucket(key: string, opts: TokenBucketOptions): { allow(): boolean } {
   return {
     allow(): boolean {
