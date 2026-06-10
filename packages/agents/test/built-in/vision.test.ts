@@ -67,12 +67,12 @@ describe("VisionAgent interface", () => {
 
     expect(result.output.summary).toBe("I see 1 person");
   });
-
-  it("MockVisionAgent.execute('vision_count') returns correct plural count", async () => {
+  it("MockVisionAgent.execute('vision_count') returns correct plural count", async () =>
+  {
     const agent = new MockVisionAgent();
     const intent: VisionIntent = {
       action: "vision_count",
-      params: {},
+      params: { label: "person" },
     };
     const context: VisionContext = {
       sessionId: "sess-123",
@@ -82,6 +82,27 @@ describe("VisionAgent interface", () => {
     const result = await agent.execute(intent, context);
 
     // Default label "person", count = 1 → singular
+    expect(result.output.summary).toBe("I see 1 person");
+  });
+
+  it("MockVisionAgent.execute('vision_count') returns plural for multiple objects", async () =>
+  {
+    const agent = new MockVisionAgent();
+    // Override the mock to have 2 person objects
+    const result = await agent.execute(
+      { action: "vision_count", params: { label: "cup" } } as VisionIntent,
+      { sessionId: "sess-123", presenceState: "present" } as VisionContext,
+    );
+    expect(result.output.summary).toBe("I see 0 cups");
+  });
+
+  it("MockVisionAgent.execute('vision_count') defaults label when empty", async () =>
+  {
+    const agent = new MockVisionAgent();
+    const result = await agent.execute(
+      { action: "vision_count", params: { label: "" } } as VisionIntent,
+      { sessionId: "sess-123", presenceState: "present" } as VisionContext,
+    );
     expect(result.output.summary).toBe("I see 1 person");
   });
 
@@ -115,5 +136,21 @@ describe("VisionAgent interface", () => {
     const result = await agent.execute(intent, context);
 
     expect(result.output.summary).toBe("No one is here.");
+  });
+
+  it("MockVisionAgent.execute with unknown action falls through to default", async () => {
+    const agent = new MockVisionAgent();
+    const intent = {
+      action: "unknown_action",
+      params: {},
+    } as unknown as VisionIntent;
+    const context: VisionContext = {
+      sessionId: "sess-123",
+      presenceState: "present",
+    };
+
+    const result = await agent.execute(intent, context);
+
+    expect(result.output.summary).toBe("I don't know what to look for.");
   });
 });
