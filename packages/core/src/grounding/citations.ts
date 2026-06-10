@@ -13,6 +13,8 @@ export const claimSchema = z.object({
   citesToolResultId: z.string().min(1),
   /** Optional numeric value the claim asserts, enabling exact verification. */
   value: z.number().optional(),
+  /** Optional dot-notation path to the field the value came from (e.g. "freeBytes" or "data.freeBytes"). */
+  field: z.string().min(1).optional(),
 });
 
 export const citedAnswerSchema = z.object({
@@ -57,32 +59,30 @@ export function verifyCitations(
       });
       continue;
     }
-    if (
-      claim.value !== undefined &&
-      !containsNumber(successfulData.get(claim.citesToolResultId), claim.value)
-    ) {
-      issues.push({
-        statement: claim.statement,
-        reason: "value-mismatch",
-        detail: `tool result "${claim.citesToolResultId}" does not contain the value ${claim.value}`,
-      });
+    if (claim.value !== undefined) {
+      const actual = getValueAtPath(successfulData.get(claim.citesToolResultId), claim.field ?? "");
+      if (actual !== claim.value) {
+        issues.push({
+          statement: claim.statement,
+          reason: "value-mismatch",
+          detail: `tool result "${claim.citesToolResultId}" field "${claim.field}" expected ${claim.value}, got ${actual}`,
+        });
+      }
     }
   }
   return issues;
 }
 
-/** Recursively search a tool-result payload for a number exactly equal to `value`. */
-function containsNumber(data: unknown, value: number): boolean {
-  if (typeof data === "number") {
-    return data === value;
+/** Extract a value from a nested object by dot-notation path (e.g. "freeBytes" or "data.freeBytes"). */
+function getValueAtPath(data: unknown, path: string): unknown {
+  let current: unknown = data;
+  for (const key of path.split(".")) {
+    if (current === null || typeof current !== "object") {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[key];
   }
-  if (Array.isArray(data)) {
-    return data.some((d) => containsNumber(d, value));
-  }
-  if (data !== null && typeof data === "object") {
-    return Object.values(data).some((d) => containsNumber(d, value));
-  }
-  return false;
+  return current;
 }
 
 export type ParsedAnswer =
