@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MockVisionEngine, MockDetectionModel } from "../../src/vision/mock.js";
+import { MockVisionEngine, MockDetectionModel, MockPresenceStateMachine } from "../../src/vision/mock.js";
 import type { VisionConfig, BurstOptions } from "../../src/vision/engine.js";
 
 describe("MockVisionEngine", () => {
@@ -81,5 +81,48 @@ describe("MockDetectionModel", () => {
   it("dispose() resolves", async () => {
     const model = new MockDetectionModel();
     await expect(model.dispose()).resolves.toBeUndefined();
+  });
+});
+
+describe("MockPresenceStateMachine", () => {
+  it("initial state is unknown", () => {
+    const sm = new MockPresenceStateMachine();
+    expect(sm.getState()).toBe("unknown");
+  });
+
+  it("setState('present') fires transition handler", () => {
+    const sm = new MockPresenceStateMachine();
+    let called = false;
+    sm.onTransition((oldState, newState) => {
+      called = true;
+      expect(oldState).toBe("unknown");
+      expect(newState).toBe("present");
+    });
+    sm.setState("present");
+    expect(called).toBe(true);
+  });
+
+  it("setState('away') from 'present' fires with correct old/new states", () => {
+    const sm = new MockPresenceStateMachine();
+    sm.setState("present");
+    let called = false;
+    sm.onTransition((oldState, newState) => {
+      called = true;
+      expect(oldState).toBe("present");
+      expect(newState).toBe("away");
+    });
+    sm.setState("away");
+    expect(called).toBe(true);
+  });
+
+  it("setState('present') when already 'present' does NOT fire handler", () => {
+    const sm = new MockPresenceStateMachine();
+    sm.setState("present");
+    let called = false;
+    sm.onTransition(() => {
+      called = true;
+    });
+    sm.setState("present");
+    expect(called).toBe(false);
   });
 });

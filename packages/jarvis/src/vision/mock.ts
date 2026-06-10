@@ -7,6 +7,7 @@ import type {
   DetectedObject,
 } from "./engine.js";
 import type { DetectionModel } from "./detection.js";
+import type { PresenceStateMachine } from "./presence.js";
 
 export class MockVisionEngine implements VisionEngine {
   private config?: VisionConfig;
@@ -54,4 +55,25 @@ export class MockDetectionModel implements DetectionModel {
 
   async warmup(): Promise<void> {}
   async dispose(): Promise<void> {}
+}
+
+export class MockPresenceStateMachine implements PresenceStateMachine {
+  private state: PresenceState = "unknown";
+  private handlers: ((oldState: PresenceState, newState: PresenceState) => void)[] = [];
+
+  getState(): PresenceState {
+    return this.state;
+  }
+
+  setState(newState: PresenceState): void {
+    const oldState = this.state;
+    this.state = newState;
+    if (oldState !== newState) {
+      this.handlers.forEach((h) => h(oldState, newState));
+    }
+  }
+
+  onTransition(handler: (oldState: PresenceState, newState: PresenceState) => void): void {
+    this.handlers.push(handler);
+  }
 }
