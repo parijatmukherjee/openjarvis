@@ -11,7 +11,7 @@
 
 **FAIL** — 15 findings (5 Critical, 6 High, 4 Medium)
 
-The OpenHawkins codebase has a **strong S1 foundation** (capability-gated tool registry, event-sourced sessions, durable SQLite state, keyed audit chain, grounding engine, vault) but **the "Jarvis" layer is entirely conceptual**. There is no orchestrator hub, no voice pipeline, no visual/monitor control, no skills system, no agent pool, no scheduler, and no desktop interface. The vision document declares a physical AI hub; the codebase is a single-agent CLI runtime.
+The OpenJarvis codebase has a **strong S1 foundation** (capability-gated tool registry, event-sourced sessions, durable SQLite state, keyed audit chain, grounding engine, vault) but **the "Jarvis" layer is entirely conceptual**. There is no orchestrator hub, no voice pipeline, no visual/monitor control, no skills system, no agent pool, no scheduler, and no desktop interface. The vision document declares a physical AI hub; the codebase is a single-agent CLI runtime.
 
 ---
 
@@ -19,15 +19,15 @@ The OpenHawkins codebase has a **strong S1 foundation** (capability-gated tool r
 
 ### 🔴 Critical Gaps (missing foundational pieces)
 
-#### C1: `@openhawkins/jarvis` — The hub orchestrator is entirely missing
+#### C1: `@openjarvis/jarvis` — The hub orchestrator is entirely missing
 
 The vision declares "Jarvis is the single interface" and "Jarvis delegates." The codebase has **no orchestrator package**. The `AgentRun` + `PlaybookRun` in `core` are a **single-agent process engine** (one agent runs through phases), not a multi-agent orchestrator. There is no intent parsing, no delegation protocol, no agent pool, no synthesis layer. The `Agent` class is an evaluator for one turn of one agent — it cannot coordinate a team.
 
-#### C2: `@openhawkins/agents` — Specialist agent definitions missing
+#### C2: `@openjarvis/agents` — Specialist agent definitions missing
 
-The vision lists 7 specialist agents (Research, System, Code, Vision, Comm, Memory, Creative). The codebase has **zero agent definitions**. The word "tendril" appears only as a **string tag in the VECNA memory schema** — a placeholder, not a runtime entity. There is no agent factory, no role definitions, no scoped tool surfaces per specialty.
+The vision lists 7 specialist agents (Research, System, Code, Vision, Comm, Memory, Creative). The codebase has **zero agent definitions**. The word "agent" appears only as a **string tag in the JarvisMemoryStore memory schema** — a placeholder, not a runtime entity. There is no agent factory, no role definitions, no scoped tool surfaces per specialty.
 
-#### C3: `@openhawkins/skills` — Skill marketplace, installer, sandbox missing
+#### C3: `@openjarvis/skills` — Skill marketplace, installer, sandbox missing
 
 The vision says "Jarvis can download, install, and learn skills on demand" with `SKILL.md` manifests and capability-gated sandboxes. The codebase has **no skill manifest parser, no installer, no marketplace client, no sandbox loader**. The `CapabilityName` type is a **closed hardcoded enum** — skills cannot declare new capabilities dynamically.
 
@@ -35,7 +35,7 @@ The vision says "Jarvis can download, install, and learn skills on demand" with 
 
 The vision says "voice-first, visual-second" with local wake-word detection, local STT, and local TTS. A grep across the entire `packages/` directory returned **zero matches** for `voice`, `stt`, `tts`, `speech`, `audio`, `microphone`, `speaker`, `wake`, or `whisper`.
 
-#### C5: `@openhawkins/desktop` — Electron dashboard / monitor controller missing
+#### C5: `@openjarvis/desktop` — Electron dashboard / monitor controller missing
 
 The vision says Jarvis "opens the right apps on your monitors." The codebase has **zero display/monitor/window/app-control code**. No matches for `electron`, `monitor`, `display`, `desktop`, `window`, `screen`, or `launch`.
 
@@ -45,9 +45,9 @@ The vision says Jarvis "opens the right apps on your monitors." The codebase has
 
 #### H1: Security code embedded in `core`, not standalone package
 
-The vision lists `@openhawkins/security` as a separate package. All security code lives inside `@openhawkins/core` (`src/security/`). Not a functional failure, but a package architecture violation.
+The vision lists `@openjarvis/security` as a separate package. All security code lives inside `@openjarvis/core` (`src/security/`). Not a functional failure, but a package architecture violation.
 
-#### H2: `@openhawkins/channels` — exists in plans but not in code
+#### H2: `@openjarvis/channels` — exists in plans but not in code
 
 No `packages/channels/` directory, no gateway daemon, no WebSocket server, no chat bridge. The only "channel" is `stdin`/`stdout` in the `ask` and `run` CLIs.
 
@@ -71,13 +71,13 @@ The `SCHEMA` in `packages/state/src/schema.ts` only defines `events` and `audit`
 
 ### 🟢 Medium Gaps (nice to have)
 
-#### M1: `@openhawkins/sync` — skeleton exists but is ghost package
+#### M1: `@openjarvis/sync` — skeleton exists but is ghost package
 
 The `packages/sync/` directory contains only compiled artifacts (no source, no `package.json`). Either properly initialize or remove.
 
 #### M2: Memory not wired into agent path by default
 
-`Agent.ask()` has an **optional** `memory?: MemoryStore` injection point, but `buildAgentRun` and the CLI do not wire VECNA. For a Jarvis hub that "remembers everything," memory must be default-on, not opt-in.
+`Agent.ask()` has an **optional** `memory?: MemoryStore` injection point, but `buildAgentRun` and the CLI do not wire JarvisMemoryStore. For a Jarvis hub that "remembers everything," memory must be default-on, not opt-in.
 
 #### M3: No Jarvis persona / system prompt layer
 
@@ -100,7 +100,7 @@ packages/
 ├── skills/        🔴 MISSING — SKILL.md loader, installer, marketplace
 ├── state/         ✅ exists — SQLite events, audit
                   ⚠️  missing skills registry table, agent roster table
-├── memory/        ✅ exists — VECNA fragments
+├── memory/        ✅ exists — JarvisMemoryStore fragments
                   ⚠️  not wired into agent path by default
 ├── markdownify/   ✅ exists — document converters
                   ⚠️  not wired into agent path by default
@@ -116,20 +116,20 @@ packages/
 
 ## Implementation Roadmap
 
-| Phase   | What                                                                                                                                                  | Priority | Est. Effort |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------- |
-| **J1**  | **Design `@openhawkins/jarvis` architecture** — intent parser, delegation protocol, agent pool interface, synthesis engine, voice pipeline interfaces | P0       | 1–2 weeks   |
-| **J2**  | **Stand up `@openhawkins/agents`** — agent factory, 7 specialist roles, scoped grants                                                                 | P0       | 2 weeks     |
-| **J3**  | **Voice pipeline interfaces** — `AudioInput`, `AudioOutput`, `WakeWordEngine`, `SttEngine`, `TtsEngine`                                               | P0       | 1 week      |
-| **J4**  | **Skills system v0** — `SKILL.md` parser, installer, capability-gated loader                                                                          | P0       | 2–3 weeks   |
-| **J5**  | **Monitor controller v0** — `DisplayManager`, OS app launchers, multi-monitor                                                                         | P0       | 1–2 weeks   |
-| **J6**  | **Wire memory + markdownify** — make VECNA default-injected                                                                                           | P1       | 3–5 days    |
-| **J7**  | **Proactive scheduler** — job registry, event bus, time-based initiation                                                                              | P1       | 2 weeks     |
-| **J8**  | **Electron dashboard skeleton**                                                                                                                       | P1       | 2 weeks     |
-| **J9**  | **Security package extraction**                                                                                                                       | P2       | 1 week      |
-| **J10** | **Agent-level isolation**                                                                                                                             | P2       | 3–4 weeks   |
-| **J11** | **Channels gateway**                                                                                                                                  | P2       | 2–3 weeks   |
-| **J12** | **Skill marketplace client**                                                                                                                          | P3       | 2–3 weeks   |
+| Phase   | What                                                                                                                                                 | Priority | Est. Effort |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------- |
+| **J1**  | **Design `@openjarvis/jarvis` architecture** — intent parser, delegation protocol, agent pool interface, synthesis engine, voice pipeline interfaces | P0       | 1–2 weeks   |
+| **J2**  | **Stand up `@openjarvis/agents`** — agent factory, 7 specialist roles, scoped grants                                                                 | P0       | 2 weeks     |
+| **J3**  | **Voice pipeline interfaces** — `AudioInput`, `AudioOutput`, `WakeWordEngine`, `SttEngine`, `TtsEngine`                                              | P0       | 1 week      |
+| **J4**  | **Skills system v0** — `SKILL.md` parser, installer, capability-gated loader                                                                         | P0       | 2–3 weeks   |
+| **J5**  | **Monitor controller v0** — `DisplayManager`, OS app launchers, multi-monitor                                                                        | P0       | 1–2 weeks   |
+| **J6**  | **Wire memory + markdownify** — make JarvisMemoryStore default-injected                                                                              | P1       | 3–5 days    |
+| **J7**  | **Proactive scheduler** — job registry, event bus, time-based initiation                                                                             | P1       | 2 weeks     |
+| **J8**  | **Electron dashboard skeleton**                                                                                                                      | P1       | 2 weeks     |
+| **J9**  | **Security package extraction**                                                                                                                      | P2       | 1 week      |
+| **J10** | **Agent-level isolation**                                                                                                                            | P2       | 3–4 weeks   |
+| **J11** | **Channels gateway**                                                                                                                                 | P2       | 2–3 weeks   |
+| **J12** | **Skill marketplace client**                                                                                                                         | P3       | 2–3 weeks   |
 
 ---
 

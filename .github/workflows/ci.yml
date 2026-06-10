@@ -64,5 +64,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -f Dockerfile.test -t openhawkins-test .
-      - run: docker run --rm openhawkins-test
+      - run: docker build -f Dockerfile.test -t openjarvis-test .
+      - run: docker run --rm openjarvis-test

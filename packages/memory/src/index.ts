@@ -4,3 +4,6 @@ export * from "./recall.js";
 export * from "./store.js";
 export * from "./embedder.js";
 export * from "./transformers-embedder.js";
+
+// Backward-compatible alias for the renamed class
+export { JarvisMemoryStore as VecnaStore } from "./store.js";

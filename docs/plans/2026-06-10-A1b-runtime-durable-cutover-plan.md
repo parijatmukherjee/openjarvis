@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make the durable, keyed audit + event store actually take effect in a runnable entrypoint — closing **F-C1** (durability) and **F-C2** (keyed audit) _at runtime_, not just in the library. A1 built `SqliteEventStore` + `SqliteAuditLog`; A2 made the audit keyed HMAC under a Vault key. But the only entrypoint (`core/bin/run.ts`) still uses in-memory stores, because `core` cannot import `state` (dependency cycle). This adds the composition root in `packages/state` (which depends on `core`, so it may wire both): a `buildDurableAgentRun` helper + an `openhawkins-run` CLI that persists to SQLite with a Vault-keyed audit, plus a **black-box functional test** that runs the built binary and then reopens the DB in a fresh process to prove the keyed audit survives.
+**Goal:** Make the durable, keyed audit + event store actually take effect in a runnable entrypoint — closing **F-C1** (durability) and **F-C2** (keyed audit) _at runtime_, not just in the library. A1 built `SqliteEventStore` + `SqliteAuditLog`; A2 made the audit keyed HMAC under a Vault key. But the only entrypoint (`core/bin/run.ts`) still uses in-memory stores, because `core` cannot import `state` (dependency cycle). This adds the composition root in `packages/state` (which depends on `core`, so it may wire both): a `buildDurableAgentRun` helper + an `openjarvis-run` CLI that persists to SQLite with a Vault-keyed audit, plus a **black-box functional test** that runs the built binary and then reopens the DB in a fresh process to prove the keyed audit survives.
 
-**Architecture:** `packages/state/src/build-durable-agent-run.ts` opens one `SqlDriver`, resolves the persistent audit HMAC key from a `FileVault` (`resolveAuditKey`), constructs `SqliteEventStore` + `SqliteAuditLog(db, key)`, and delegates to core's `buildAgentRun({ store, audit, ... })`. A sibling `verifyDurable` reopens an existing DB+Vault and reports `{ events, auditEntries, auditVerified }`. `packages/state/src/bin/openhawkins-run.ts` is the CLI (run mode + `--verify` mode). A functional test spawns the built CLI: run → then `--verify` in a separate process → asserts the keyed chain verifies across processes.
+**Architecture:** `packages/state/src/build-durable-agent-run.ts` opens one `SqlDriver`, resolves the persistent audit HMAC key from a `FileVault` (`resolveAuditKey`), constructs `SqliteEventStore` + `SqliteAuditLog(db, key)`, and delegates to core's `buildAgentRun({ store, audit, ... })`. A sibling `verifyDurable` reopens an existing DB+Vault and reports `{ events, auditEntries, auditVerified }`. `packages/state/src/bin/openjarvis-run.ts` is the CLI (run mode + `--verify` mode). A functional test spawns the built CLI: run → then `--verify` in a separate process → asserts the keyed chain verifies across processes.
 
 **Tech Stack:** TypeScript strict, ESM `.js` specifiers, Vitest, Node 24 + Bun 1.3. Prettier printWidth 100, double quotes.
 
@@ -14,7 +14,7 @@
 
 - core: `buildAgentRun(opts)` accepts `store?`/`audit?`; `resolveAuditKey(vault): Promise<Buffer>`; `FileVault({path, passphrase})`; `ScriptedOperator`, `weakHostFactsModel`, `ValidateGate`, `isPhaseEvent`, `foldPlaybook`, `type PhaseEvent`.
 - state: `openDatabase({path})`, `SqliteEventStore`, `SqliteAuditLog`.
-- `packages/state` depends on `@openhawkins/core` (no cycle when state imports core); `src/bin/**` is coverage-excluded; functional tests live at `packages/state/test-functional/**/*.test.ts`.
+- `packages/state` depends on `@openjarvis/core` (no cycle when state imports core); `src/bin/**` is coverage-excluded; functional tests live at `packages/state/test-functional/**/*.test.ts`.
 
 **Conventions:** Unit tests `packages/state/test/...`. Coverage ≥99%; non-bin new src 100% (`bin/**` excluded). The CLI defaults to the scripted model + a trivial Validate so the demo is offline/deterministic (the durable stores, Vault key, and keyed audit are all REAL).
 
@@ -35,7 +35,7 @@ import { describe, it, expect } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ScriptedOperator, weakHostFactsModel, ValidateGate } from "@openhawkins/core";
+import { ScriptedOperator, weakHostFactsModel, ValidateGate } from "@openjarvis/core";
 import { buildDurableAgentRun, verifyDurable } from "../src/build-durable-agent-run.js";
 
 const dir = () => mkdtempSync(join(tmpdir(), "oh-a1b-"));
@@ -95,7 +95,7 @@ import {
   FileVault,
   type BuildAgentRunOpts,
   type BuiltAgentRun,
-} from "@openhawkins/core";
+} from "@openjarvis/core";
 import { openDatabase, type SqlDriver } from "./driver/driver.js";
 import { SqliteEventStore } from "./event-store.js";
 import { SqliteAuditLog } from "./audit-store.js";
@@ -177,24 +177,24 @@ git commit -m "feat(state): buildDurableAgentRun + verifyDurable — durable+key
 
 ---
 
-### Task 2: The `openhawkins-run` durable CLI
+### Task 2: The `openjarvis-run` durable CLI
 
 **Files:**
 
-- Create: `packages/state/src/bin/openhawkins-run.ts`
+- Create: `packages/state/src/bin/openjarvis-run.ts`
 
 (`src/bin/**` is coverage-excluded; exercised by the Task 3 functional test.)
 
-- [ ] **Step 1: Write `packages/state/src/bin/openhawkins-run.ts`:**
+- [ ] **Step 1: Write `packages/state/src/bin/openjarvis-run.ts`:**
 
 ```ts
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ScriptedOperator, weakHostFactsModel, ValidateGate } from "@openhawkins/core";
+import { ScriptedOperator, weakHostFactsModel, ValidateGate } from "@openjarvis/core";
 import { buildDurableAgentRun, verifyDurable } from "../build-durable-agent-run.js";
 
 /**
- * `openhawkins-run` — a durable, keyed-audit agent run over SQLite (A1b: F-C1/F-C2 at
+ * `openjarvis-run` — a durable, keyed-audit agent run over SQLite (A1b: F-C1/F-C2 at
  * runtime). The scripted model + a trivial Validate make a deterministic offline demo;
  * the SQLite event store, the Vault-resolved audit key, and the keyed HMAC chain are all
  * REAL. `--verify` reopens an existing db+vault (a SEPARATE process) and reports whether
@@ -207,13 +207,9 @@ function flag(args: string[], name: string, fallback: string): string {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const dbPath = flag(args, "--db", join(tmpdir(), "openhawkins.db"));
-  const vaultPath = flag(args, "--vault", join(tmpdir(), "openhawkins-vault.json"));
-  const passphrase = flag(
-    args,
-    "--passphrase",
-    process.env.OPENHAWKINS_VAULT_PASS ?? "openhawkins",
-  );
+  const dbPath = flag(args, "--db", join(tmpdir(), "openjarvis.db"));
+  const vaultPath = flag(args, "--vault", join(tmpdir(), "openjarvis-vault.json"));
+  const passphrase = flag(args, "--passphrase", process.env.OPENHAWKINS_VAULT_PASS ?? "openjarvis");
   const asJson = args.includes("--json");
 
   if (args.includes("--verify")) {
@@ -252,10 +248,10 @@ main().catch((err: unknown) => {
 
 - [ ] **Step 2: Build + smoke it.**
       `npm run build` then, in a temp dir:
-      `node packages/state/dist/bin/openhawkins-run.js --db /tmp/oh-a1b.db --vault /tmp/oh-a1b-vault.json --json`
+      `node packages/state/dist/bin/openjarvis-run.js --db /tmp/oh-a1b.db --vault /tmp/oh-a1b-vault.json --json`
       → `{"mode":"run","result":{"kind":"completed"},"auditVerified":true}`.
       Then a SEPARATE process:
-      `node packages/state/dist/bin/openhawkins-run.js --db /tmp/oh-a1b.db --vault /tmp/oh-a1b-vault.json --verify --json`
+      `node packages/state/dist/bin/openjarvis-run.js --db /tmp/oh-a1b.db --vault /tmp/oh-a1b-vault.json --verify --json`
       → `{"mode":"verify","events":<n>,"auditEntries":<m>,"auditVerified":true}` with `auditEntries > 6`. Paste both.
 
 - [ ] **Step 3: Gates.** prettier/eslint on the bin file.
@@ -263,8 +259,8 @@ main().catch((err: unknown) => {
 - [ ] **Step 4: Commit.**
 
 ```bash
-git add packages/state/src/bin/openhawkins-run.ts
-git commit -m "feat(state): openhawkins-run durable CLI (run + --verify) (A1b)"
+git add packages/state/src/bin/openjarvis-run.ts
+git commit -m "feat(state): openjarvis-run durable CLI (run + --verify) (A1b)"
 ```
 
 ---
@@ -288,9 +284,9 @@ import { join } from "node:path";
 // Black-box: spawn the actual built durable CLI, then RE-SPAWN a separate process to
 // verify — proving events + the keyed audit chain survive across processes on disk.
 const run = promisify(execFile);
-const CLI = "packages/state/dist/bin/openhawkins-run.js";
+const CLI = "packages/state/dist/bin/openjarvis-run.js";
 
-describe("openhawkins-run — durable functional (black-box, cross-process)", () => {
+describe("openjarvis-run — durable functional (black-box, cross-process)", () => {
   it("persists a keyed-audit run and a fresh process verifies it", async () => {
     const d = mkdtempSync(join(tmpdir(), "oh-a1b-fn-"));
     const db = join(d, "run.db");
@@ -331,12 +327,12 @@ git commit -m "test(state): black-box cross-process durable-run e2e (A1b — F-C
 
 ### Task 4: Full gate + roadmap
 
-- [ ] **Step 1: Roadmap.** In `docs/reviews/2026-06-09-production-readiness-review.md` §3, find/add the **A1b** follow-up item and mark it done: `**A1b — Runtime durable cutover ✅ DONE (PR pending).** A `packages/state` composition root (`buildDurableAgentRun`+ the`openhawkins-run`CLI with`--db`/`--vault`/`--verify`) wires the SQLite event store + the Vault-keyed audit into a runnable entrypoint, proven across processes by a black-box e2e — so F-C1 (durability) and F-C2 (keyed audit) are now closed AT RUNTIME, not just in the library.` Also tighten the A1 and A2 marks if they say "library only" to reference A1b as the cutover.
+- [ ] **Step 1: Roadmap.** In `docs/reviews/2026-06-09-production-readiness-review.md` §3, find/add the **A1b** follow-up item and mark it done: `**A1b — Runtime durable cutover ✅ DONE (PR pending).** A `packages/state` composition root (`buildDurableAgentRun`+ the`openjarvis-run`CLI with`--db`/`--vault`/`--verify`) wires the SQLite event store + the Vault-keyed audit into a runnable entrypoint, proven across processes by a black-box e2e — so F-C1 (durability) and F-C2 (keyed audit) are now closed AT RUNTIME, not just in the library.` Also tighten the A1 and A2 marks if they say "library only" to reference A1b as the cutover.
 
 - [ ] **Step 2: Full repo gate.**
       `npm run build && npm run lint && npm run format:check && npm run coverage && npm run test:functional` — all green; aggregate ≥99%; `build-durable-agent-run.ts` 100% (`bin/**` excluded). Paste the coverage tail.
 
-- [ ] **Step 3: Docker gate.** `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test` → `✅ ALL GATES PASSED`.
+- [ ] **Step 3: Docker gate.** `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test` → `✅ ALL GATES PASSED`.
 
 - [ ] **Step 4: Commit.**
 

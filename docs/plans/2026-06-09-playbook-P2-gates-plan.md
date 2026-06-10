@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the Playbook phase gates — the Eleven-style accept-or-correct policies that produce a `GateVerdict` for a phase: `SoftGate` (always pauses for an operator) and `ValidateGate` (runs an injected predicate; green→passed, red/throw→failed, never throws), plus the real repo-gate predicate that spawns the gate command.
+**Goal:** Build the Playbook phase gates — the GroundingEngine-style accept-or-correct policies that produce a `GateVerdict` for a phase: `SoftGate` (always pauses for an operator) and `ValidateGate` (runs an injected predicate; green→passed, red/throw→failed, never throws), plus the real repo-gate predicate that spawns the gate command.
 
 **Architecture:** Two new files in `packages/core/src/playbook/`. `gates.ts` holds the pure gate layer: the `GateContext` + `PhaseGate` interface, `SoftGate`, and `ValidateGate` over an injected `ValidatePredicate` (unit-tested with fakes — no real IO). `gate-command.ts` holds the one IO piece: `runCommand` (a promisified `node:child_process` spawn → `{ ok, detail }`) and `gateCommandPredicate(commands)` that runs a list of commands in sequence, failing on the first non-zero exit — the production predicate the P3 runner wires into a `ValidateGate`. Gates produce the `GateVerdict` already defined in `machine.ts` (P1).
 
@@ -17,7 +17,7 @@
 - Tests live at `packages/core/test/playbook/<name>.test.ts` and import source as `../../src/playbook/<name>.js`.
 - Every cross-file import uses a `.js` specifier even though the files are `.ts`.
 - The coverage gate is **≥99% across all metrics**; each new file must be 100%. Earn it with real behavior tests, never by gaming.
-- `ValidateGate.evaluate` must **never throw** — a throwing predicate becomes a `failed` verdict (mirrors the registry/Eleven never-throw discipline).
+- `ValidateGate.evaluate` must **never throw** — a throwing predicate becomes a `failed` verdict (mirrors the registry/GroundingEngine never-throw discipline).
 - For deterministic, cross-platform child-process tests, spawn `process.execPath` (the running Node/Bun binary, always present) with `["-e", "<tiny script>"]` — never assume `node`/`npm` are on `PATH` in a unit test.
 
 ---
@@ -66,7 +66,7 @@ export interface GateContext {
   phase: Phase;
 }
 
-/** A phase gate — the Eleven-style accept-or-correct policy for one phase. */
+/** A phase gate — the GroundingEngine-style accept-or-correct policy for one phase. */
 export interface PhaseGate {
   evaluate(ctx: GateContext): Promise<GateVerdict>;
 }
@@ -416,7 +416,7 @@ Expected: all green; aggregate coverage ≥99% across all metrics, with every `p
 
 - [ ] **Step 6: Run the Docker gate (the required PR check)**
 
-Run: `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test`
+Run: `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test`
 Expected: ends with `✅ ALL GATES PASSED`. If docker is unavailable, report that explicitly — do not silently skip.
 
 - [ ] **Step 7: Commit**
@@ -434,11 +434,11 @@ git commit -m "feat(playbook): export gates; P2 complete"
 - **Spec §3.4 — `SoftGate` returns `needs-operator`:** Task 1. ✓
 - **Spec §3.4 — `ValidateGate` over an injected predicate; default runs the repo gate; a throwing predicate is caught → `failed`:** `ValidateGate` (Task 2) + `gateCommandPredicate`/`DEFAULT_GATE_COMMANDS` (Task 3). ✓
 - **Spec §6 — testing (fake predicate for pass/fail/throw; a real command predicate; behavior-level; ≥99%):** Task 2 fakes + Task 3 spawns `process.execPath`; full gate + Docker in Task 4. ✓
-- **Deferred to P3 (not this plan):** wiring a gate per `PhaseSpec.gate` kind; the `PlaybookRun` runner; the operator-override + `playbook:override` capability + Murray audit; mapping `Transition.outcome` → emitted events. The `GateContext` stays minimal here and is enriched by the runner.
+- **Deferred to P3 (not this plan):** wiring a gate per `PhaseSpec.gate` kind; the `PlaybookRun` runner; the operator-override + `playbook:override` capability + Audit audit; mapping `Transition.outcome` → emitted events. The `GateContext` stays minimal here and is enriched by the runner.
 - **Type consistency:** `GateContext`, `PhaseGate`, `SoftGate`, `GateCheck`, `ValidatePredicate`, `ValidateGate`, `Command`, `runCommand`, `gateCommandPredicate`, `DEFAULT_GATE_COMMANDS` — names used identically across Tasks 1–4 and the tests; `GateVerdict`/`Phase` reused from P1 unchanged. ✓
 
 ---
 
 ## Next plan (after P2 lands)
 
-- **P3** — `runner.ts`: the `PlaybookRun` single-writer driver that, per `PhaseSpec.gate`, evaluates the matching gate, maps each `step` outcome → emitted `PhaseEvent`s + Murray audit, enforces the new `playbook:override` `CapabilityName` (The Lab) with denied-override auditing, and drives the replan-budget/escalation flow. Full event-sequence + audit-chain tests.
+- **P3** — `runner.ts`: the `PlaybookRun` single-writer driver that, per `PhaseSpec.gate`, evaluates the matching gate, maps each `step` outcome → emitted `PhaseEvent`s + Audit audit, enforces the new `playbook:override` `CapabilityName` (the Lab) with denied-override auditing, and drives the replan-budget/escalation flow. Full event-sequence + audit-chain tests.

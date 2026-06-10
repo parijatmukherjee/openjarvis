@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Wire `PlaybookRun` into a real agent run via a thin `AgentRun` orchestrator, supply operators (scripted + human), a production factory + `openhawkins run` CLI, and a robust end-to-end automation — an in-process full-stack robustness matrix plus a black-box CLI functional test — that proves the whole system (Agent + Playbook + gates + events + audit + operator) works and degrades safely.
+**Goal:** Wire `PlaybookRun` into a real agent run via a thin `AgentRun` orchestrator, supply operators (scripted + human), a production factory + `openjarvis run` CLI, and a robust end-to-end automation — an in-process full-stack robustness matrix plus a black-box CLI functional test — that proves the whole system (Agent + Playbook + gates + events + audit + operator) works and degrades safely.
 
-**Architecture:** `AgentRun` (`packages/core/src/playbook/agent-run.ts`) sequences a run over an injected `PlaybookRun`: run a caller-supplied `PhaseHandler`, `advance()` the gate, and on a soft-phase pause consult an `Operator` to override (audited) or halt. Operators live in `playbook/operators.ts`. A production factory (`playbook/build-agent-run.ts`) wires the real gates + `Agent`-backed handlers + a **shared `AuditLog`** so one hash-chained trace covers agent turns _and_ phase transitions. The `openhawkins run` CLI (`bin/run.ts`) is the user entry. Robustness is proven by an in-process suite and a black-box functional test.
+**Architecture:** `AgentRun` (`packages/core/src/playbook/agent-run.ts`) sequences a run over an injected `PlaybookRun`: run a caller-supplied `PhaseHandler`, `advance()` the gate, and on a soft-phase pause consult an `Operator` to override (audited) or halt. Operators live in `playbook/operators.ts`. A production factory (`playbook/build-agent-run.ts`) wires the real gates + `Agent`-backed handlers + a **shared `AuditLog`** so one hash-chained trace covers agent turns _and_ phase transitions. The `openjarvis run` CLI (`bin/run.ts`) is the user entry. Robustness is proven by an in-process suite and a black-box functional test.
 
 **Tech Stack:** TypeScript (strict: `exactOptionalPropertyTypes`, `verbatimModuleSyntax`), ESM with `.js` import specifiers, Vitest, Node 24 + Bun 1.3. Prettier printWidth 100, double quotes.
 
@@ -170,7 +170,7 @@ export interface AgentRunDeps {
  * Sequences a real agent run through a `PlaybookRun`: run a phase's work, let the runtime
  * gate the transition, and on a soft-phase pause consult the operator to override (audited)
  * or halt. Adds no events of its own — the `PlaybookRun` it drives owns the event log and
- * Murray audit, so a full run is replayable and tamper-evident.
+ * Audit audit, so a full run is replayable and tamper-evident.
  */
 export class AgentRun {
   constructor(private readonly deps: AgentRunDeps) {}
@@ -788,7 +788,7 @@ git commit -m "test(playbook): in-process system end-to-end robustness suite"
 
 ---
 
-### Task 7: The `openhawkins run` CLI
+### Task 7: The `openjarvis run` CLI
 
 **Files:**
 
@@ -808,7 +808,7 @@ import { ScriptedOperator } from "../playbook/operators.js";
 import { ValidateGate } from "../playbook/gates.js";
 
 /**
- * `openhawkins run` — drive a real agent run as a Playbook-governed process. The scripted
+ * `openjarvis run` — drive a real agent run as a Playbook-governed process. The scripted
  * model + a trivial Validate make a deterministic, offline demo (the REAL orchestrator,
  * gates plumbing, events and audit still run). `--approve-all` runs unattended (a
  * ScriptedOperator that approves every soft phase — still audited); otherwise a human is
@@ -894,7 +894,7 @@ Expected: a JSON line like `{"result":{"kind":"completed"},"auditEntries":<n>,"a
 
 ```bash
 git add packages/core/src/bin/run.ts
-git commit -m "feat(playbook): openhawkins run CLI — drive a Playbook-governed agent run"
+git commit -m "feat(playbook): openjarvis run CLI — drive a Playbook-governed agent run"
 ```
 
 ---
@@ -920,7 +920,7 @@ import { promisify } from "node:util";
 const run = promisify(execFile);
 const DIST_CLI = "packages/core/dist/bin/run.js";
 
-describe("openhawkins run — functional (black-box)", () => {
+describe("openjarvis run — functional (black-box)", () => {
   it("drives an unattended Playbook-governed run to completion with a verified audit", async () => {
     const { stdout } = await run("node", [DIST_CLI, "--approve-all", "--json"]);
     const line = stdout.trim().split("\n").filter(Boolean).pop() ?? "";
@@ -949,7 +949,7 @@ Expected: the new `run.e2e.test.ts` PASSES alongside the existing functional tes
 
 ```bash
 git add packages/core/test-functional/run.e2e.test.ts
-git commit -m "test(playbook): black-box functional e2e for the openhawkins run CLI"
+git commit -m "test(playbook): black-box functional e2e for the openjarvis run CLI"
 ```
 
 ---
@@ -963,7 +963,7 @@ Expected: all green; aggregate ≥99%; every new `packages/core/src/playbook/*.t
 
 - [ ] **Step 2: Run the Docker gate (the required PR check)**
 
-Run: `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test`
+Run: `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test`
 Expected: ends with `✅ ALL GATES PASSED`. If docker is unavailable, report explicitly.
 
 - [ ] **Step 3: Commit (if `npm run format` changed anything)**

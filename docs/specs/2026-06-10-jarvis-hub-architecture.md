@@ -11,7 +11,7 @@
 
 ## 1. One-paragraph thesis
 
-`@openhawkins/jarvis` is the **hub orchestrator** — a long-running daemon that listens for user input (voice or text), parses intent, delegates to a pool of specialist agents, synthesizes results back into a coherent response (spoken + visual), and presents it on the attached monitor. Jarvis is the **only interface** the user ever talks to; every other entity in the system is a delegated agent. The hub itself is stateless per session — all durable state lives in `@openhawkins/state` (events, audit, skills registry) and `@openhawkins/memory` (VECNA context). The hub is designed to be pluggable: voice engines, display managers, and agent implementations are swappable without changing core orchestration logic.
+`@openjarvis/jarvis` is the **hub orchestrator** — a long-running daemon that listens for user input (voice or text), parses intent, delegates to a pool of specialist agents, synthesizes results back into a coherent response (spoken + visual), and presents it on the attached monitor. Jarvis is the **only interface** the user ever talks to; every other entity in the system is a delegated agent. The hub itself is stateless per session — all durable state lives in `@openjarvis/state` (events, audit, skills registry) and `@openjarvis/memory` (JarvisMemoryStore context). The hub is designed to be pluggable: voice engines, display managers, and agent implementations are swappable without changing core orchestration logic.
 
 ---
 
@@ -24,7 +24,7 @@
 3. **Dynamic agent pool.** Agents are loaded on demand from the skills registry, not hardcoded.
 4. **Pluggable pipelines.** STT, TTS, wake-word, display, and even the intent parser are interfaces with multiple implementations.
 5. **Proactive + reactive.** Jarvis can respond to user commands (reactive) and can initiate based on schedules/events (proactive).
-6. **Context-aware.** Every interaction carries VECNA memory (user preferences, past conversations, learned behaviors).
+6. **Context-aware.** Every interaction carries JarvisMemoryStore memory (user preferences, past conversations, learned behaviors).
 7. **Observable.** Every delegation, every agent call, every display command is audit-logged.
 8. **Secure.** Agent capabilities are default-deny; skills must declare permissions; the hub can revoke any agent at any time.
 
@@ -91,9 +91,9 @@
 │          │                              │
 │  ┌───────▼──────────────────────────┐   │
 │  │         STATE & MEMORY            │   │
-│  │  @openhawkins/state (SQLite)      │   │
-│  │  @openhawkins/memory (VECNA)      │   │
-│  │  @openhawkins/security (Vault)    │   │
+│  │  @openjarvis/state (SQLite)      │   │
+│  │  @openjarvis/memory (JarvisMemoryStore)      │   │
+│  │  @openjarvis/security (Vault)    │   │
 │  └───────────────────────────────────┘   │
 │                                          │
 │  ┌──────────────────────────────────┐   │
@@ -169,7 +169,7 @@ export interface AgentHandle {
 }
 ```
 
-**Agent discovery:** The pool reads the skills registry (`@openhawkins/skills`) and loads agents dynamically. Each skill declares which agent(s) it provides via its `SKILL.md` manifest.
+**Agent discovery:** The pool reads the skills registry (`@openjarvis/skills`) and loads agents dynamically. Each skill declares which agent(s) it provides via its `SKILL.md` manifest.
 
 **Process model:** By default, each agent runs in a **separate Node.js worker thread** (for CPU isolation) or **child process** (for memory isolation). High-risk agents (`shell`, `network`) run in child processes with capability revocation. Low-risk agents (`memory`, `calculator`) run in-process.
 
@@ -474,14 +474,14 @@ CREATE TABLE agents (
 
 ## 8. Backward Compatibility
 
-The existing `openhawkins-run` CLI and `bin/ask.ts` remain unchanged. The Jarvis hub is a **new top-level entrypoint**: `packages/jarvis/src/bin/jarvis.ts`. It reuses all existing packages (`core`, `state`, `memory`, `security`) as libraries.
+The existing `openjarvis-run` CLI and `bin/ask.ts` remain unchanged. The Jarvis hub is a **new top-level entrypoint**: `packages/jarvis/src/bin/jarvis.ts`. It reuses all existing packages (`core`, `state`, `memory`, `security`) as libraries.
 
 When upgrading from single-agent to Jarvis hub:
 
 1. The existing SQLite database is reused (events, audit, memory)
 2. The skills registry table is added via migration
 3. The agents table is seeded with built-in agents (research, system, code, etc.)
-4. The user runs `openhawkins jarvis` to start the hub
+4. The user runs `openjarvis jarvis` to start the hub
 
 ---
 
@@ -494,7 +494,7 @@ When upgrading from single-agent to Jarvis hub:
 - [ ] Agents run in isolation (worker thread or child process)
 - [ ] Capability revocation works mid-session
 - [ ] Scheduler fires a job and Jarvis initiates a proactive interaction
-- [ ] VECNA memory is injected into every Jarvis turn
+- [ ] JarvisMemoryStore memory is injected into every Jarvis turn
 - [ ] All code passes: build · lint · format:check · coverage ≥99% · unit · functional · Docker
 
 ---

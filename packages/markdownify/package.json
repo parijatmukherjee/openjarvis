@@ -1,5 +1,5 @@
 {
-  "name": "@openhawkins/markdownify",
+  "name": "@openjarvis/markdownify",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",

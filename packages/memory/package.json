@@ -1,5 +1,5 @@
 {
-  "name": "@openhawkins/memory",
+  "name": "@openjarvis/memory",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,8 +14,8 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@openhawkins/core": "*",
-    "@openhawkins/state": "*"
+    "@openjarvis/core": "*",
+    "@openjarvis/state": "*"
   },
   "peerDependencies": {
     "@huggingface/transformers": ">=3.0.0"

@@ -2,18 +2,18 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
-import { VecnaStore } from "../src/store.js";
+import { JarvisMemoryStore } from "../src/store.js";
 import { FakeEmbedder } from "../src/embedder.js";
 
 const DAY = 86_400_000;
 
 /** A store with a deterministic id factory so assertions are stable. */
-function store(): VecnaStore {
+function store(): JarvisMemoryStore {
   let n = 0;
-  return VecnaStore.open(":memory:", { id: () => `f-${++n}` });
+  return JarvisMemoryStore.open(":memory:", { id: () => `f-${++n}` });
 }
 
-describe("VecnaStore.remember", () => {
+describe("JarvisMemoryStore.remember", () => {
   it("stores a fragment with defaults and returns it", async () => {
     const s = store();
     const f = await s.remember({ text: "disk is 1136350134272 bytes free" }, 1000);
@@ -61,7 +61,7 @@ describe("VecnaStore.remember", () => {
   });
 });
 
-describe("VecnaStore.recall", () => {
+describe("JarvisMemoryStore.recall", () => {
   it("returns only text-relevant fragments (stopword-only matches are excluded)", async () => {
     const s = store();
     await s.remember({ text: "1136350134272 bytes are free on this machine" }, 1000);
@@ -114,7 +114,7 @@ describe("VecnaStore.recall", () => {
   });
 });
 
-describe("VecnaStore.reinforce", () => {
+describe("JarvisMemoryStore.reinforce", () => {
   it("raises importance (capped at 1), bumps uses, and refreshes last_used_at", async () => {
     const s = store();
     await s.remember({ text: "reinforce me free disk", importance: 0.9 }, 0);
@@ -143,9 +143,9 @@ describe("VecnaStore.reinforce", () => {
   });
 });
 
-describe("VecnaStore defaults", () => {
+describe("JarvisMemoryStore defaults", () => {
   it("generates a unique id when no id factory is injected", async () => {
-    const s = VecnaStore.open(":memory:");
+    const s = JarvisMemoryStore.open(":memory:");
     const f = await s.remember({ text: "auto id free disk" });
     expect(typeof f.id).toBe("string");
     expect(f.id.length).toBeGreaterThan(0);
@@ -156,10 +156,13 @@ describe("VecnaStore defaults", () => {
   });
 });
 
-describe("VecnaStore embedding storage (Task 3)", () => {
+describe("JarvisMemoryStore embedding storage (Task 3)", () => {
   it("remember with an embedder resolves and returns the fragment", async () => {
     let n = 0;
-    const s = VecnaStore.open(":memory:", { id: () => `f-${++n}`, embedder: new FakeEmbedder(16) });
+    const s = JarvisMemoryStore.open(":memory:", {
+      id: () => `f-${++n}`,
+      embedder: new FakeEmbedder(16),
+    });
     const f = await s.remember({ text: "free disk space" }, 1);
     expect(f.id).toBe("f-1");
     expect(f.text).toBe("free disk space");
@@ -168,7 +171,7 @@ describe("VecnaStore embedding storage (Task 3)", () => {
 
   it("remember without an embedder still works", async () => {
     let n = 0;
-    const s = VecnaStore.open(":memory:", { id: () => `f-${++n}` });
+    const s = JarvisMemoryStore.open(":memory:", { id: () => `f-${++n}` });
     const f = await s.remember({ text: "no embedding here" }, 1);
     expect(f.id).toBe("f-1");
     const hits = await s.recall({ text: "no embedding", now: 2 });
@@ -177,12 +180,15 @@ describe("VecnaStore embedding storage (Task 3)", () => {
   });
 });
 
-function vectorStore(): VecnaStore {
+function vectorStore(): JarvisMemoryStore {
   let n = 0;
-  return VecnaStore.open(":memory:", { id: () => `f-${++n}`, embedder: new FakeEmbedder(64) });
+  return JarvisMemoryStore.open(":memory:", {
+    id: () => `f-${++n}`,
+    embedder: new FakeEmbedder(64),
+  });
 }
 
-describe("VecnaStore vector recall", () => {
+describe("JarvisMemoryStore vector recall", () => {
   it("ranks the semantically-closest fragment first (cosine over embeddings)", async () => {
     const s = vectorStore();
     await s.remember({ text: "the machine has free disk space available" }, 1000);
@@ -234,7 +240,7 @@ describe("VecnaStore vector recall", () => {
       },
     };
     let n = 0;
-    const s = VecnaStore.open(":memory:", { id: () => `f-${++n}`, embedder: ortho });
+    const s = JarvisMemoryStore.open(":memory:", { id: () => `f-${++n}`, embedder: ortho });
     await s.remember({ text: "free disk space" }, 1); // -> [1, 0]
     const hits = await s.recall({ text: "the weather today", now: 2 }); // -> [0, 1], cosine 0
     expect(hits).toEqual([]);
@@ -255,7 +261,7 @@ describe("VecnaStore vector recall", () => {
       },
     };
     let n = 0;
-    const s = VecnaStore.open(":memory:", { id: () => `f-${++n}`, embedder: viewEmbedder });
+    const s = JarvisMemoryStore.open(":memory:", { id: () => `f-${++n}`, embedder: viewEmbedder });
     await s.remember({ text: "free disk space" }, 1);
     const hits = await s.recall({ text: "free disk space", now: 2 });
     expect(hits).toHaveLength(1);
@@ -265,13 +271,13 @@ describe("VecnaStore vector recall", () => {
 
   it("skips embeddings of a different dimension when the store is reopened with another embedder", async () => {
     const path = join(mkdtempSync(join(tmpdir(), "oh-vec-dim-")), "m.sqlite");
-    const a = VecnaStore.open(path, { embedder: new FakeEmbedder(4) });
+    const a = JarvisMemoryStore.open(path, { embedder: new FakeEmbedder(4) });
     await a.remember({ text: "free disk space" }, 1); // stores a 4-float (16-byte) embedding
     a.close();
 
     // Reopen with an 8-dim embedder: the stored 16-byte row != 8*4 bytes -> skipped,
     // and recall returns [] gracefully instead of throwing a cosine length mismatch.
-    const b = VecnaStore.open(path, { embedder: new FakeEmbedder(8) });
+    const b = JarvisMemoryStore.open(path, { embedder: new FakeEmbedder(8) });
     expect(await b.recall({ text: "free disk space", now: 2 })).toEqual([]);
     b.close();
   });

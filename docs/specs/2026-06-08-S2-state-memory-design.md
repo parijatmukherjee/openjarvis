@@ -1,14 +1,14 @@
-# S2 — Durable State (VINES) + Memory (VECNA) — Design
+# S2 — Durable State (JarvisStateStore) + Memory (JarvisMemoryStore) — Design
 
 **Date:** 2026-06-08
 **Status:** Approved for planning
-**Parent:** [`2026-06-05-openhawkins-design.md`](./2026-06-05-openhawkins-design.md) (umbrella)
+**Parent:** [`2026-06-05-openjarvis-design.md`](./2026-06-05-openjarvis-design.md) (umbrella)
 **Builds on:** [`2026-06-05-S1-core-runtime-grounding-design.md`](./2026-06-05-S1-core-runtime-grounding-design.md)
 **Subproject:** S2 of the build order (umbrella §9)
 
-> S2 makes OpenHawkins **remember**. It gives the runtime durable, embedded
-> persistence (no external DB) for orchestration state — **VINES** — and a
-> decay-aware, auto-injected shared memory — **VECNA** — and wires both into the S1
+> S2 makes OpenJarvis **remember**. It gives the runtime durable, embedded
+> persistence (no external DB) for orchestration state — **JarvisStateStore** — and a
+> decay-aware, auto-injected shared memory — **JarvisMemoryStore** — and wires both into the S1
 > agent so a grounded answer learned in one run is recalled in the next. Both are
 > **runtime-owned**: state transitions are written by the runtime as it drives a
 > turn, and memory is recalled and injected automatically — never something the
@@ -22,17 +22,17 @@
 
 1. **`SqlDriver` port** + runtime selection (`bun:sqlite` in the shipped binary,
    `node:sqlite` in dev/test) + a forward-only **migration runner**, in
-   `@openhawkins/state`.
-2. **`SqliteEventStore` — VINES:** a durable implementation of the S1 `EventStore`
-   interface (`@openhawkins/core`), so S1 `Session`/replay become durable with
+   `@openjarvis/state`.
+2. **`SqliteEventStore` — JarvisStateStore:** a durable implementation of the S1 `EventStore`
+   interface (`@openjarvis/core`), so S1 `Session`/replay become durable with
    **zero caller changes**.
-3. **VECNA store** (`@openhawkins/memory`): decay-aware memory `fragments` —
+3. **JarvisMemoryStore store** (`@openjarvis/memory`): decay-aware memory `fragments` —
    `remember` / `recall` / `reinforce`, blended ranking, taint-aware down-ranking.
 4. **Embeddings:** an `Embedder` port (built-in `FakeEmbedder`; optional real
    `TransformersEmbedder`) + **pure-JS cosine** vector recall over Float32 BLOBs
    (works on Node, Bun, and the binary), with **FTS5 + decay lexical fallback**
    whenever no embedder is configured (see §9, decision §12.2).
-5. **Auto-injection + write-back:** a `MemoryPort` interface in `@openhawkins/core`
+5. **Auto-injection + write-back:** a `MemoryPort` interface in `@openjarvis/core`
    and its use inside `Agent.ask` (recall → inject before the turn; write-back →
    `reinforce` after acceptance). Proven end-to-end by a "remembers across process
    restarts" slice.
@@ -41,9 +41,9 @@
 
 ### 1.2 Out of scope (deferred)
 
-- The Nexus orchestrator, the Pulse, and real Tendrils (**S3**). S2 ships the
-  `tendril` tag and the `reinforce` feedback API; **per-Tendril specialization**
-  (auto-injecting a specialist's own lessons) activates in S3 when Tendrils exist.
+- The Nexus orchestrator, the Pulse, and real Agents (**S3**). S2 ships the
+  `agent` tag and the `reinforce` feedback API; **per-Agent specialization**
+  (auto-injecting a specialist's own lessons) activates in S3 when Agents exist.
 - The Board / tickets (**S3/S5**).
 - Postgres/MariaDB drivers for multi-host (**later**) — the `SqlDriver` port makes
   them additive; S2 ships only the embedded SQLite drivers.
@@ -59,7 +59,7 @@
   embedded SQLite is a runtime built-in on both Node and Bun.
 - A recorded S1 session **survives a process restart** and replays to identical
   state from disk, with no change to S1 callers.
-- A grounded fact written to VECNA in one turn is **automatically recalled and
+- A grounded fact written to JarvisMemoryStore in one turn is **automatically recalled and
   injected** into a later turn — the model never calls a memory tool.
 - Recall **degrades gracefully**: pure-JS cosine vector recall when an embedder is
   configured; lexical (FTS5) + decay otherwise. The system is always functional.
@@ -80,9 +80,9 @@
 Extends the S1 `probe-agent` slice. Using a durable on-disk database:
 
 ```
-GIVEN  probe-agent backed by SqliteEventStore (VINES) + VecnaStore (VECNA)
+GIVEN  probe-agent backed by SqliteEventStore (JarvisStateStore) + VecnaStore (JarvisMemoryStore)
 WHEN   asked "How much disk space is free on this machine?" (run #1)
-THEN   the grounded, cited answer is written back to VECNA as a fragment;
+THEN   the grounded, cited answer is written back to JarvisMemoryStore as a fragment;
 AND    the session is durably recorded (events on disk).
 
 WHEN   the process is restarted (a fresh DB handle on the same file) and the same
@@ -108,7 +108,7 @@ gains the `MemoryPort` interface that `memory` implements, so the agent never
 imports `memory`.
 
 ```
-packages/state/                       # VINES — persistence foundation
+packages/state/                       # JarvisStateStore — persistence foundation
   src/
     driver/
       driver.ts        # SqlDriver / SqlStatement ports + openDatabase()
@@ -119,7 +119,7 @@ packages/state/                       # VINES — persistence foundation
     index.ts
   test/ ...
 
-packages/memory/                      # VECNA — decay-aware memory
+packages/memory/                      # JarvisMemoryStore — decay-aware memory
   src/
     fragment.ts        # Fragment type + Zod schema
     embedder.ts        # Embedder port + FakeEmbedder + cosineSimilarity
@@ -203,12 +203,12 @@ export function migrate(db: SqlDriver, migrations: Migration[]): void;
 `migrate` ensures a `_migrations(version INTEGER PRIMARY KEY, name TEXT, at INTEGER)`
 table, then applies every migration whose `version` exceeds the current max — each
 inside `db.transaction`, recording the row on success. Re-running is a no-op
-(idempotent). Schema lives in `state/src/schema.ts` so both VINES and VECNA tables
+(idempotent). Schema lives in `state/src/schema.ts` so both JarvisStateStore and JarvisMemoryStore tables
 are created by versioned migrations.
 
 ---
 
-## 7. VINES — `SqliteEventStore` (S2.1)
+## 7. JarvisStateStore — `SqliteEventStore` (S2.1)
 
 Implements the S1 `EventStore` interface verbatim:
 
@@ -241,7 +241,7 @@ file, `rebuildState` → deep-equal the live state (durable replay across restar
 
 ---
 
-## 8. VECNA — memory store (S2.2)
+## 8. JarvisMemoryStore — memory store (S2.2)
 
 ### 8.1 The fragment
 
@@ -249,7 +249,7 @@ file, `rebuildState` → deep-equal the live state (durable replay across restar
 interface Fragment {
   id: string;
   text: string; // the remembered content
-  tendril?: string; // owning specialist (set now; used by S3)
+  agent?: string; // owning specialist (set now; used by S3)
   tags: string[]; // topic tags for overlap scoring
   importance: number; // 0..1, mutated by reinforce()
   trust: Trust; // reuse core's provenance trust level
@@ -271,7 +271,7 @@ JS-cosine vector path (§9.2) — no separate vector table.
 interface VecnaStore {
   remember(input: {
     text: string;
-    tendril?: string;
+    agent?: string;
     tags?: string[];
     importance?: number; // default 0.5
     provenance?: Provenance; // default {trust:"tool", taint:false}
@@ -279,7 +279,7 @@ interface VecnaStore {
 
   recall(query: {
     text: string;
-    tendril?: string; // bias toward this specialist's fragments
+    agent?: string; // bias toward this specialist's fragments
     k?: number; // default 5
     now?: number; // injected clock for deterministic decay
   }): Promise<ScoredFragment[]>;
@@ -297,7 +297,7 @@ ageDays   = (now - lastUsedAt) / 86_400_000
 decay     = 0.5 ** (ageDays / HALF_LIFE_DAYS)         // default HALF_LIFE_DAYS = 7
 score     = wV*vecSim + wF*bm25Norm + wI*(importance*decay) + wT*tagOverlap
             - (taint ? TAINT_PENALTY : 0)
-            + (tendril matches query.tendril ? TENDRIL_BONUS : 0)
+            + (agent matches query.agent ? TENDRIL_BONUS : 0)
 ```
 
 Weights are fixed constants in S2 (`recall.ts`), documented and unit-tested in
@@ -363,13 +363,13 @@ embedder have `embedding = NULL` and are only reachable via the lexical path.
 
 ## 10. Auto-injection + write-back (S2.4)
 
-`@openhawkins/core` gains a dependency-free port:
+`@openjarvis/core` gains a dependency-free port:
 
 ```ts
 // core/src/memory/port.ts
 export interface MemoryPort {
-  recall(query: { text: string; tendril?: string; k?: number }): Promise<string[]>;
-  remember(fact: { text: string; tendril?: string; tags?: string[] }): Promise<void>;
+  recall(query: { text: string; agent?: string; k?: number }): Promise<string[]>;
+  remember(fact: { text: string; agent?: string; tags?: string[] }): Promise<void>;
 }
 ```
 
@@ -377,7 +377,7 @@ export interface MemoryPort {
 
 1. **Before** the turn: `const recalled = await memory.recall({ text: input })`;
    prepend recalled fragments to the system prompt under a clear
-   "Relevant remembered context:" header (still subject to Eleven — recalled text
+   "Relevant remembered context:" header (still subject to GroundingEngine — recalled text
    is a _hint_, never a substitute for a grounded tool call; tainted fragments are
    already down-ranked at recall).
 2. **After** acceptance: `await memory.remember({ text: <grounded answer> })` and
@@ -428,13 +428,13 @@ never imports `memory`. The slice (§3) proves recall-across-restart end-to-end.
    CI-tested. **Lexical FTS5 + decay remains the always-available fallback** when no
    embedder is configured. Trade-off accepted: brute-force O(n) similarity (fine at
    S2 store sizes; ANN is a later optimization).
-3. **Full S2 + wire into the S1 Agent.** Build VINES + VECNA and prove them
-   through `Agent.ask` end-to-end this round; per-Tendril specialization waits for
-   S3 (the `tendril` tag and `reinforce` API ship now).
+3. **Full S2 + wire into the S1 Agent.** Build JarvisStateStore + JarvisMemoryStore and prove them
+   through `Agent.ask` end-to-end this round; per-Agent specialization waits for
+   S3 (the `agent` tag and `reinforce` API ship now).
 4. **Decay at query time**, fixed weights, injected clock — no background job;
    deterministic and testable.
 5. **`MemoryPort` lives in core; `memory` implements it.** Keeps the dependency DAG
-   `core ← state ← memory` acyclic and the agent decoupled from VECNA.
+   `core ← state ← memory` acyclic and the agent decoupled from JarvisMemoryStore.
 
 ---
 
@@ -442,9 +442,9 @@ never imports `memory`. The slice (§3) proves recall-across-restart end-to-end.
 
 1. **S2.0** — `SqlDriver` port + runtime selection + migration runner; **Node 24**
    bump (engines/CI/Docker). Real-SQLite tests.
-2. **S2.1** — `SqliteEventStore` (VINES) implementing core's `EventStore`; durable
+2. **S2.1** — `SqliteEventStore` (JarvisStateStore) implementing core's `EventStore`; durable
    replay-across-reopen acceptance.
-3. **S2.2** — VECNA `fragments` schema + `remember`/`recall` (FTS5 + decay) +
+3. **S2.2** — JarvisMemoryStore `fragments` schema + `remember`/`recall` (FTS5 + decay) +
    `reinforce`; pure ranking unit tests.
 4. **S2.3** — `Embedder` port (built-in `FakeEmbedder`; optional `TransformersEmbedder`)
    - pure-JS cosine vector recall over Float32 BLOBs (migration v2) with FTS5 lexical

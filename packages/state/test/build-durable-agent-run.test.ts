@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ScriptedOperator, weakHostFactsModel, ValidateGate } from "@openhawkins/core";
+import { ScriptedOperator, weakHostFactsModel, ValidateGate } from "@openjarvis/core";
 import { buildDurableAgentRun, verifyDurable } from "../src/build-durable-agent-run.js";
 
 const dir = () => mkdtempSync(join(tmpdir(), "oh-a1b-"));
@@ -36,6 +36,36 @@ describe("buildDurableAgentRun + verifyDurable", () => {
     expect(v.auditVerified).toBe(true);
     expect(v.events).toBeGreaterThan(0);
     expect(v.auditEntries).toBeGreaterThan(6);
+  });
+
+  it("wires memory + document converter through the durable run", async () => {
+    const d = dir();
+    const dbPath = join(d, "run.db");
+    const vaultPath = join(d, "vault.json");
+    const passphrase = "test-pass";
+
+    let recalledQuery = "";
+    const memory = {
+      recall: async (query: string) => {
+        recalledQuery = query;
+        return ["Memory: disk is 1TB."];
+      },
+    };
+
+    const built = await buildDurableAgentRun({
+      dbPath,
+      vaultPath,
+      passphrase,
+      adapter: weakHostFactsModel(tmpdir()),
+      grounding: "cited",
+      prompts: { Execute: "How much disk space is free on this machine?" },
+      operator: approvals(),
+      validateGate: new ValidateGate(async () => ({ ok: true })),
+      memory,
+    });
+    expect(await built.run.run()).toEqual({ kind: "completed" });
+    expect(recalledQuery).toBe("How much disk space is free on this machine?");
+    built.close();
   });
 
   it("verifyDurable reports a clean (empty) db as verified with zero entries", async () => {

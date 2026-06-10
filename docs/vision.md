@@ -1,4 +1,4 @@
-# OpenHawkins Vision: Jarvis — Your Personal AI Hub
+# OpenJarvis Vision: Jarvis — Your Personal AI Hub
 
 **Date:** 2026-06-10  
 **Status:** Canonical — all design, code, and implementation must align with this document.  
@@ -8,7 +8,7 @@
 
 ## 1. Core Thesis
 
-**OpenHawkins is Jarvis — a physical AI hub** that lives on a dedicated mini PC in your home, always listening, always ready. You speak to it naturally; it responds by voice, opens the right apps on your monitors, and coordinates a team of specialized AI agents to get things done.
+**OpenJarvis is Jarvis — a physical AI hub** that lives on a dedicated mini PC in your home, always listening, always ready. You speak to it naturally; it responds by voice, opens the right apps on your monitors, and coordinates a team of specialized AI agents to get things done.
 
 **Jarvis is the leader. You only talk to Jarvis.** Jarvis delegates to agents, manages context, and presents results. It runs locally on your hardware — your data never leaves your network.
 
@@ -18,13 +18,13 @@
 
 ### Pillar 1: Always-On Physical Hub
 
-| Aspect               | Detail                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------ |
-| **Hardware**         | Dedicated mini PC (e.g., Intel NUC, Raspberry Pi 5, Apple Mac Mini) running 24/7                 |
-| **Wake word**        | Voice-activated (e.g., "Jarvis", "Hey OpenHawkins") — runs a lightweight wake-word model locally |
-| **Always listening** | Microphone array processes audio locally; no cloud voice processing                              |
-| **Proactive**        | Can initiate conversations: "You have a meeting in 10 minutes"                                   |
-| **Visual**           | Connected to one or more monitors — opens apps, websites, dashboards on screen                   |
+| Aspect               | Detail                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| **Hardware**         | Dedicated mini PC (e.g., Intel NUC, Raspberry Pi 5, Apple Mac Mini) running 24/7                |
+| **Wake word**        | Voice-activated (e.g., "Jarvis", "Hey OpenJarvis") — runs a lightweight wake-word model locally |
+| **Always listening** | Microphone array processes audio locally; no cloud voice processing                             |
+| **Proactive**        | Can initiate conversations: "You have a meeting in 10 minutes"                                  |
+| **Visual**           | Connected to one or more monitors — opens apps, websites, dashboards on screen                  |
 
 ### Pillar 2: Voice-First, Visual-Second
 
@@ -48,15 +48,15 @@
 
 ### Pillar 4: Team of Specialist Agents
 
-| Agent              | Role                                          | Example Task                                         |
-| ------------------ | --------------------------------------------- | ---------------------------------------------------- |
-| **Research Agent** | Web search, data gathering, fact-checking     | "Find me the best mechanical keyboards under $150"   |
-| **System Agent**   | OS operations, file management, app launching | "Open my Q4 financial report in LibreOffice"         |
-| **Code Agent**     | Programming, debugging, code review           | "Write a Python script to rename these files"        |
-| **Vision Agent**   | Image analysis, OCR, visual understanding     | "What's in this photo?" (user shows photo to camera) |
-| **Comm Agent**     | Messaging, email, notifications               | "Send an email to the team about the delay"          |
-| **Memory Agent**   | VECNA memory, context retrieval, learning     | "Remember that I prefer dark mode in all apps"       |
-| **Creative Agent** | Writing, content generation, design           | "Draft a blog post about AI assistants"              |
+| Agent              | Role                                                  | Example Task                                         |
+| ------------------ | ----------------------------------------------------- | ---------------------------------------------------- |
+| **Research Agent** | Web search, data gathering, fact-checking             | "Find me the best mechanical keyboards under $150"   |
+| **System Agent**   | OS operations, file management, app launching         | "Open my Q4 financial report in LibreOffice"         |
+| **Code Agent**     | Programming, debugging, code review                   | "Write a Python script to rename these files"        |
+| **Vision Agent**   | Image analysis, OCR, visual understanding             | "What's in this photo?" (user shows photo to camera) |
+| **Comm Agent**     | Messaging, email, notifications                       | "Send an email to the team about the delay"          |
+| **Memory Agent**   | JarvisMemoryStore memory, context retrieval, learning | "Remember that I prefer dark mode in all apps"       |
+| **Creative Agent** | Writing, content generation, design                   | "Draft a blog post about AI assistants"              |
 
 ### Pillar 5: Unlimited Skills & Self-Improvement
 
@@ -106,7 +106,7 @@
 │  ┌────▼─────────────▼────┐             │
 │  │    STATE (SQLite)      │             │
 │  │  · sessions           │             │
-│  │  · memory (VECNA)     │             │
+│  │  · memory (JarvisMemoryStore)     │             │
 │  │  · audit chain         │             │
 │  │  · skills registry     │             │
 │  └───────────────────────┘             │
@@ -153,17 +153,17 @@ User: "Jarvis, provide me latest updates"
 
 ## 4. Package Alignment
 
-| Package                 | Responsibility                                                                          | Vision Alignment                    |
-| ----------------------- | --------------------------------------------------------------------------------------- | ----------------------------------- |
-| `@openhawkins/core`     | Agent loop, grounding, tools, capabilities                                              | Foundation for all agents           |
-| `@openhawkins/jarvis`   | **NEW** — Wake word, STT, TTS, orchestrator, monitor controller                         | The Jarvis hub itself               |
-| `@openhawkins/agents`   | **NEW** — Specialist agent definitions (research, system, code, vision, comm, creative) | Agent pool that Jarvis delegates to |
-| `@openhawkins/state`    | SQLite sessions, audit, skill registry                                                  | Persistent state for the hub        |
-| `@openhawkins/memory`   | VECNA — context, preferences, learned behaviors                                         | Jarvis remembers everything         |
-| `@openhawkins/skills`   | **NEW** — Skill marketplace, installer, sandbox, `SKILL.md` loader                      | Unlimited extensibility             |
-| `@openhawkins/sync`     | Device sync (future: phone companion app)                                               | Multi-device support                |
-| `@openhawkins/desktop`  | Electron dashboard (monitor display)                                                    | Visual interface                    |
-| `@openhawkins/security` | Vault, audit, capabilities, redaction, taint                                            | Zero trust, always                  |
+| Package                | Responsibility                                                                          | Vision Alignment                    |
+| ---------------------- | --------------------------------------------------------------------------------------- | ----------------------------------- |
+| `@openjarvis/core`     | Agent loop, grounding, tools, capabilities                                              | Foundation for all agents           |
+| `@openjarvis/jarvis`   | **NEW** — Wake word, STT, TTS, orchestrator, monitor controller                         | The Jarvis hub itself               |
+| `@openjarvis/agents`   | **NEW** — Specialist agent definitions (research, system, code, vision, comm, creative) | Agent pool that Jarvis delegates to |
+| `@openjarvis/state`    | SQLite sessions, audit, skill registry                                                  | Persistent state for the hub        |
+| `@openjarvis/memory`   | JarvisMemoryStore — context, preferences, learned behaviors                             | Jarvis remembers everything         |
+| `@openjarvis/skills`   | **NEW** — Skill marketplace, installer, sandbox, `SKILL.md` loader                      | Unlimited extensibility             |
+| `@openjarvis/sync`     | Device sync (future: phone companion app)                                               | Multi-device support                |
+| `@openjarvis/desktop`  | Electron dashboard (monitor display)                                                    | Visual interface                    |
+| `@openjarvis/security` | Vault, audit, capabilities, redaction, taint                                            | Zero trust, always                  |
 
 ---
 
@@ -192,7 +192,7 @@ User: "Jarvis, provide me latest updates"
 
 ## 7. Canonical References
 
-- **Main design spec:** [`docs/specs/2026-06-05-openhawkins-design.md`](specs/2026-06-05-openhawkins-design.md)
+- **Main design spec:** [`docs/specs/2026-06-05-openjarvis-design.md`](specs/2026-06-05-openjarvis-design.md)
 - **Track B spec:** [`docs/specs/2026-06-10-track-b-personal-assistant.md`](specs/2026-06-10-track-b-personal-assistant.md) (now "sync" feature, not core)
 - **Security model:** [`docs/security-model.md`](security-model.md)
 - **Production-readiness review:** [`docs/reviews/2026-06-09-production-readiness-review.md`](reviews/2026-06-09-production-readiness-review.md)

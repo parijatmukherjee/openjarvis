@@ -1,6 +1,6 @@
 import type { Phase } from "./manifest.js";
 
-/** The PhaseTransition domain events. Appended to the VINES event store (the session
+/** The PhaseTransition domain events. Appended to the JarvisStateStore event store (the session
  *  `DomainEvent` union includes these); the current run state is a fold over them. */
 export type PhaseEvent =
   | { type: "PhaseEntered"; sessionId: string; runId: string; phase: Phase; at: number }

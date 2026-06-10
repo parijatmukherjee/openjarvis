@@ -1,7 +1,7 @@
-import type { Migration } from "@openhawkins/state";
+import type { Migration } from "@openjarvis/state";
 
 /**
- * VECNA's schema, run via the shared migration runner against the memory database.
+ * JarvisMemoryStore's schema, run via the shared migration runner against the memory database.
  * `fragments` holds the rows; `fragments_fts` is an FTS5 external-content mirror of
  * `text` kept in sync by triggers so recall can MATCH + bm25 over it.
  */

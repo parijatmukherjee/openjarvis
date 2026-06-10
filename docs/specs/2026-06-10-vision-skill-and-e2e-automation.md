@@ -203,7 +203,7 @@ The existing `Intent` interface in `packages/jarvis/src/intent.ts` gains new `ac
 **`packages/agents/src/built-in/vision.ts`**
 
 ```typescript
-import type { AgentResult } from "@openhawkins/jarvis";
+import type { AgentResult } from "@openjarvis/jarvis";
 
 export interface VisionAgent {
   execute(intent: VisionIntent, context: JarvisContext): Promise<VisionAgentResult>;
@@ -429,24 +429,24 @@ export class MockUser {
 ### 6.1 Package Dependencies
 
 ```
-@openhawkins/jarvis
-  ├── @openhawkins/core       (AgentResult, AuditEntry, CapabilityName)
-  ├── @openhawkins/state      (sessions, skills registry)
-  ├── @openhawkins/memory     (VECNA context, preferences)
-  ├── @openhawkins/agents     (VisionAgent, ResearchAgent, etc.)
-  ├── @openhawkins/skills     (skill manifest, loader, sandbox)
-  └── @openhawkins/security   (Vault, audit, capabilities)
+@openjarvis/jarvis
+  ├── @openjarvis/core       (AgentResult, AuditEntry, CapabilityName)
+  ├── @openjarvis/state      (sessions, skills registry)
+  ├── @openjarvis/memory     (JarvisMemoryStore context, preferences)
+  ├── @openjarvis/agents     (VisionAgent, ResearchAgent, etc.)
+  ├── @openjarvis/skills     (skill manifest, loader, sandbox)
+  └── @openjarvis/security   (Vault, audit, capabilities)
 
-@openhawkins/agents
-  └── @openhawkins/jarvis     (Intent, JarvisContext, AgentResult)
+@openjarvis/agents
+  └── @openjarvis/jarvis     (Intent, JarvisContext, AgentResult)
 
-@openhawkins/skills
-  └── @openhawkins/jarvis     (VisualCommand, CapabilityName)
+@openjarvis/skills
+  └── @openjarvis/jarvis     (VisualCommand, CapabilityName)
 ```
 
 ### 6.2 State Schema Migration
 
-The `@openhawkins/state` package needs new tables for vision:
+The `@openjarvis/state` package needs new tables for vision:
 
 ```sql
 -- vision_events table

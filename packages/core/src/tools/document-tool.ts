@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ToolDefinition } from "./tool.js";
 
 /** A minimal document-converter interface injected by the composition root.
- *  `core` does not depend on `@openhawkins/markdownify`; the composition root
+ *  `core` does not depend on `@openjarvis/markdownify`; the composition root
  *  (e.g. `buildDurableAgentRun`) injects a concrete converter. */
 export interface DocumentConverter {
   convert(

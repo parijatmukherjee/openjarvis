@@ -1,10 +1,10 @@
-# OpenHawkins — agent working guide
+# OpenJarvis — agent working guide
 
 > **For any AI agent or human contributor.** This is the canonical, model-agnostic
 > working guide for this repository. (Claude Code auto-loads `CLAUDE.md`, which is a
 > thin pointer to this file; author here and keep that pointer in place.)
 >
-> Your own AI-agent platform: a self-owned runtime with the Hawkins multi-agent
+> Your own AI-agent platform: a self-owned runtime with the Jarvis multi-agent
 > orchestration pattern. TypeScript monorepo, embedded SQLite, single self-contained
 > binary. Thesis: **the model proposes, the runtime enforces** (grounding,
 > tool-calling, state, capabilities).
@@ -44,10 +44,10 @@ hard-enforced by CI.
 ## Layout
 
 - `packages/core` — runtime: agent loop, model adapters, typed tool registry,
-  **Eleven** grounding engine, capability sandbox (**The Lab**), **Murray** audit.
-- `packages/state` — **VINES**: durable SQLite (`SqlDriver` + migrations +
+  **GroundingEngine** grounding engine, capability sandbox (**the Lab**), **Audit** audit.
+- `packages/state` — **JarvisStateStore**: durable SQLite (`SqlDriver` + migrations +
   event store). One driver port over `node:sqlite` (dev/test) / `bun:sqlite` (binary).
-- `packages/memory` — **VECNA**: decay-aware memory (fragments, recall, pure-JS
+- `packages/memory` — **JarvisMemoryStore**: decay-aware memory (fragments, recall, pure-JS
   vector embeddings + FTS5 lexical fallback).
 - `packages/markdownify` — document → Markdown converters (CSV/HTML/JSON/XML/text) for
   token reduction, behind a never-throws `ConverterRegistry`.

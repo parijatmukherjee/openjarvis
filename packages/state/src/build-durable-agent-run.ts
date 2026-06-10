@@ -5,19 +5,23 @@ import {
   type BuildAgentRunOpts,
   type BuiltAgentRun,
   type DocumentConverter,
-} from "@openhawkins/core";
-import { markdownify } from "@openhawkins/markdownify";
+  type MemoryStore,
+  type Logger,
+} from "@openjarvis/core";
+import { markdownify } from "@openjarvis/markdownify";
 import { openDatabase, type SqlDriver } from "./driver/driver.js";
 import { SqliteEventStore } from "./event-store.js";
 import { SqliteAuditLog } from "./audit-store.js";
 
 /** Markdownify-backed document converter injected into the agent path. */
-const markdownifyConverter: DocumentConverter = {
-  convert: async (data, mime, filename) => {
-    const result = await markdownify({ data, mime, filename });
-    return { markdown: result.markdown, format: result.format };
-  },
-};
+function makeMarkdownifyConverter(logger?: Logger): DocumentConverter {
+  return {
+    convert: async (data, mime, filename) => {
+      const result = await markdownify({ data, mime, filename }, logger);
+      return { markdown: result.markdown, format: result.format };
+    },
+  };
+}
 
 /** Options for a durable agent run: the SQLite + Vault paths, plus the usual run opts
  *  (minus `store`/`audit`, which this wires). */
@@ -25,6 +29,8 @@ export interface DurableAgentRunOpts extends Omit<BuildAgentRunOpts, "store" | "
   dbPath: string;
   vaultPath: string;
   passphrase: string;
+  /** Optional memory store for context injection. When omitted, no memory is used. */
+  memory?: MemoryStore;
 }
 
 /** A built durable run; `close()` releases the SQLite handle. */
@@ -35,7 +41,7 @@ export interface BuiltDurableAgentRun extends BuiltAgentRun {
 export async function buildDurableAgentRun(
   opts: DurableAgentRunOpts,
 ): Promise<BuiltDurableAgentRun> {
-  const { dbPath, vaultPath, passphrase, ...runOpts } = opts;
+  const { dbPath, vaultPath, passphrase, memory, logger, ...runOpts } = opts;
   const db = openDatabase({ path: dbPath });
   const key = await resolveAuditKey(new FileVault({ path: vaultPath, passphrase }));
   const store = new SqliteEventStore(db);
@@ -44,7 +50,9 @@ export async function buildDurableAgentRun(
     ...runOpts,
     store,
     audit,
-    documentConverter: markdownifyConverter,
+    documentConverter: makeMarkdownifyConverter(logger),
+    ...(memory ? { memory } : {}),
+    ...(logger ? { logger } : {}),
   });
   return { ...built, close: () => closeDriver(db) };
 }

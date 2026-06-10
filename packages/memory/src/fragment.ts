@@ -1,9 +1,9 @@
-import type { Trust } from "@openhawkins/core";
+import type { Trust } from "@openjarvis/core";
 
 /**
- * A unit of decay-aware memory (VECNA). `importance` is mutated by `reinforce`;
+ * A unit of decay-aware memory (JarvisMemoryStore). `importance` is mutated by `reinforce`;
  * `taint` (untrusted origin, via the Gate) down-ranks the fragment at recall. The
- * `tendril` tag names the owning specialist — set now, used for per-Tendril recall
+ * `tendril` tag names the owning specialist agent — set now, used for per-agent recall
  * bias in S3.
  */
 export interface Fragment {

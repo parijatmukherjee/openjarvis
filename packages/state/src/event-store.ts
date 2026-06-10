@@ -1,11 +1,11 @@
-import type { EventStore, DomainEvent } from "@openhawkins/core";
-import { parseJsonOrThrow } from "@openhawkins/core";
+import type { EventStore, DomainEvent } from "@openjarvis/core";
+import { parseJsonOrThrow } from "@openjarvis/core";
 import { type SqlDriver, type SqlStatement, openDatabase } from "./driver/driver.js";
 import { migrate } from "./migrate.js";
 import { SCHEMA } from "./schema.js";
 
 /**
- * VINES — a durable implementation of core's `EventStore` over embedded SQLite.
+ * JarvisStateStore — a durable implementation of core's `EventStore` over embedded SQLite.
  * Because the S1 `Session` writes only through `append` and rebuilds state by
  * folding `read`, swapping `InMemoryEventStore -> SqliteEventStore` is the only
  * change a caller makes; replay and single-writer integrity are unchanged.

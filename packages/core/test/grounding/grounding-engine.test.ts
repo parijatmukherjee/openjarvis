@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { Eleven, groundingInstruction, citedAnswerJsonSchema } from "../../src/grounding/eleven.js";
+import {
+  GroundingEngine,
+  groundingInstruction,
+  citedAnswerJsonSchema,
+} from "../../src/grounding/grounding-engine.js";
 import type { AcceptContext, ToolCallRecord } from "../../src/loop/turn.js";
 import type { MetricsCollector } from "../../src/observability/metrics.js";
 
@@ -12,47 +16,47 @@ function okDiskFree(id = "oc-1", freeBytes = 12345): ToolCallRecord {
 
 const ungroundedFinal = (text: string): AcceptContext => ({ final: text, toolResults: [] });
 
-describe("Eleven — off mode (negative control)", () => {
+describe("GroundingEngine — off mode (negative control)", () => {
   it("accepts any final, grounded or not", () => {
-    const eleven = new Eleven({ mode: "off" });
-    expect(eleven.evaluate(ungroundedFinal("about 250 GB free")).accept).toBe(true);
+    const engine = new GroundingEngine({ mode: "off" });
+    expect(engine.evaluate(ungroundedFinal("about 250 GB free")).accept).toBe(true);
   });
 });
 
-describe("Eleven — preferred mode", () => {
+describe("GroundingEngine — preferred mode", () => {
   it("accepts an ungrounded answer but flags it", () => {
-    const eleven = new Eleven({ mode: "preferred", qualifyingTools: ["disk_free"] });
-    expect(eleven.evaluate(ungroundedFinal("a guess"))).toEqual({
+    const engine = new GroundingEngine({ mode: "preferred", qualifyingTools: ["disk_free"] });
+    expect(engine.evaluate(ungroundedFinal("a guess"))).toEqual({
       accept: true,
       flagged: "ungrounded",
     });
   });
 
   it("accepts without a flag when a qualifying tool was called", () => {
-    const eleven = new Eleven({ mode: "preferred", qualifyingTools: ["disk_free"] });
-    expect(eleven.evaluate({ final: "grounded", toolResults: [okDiskFree()] })).toEqual({
+    const engine = new GroundingEngine({ mode: "preferred", qualifyingTools: ["disk_free"] });
+    expect(engine.evaluate({ final: "grounded", toolResults: [okDiskFree()] })).toEqual({
       accept: true,
     });
   });
 });
 
-describe("Eleven — required mode", () => {
-  const eleven = new Eleven({ mode: "required", qualifyingTools: ["disk_free"] });
+describe("GroundingEngine — required mode", () => {
+  const engine = new GroundingEngine({ mode: "required", qualifyingTools: ["disk_free"] });
 
   it("REJECTS a final produced before any successful tool call", () => {
-    const decision = eleven.evaluate(ungroundedFinal("about 250 GB free"));
+    const decision = engine.evaluate(ungroundedFinal("about 250 GB free"));
     expect(decision.accept).toBe(false);
     expect(decision.correction).toMatch(/must successfully call disk_free/i);
   });
 
   it("accepts once a qualifying tool call has succeeded", () => {
-    expect(eleven.evaluate({ final: "12345 bytes", toolResults: [okDiskFree()] }).accept).toBe(
+    expect(engine.evaluate({ final: "12345 bytes", toolResults: [okDiskFree()] }).accept).toBe(
       true,
     );
   });
 
   it("accepts an honest unknown as success even without a tool call", () => {
-    const decision = eleven.evaluate(
+    const decision = engine.evaluate(
       ungroundedFinal(JSON.stringify({ unknown: true, reason: "no daemon" })),
     );
     expect(decision).toEqual({ accept: true, flagged: "unknown" });
@@ -63,23 +67,23 @@ describe("Eleven — required mode", () => {
       call: { id: "oc-1", tool: "disk_free", args: {} },
       result: { id: "oc-1", tool: "disk_free", ok: false, error: "capability denied" },
     };
-    expect(eleven.evaluate({ final: "guess", toolResults: [failed] }).accept).toBe(false);
+    expect(engine.evaluate({ final: "guess", toolResults: [failed] }).accept).toBe(false);
   });
 });
 
-describe("Eleven — cited mode (strongest)", () => {
-  const eleven = new Eleven({ mode: "cited", qualifyingTools: ["disk_free"] });
+describe("GroundingEngine — cited mode (strongest)", () => {
+  const engine = new GroundingEngine({ mode: "cited", qualifyingTools: ["disk_free"] });
 
   it("rejects before a tool call even if the JSON shape is valid", () => {
     const final = JSON.stringify({
       text: "x",
       claims: [{ statement: "x", citesToolResultId: "oc-1" }],
     });
-    expect(eleven.evaluate({ final, toolResults: [] }).accept).toBe(false);
+    expect(engine.evaluate({ final, toolResults: [] }).accept).toBe(false);
   });
 
   it("rejects a non-JSON answer after a tool call (must be structured)", () => {
-    const decision = eleven.evaluate({ final: "12345 bytes free", toolResults: [okDiskFree()] });
+    const decision = engine.evaluate({ final: "12345 bytes free", toolResults: [okDiskFree()] });
     expect(decision.accept).toBe(false);
     expect(decision.correction).toMatch(/Respond ONLY as JSON/);
   });
@@ -91,7 +95,7 @@ describe("Eleven — cited mode (strongest)", () => {
         { statement: "999 bytes free", citesToolResultId: "oc-1", value: 999, field: "freeBytes" },
       ],
     });
-    const decision = eleven.evaluate({ final, toolResults: [okDiskFree("oc-1", 12345)] });
+    const decision = engine.evaluate({ final, toolResults: [okDiskFree("oc-1", 12345)] });
     expect(decision.accept).toBe(false);
     expect(decision.correction).toMatch(/not supported by tool results/);
   });
@@ -108,20 +112,23 @@ describe("Eleven — cited mode (strongest)", () => {
         },
       ],
     });
-    const decision = eleven.evaluate({ final, toolResults: [okDiskFree("oc-1", 12345)] });
+    const decision = engine.evaluate({ final, toolResults: [okDiskFree("oc-1", 12345)] });
     expect(decision).toEqual({ accept: true, final: "12345 bytes are free." });
   });
 });
 
-describe("Eleven — metrics", () => {
+describe("GroundingEngine — metrics", () => {
   it("increments GroundingRejections when a final is rejected", () => {
     const counters: { name: string; value: number }[] = [];
     const metrics: MetricsCollector = {
       increment: (name, value = 1) => void counters.push({ name, value: value ?? 1 }),
       histogram() {},
     };
-    const eleven = new Eleven({ mode: "required", qualifyingTools: ["disk_free"] }, metrics);
-    const decision = eleven.evaluate(ungroundedFinal("about 250 GB free"));
+    const engine = new GroundingEngine(
+      { mode: "required", qualifyingTools: ["disk_free"] },
+      metrics,
+    );
+    const decision = engine.evaluate(ungroundedFinal("about 250 GB free"));
     expect(decision.accept).toBe(false);
     expect(counters.some((c) => c.name === "GroundingRejections" && c.value === 1)).toBe(true);
   });
@@ -132,14 +139,17 @@ describe("Eleven — metrics", () => {
       increment: (name, value = 1) => void counters.push({ name, value: value ?? 1 }),
       histogram() {},
     };
-    const eleven = new Eleven({ mode: "required", qualifyingTools: ["disk_free"] }, metrics);
-    const decision = eleven.evaluate({ final: "12345 bytes", toolResults: [okDiskFree()] });
+    const engine = new GroundingEngine(
+      { mode: "required", qualifyingTools: ["disk_free"] },
+      metrics,
+    );
+    const decision = engine.evaluate({ final: "12345 bytes", toolResults: [okDiskFree()] });
     expect(decision.accept).toBe(true);
     expect(counters.some((c) => c.name === "GroundingRejections")).toBe(false);
   });
 });
 
-describe("Eleven helpers", () => {
+describe("GroundingEngine helpers", () => {
   it("emits a JSON schema for cited answers (for native structured output)", () => {
     const schema = citedAnswerJsonSchema();
     expect(schema.type).toBe("object");

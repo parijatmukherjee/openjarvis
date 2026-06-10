@@ -28,7 +28,7 @@ export async function freeDiskBytes(path: string): Promise<number> {
 }
 
 type Env = Record<string, string | undefined>;
-const APP = "openhawkins";
+const APP = "openjarvis";
 
 export function configDir(os: OsName = detectPlatform().os, env: Env = process.env): string {
   const home = env.HOME ?? env.USERPROFILE ?? "";

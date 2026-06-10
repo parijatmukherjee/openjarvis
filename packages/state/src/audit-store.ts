@@ -6,7 +6,7 @@ import {
   hashEntry,
   redact,
   GENESIS,
-} from "@openhawkins/core";
+} from "@openjarvis/core";
 import { type SqlDriver, type SqlStatement, openDatabase } from "./driver/driver.js";
 import { migrate } from "./migrate.js";
 import { SCHEMA } from "./schema.js";
@@ -21,7 +21,7 @@ interface AuditRow {
 }
 
 /**
- * VINES — a durable implementation of core's hash-chained `AuditLog` over embedded
+ * JarvisStateStore — a durable implementation of core's hash-chained `AuditLog` over embedded
  * SQLite. The chain algorithm is core's `hashEntry` over redacted data, identical to
  * `InMemoryAuditLog`, so a durable log verifies the same way. `seq`/`prevHash` are read
  * from the persisted tail (not an in-memory counter).

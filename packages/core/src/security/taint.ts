@@ -1,5 +1,5 @@
 /**
- * The Gate — provenance / taint (spec §5.2, §8.3). Every piece of content carries
+ * the Gate — provenance / taint (spec §5.2, §8.3). Every piece of content carries
  * where it came from and whether it is untrusted. The taint→approval rule: a
  * side-effecting action influenced by tainted content requires human approval. S1
  * ships no side-effecting tools, but the field and the rule exist so later

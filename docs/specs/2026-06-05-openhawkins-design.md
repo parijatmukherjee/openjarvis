@@ -1,4 +1,4 @@
-# OpenHawkins — Design & Plan
+# OpenJarvis — Design & Plan
 
 **Date:** 2026-06-05
 **Status:** Draft for review
@@ -9,7 +9,7 @@
 
 ## 1. One-paragraph thesis
 
-OpenHawkins is **your personal AI assistant** — one brain, your devices. It runs on your PC, laptop, and phone, synchronized over your local network so your memory, context, and work follow you everywhere. **Your data never touches a cloud server.** The agent loop, model adapters, tool engine, durable state, and shared memory all live on your devices, talking to each other over encrypted local sync. The guiding principle: **the runtime enforces what models leave to chance** — tool-calling, grounding, state transitions, memory injection, permissions, and device routing. The model proposes; the runtime enforces. Your brain, everywhere.
+OpenJarvis is **your personal AI assistant** — one brain, your devices. It runs on your PC, laptop, and phone, synchronized over your local network so your memory, context, and work follow you everywhere. **Your data never touches a cloud server.** The agent loop, model adapters, tool engine, durable state, and shared memory all live on your devices, talking to each other over encrypted local sync. The guiding principle: **the runtime enforces what models leave to chance** — tool-calling, grounding, state transitions, memory injection, permissions, and device routing. The model proposes; the runtime enforces. Your brain, everywhere.
 
 ---
 
@@ -28,10 +28,10 @@ OpenHawkins is **your personal AI assistant** — one brain, your devices. It ru
    for operator oversight — built with the `emil-design-eng`, `impeccable`, and
    `design-taste-frontend` skills.
 6. **Feature parity with the openclaw-hawkins pattern**: Nexus orchestration,
-   6 Tendrils, durable state (VINES), decay-aware memory (VECNA), operator
+   6 Agents, durable state (JarvisStateStore), decay-aware memory (JarvisMemoryStore), operator
    oversight.
 7. **Learning, auditable, shareable, ecosystem-compatible** — v1 ships
-   deterministic replay + an eval harness, a per-Tendril learning loop, exportable
+   deterministic replay + an eval harness, a per-Agent learning loop, exportable
    "Pulse replay" artifacts, and `SKILL.md` skill-marketplace compatibility
    (§10.1). The platform improves over time, can prove what it did, and plugs into
    the existing skill ecosystem.
@@ -49,7 +49,7 @@ OpenHawkins is **your personal AI assistant** — one brain, your devices. It ru
 - A general-purpose agent _framework_ for third parties (we may expose a plugin
   API later, but v1 is a product, not a framework).
 - Voice channels (future).
-- Cloud hosting / SaaS / multi-tenancy. OpenHawkins is **one person's personal
+- Cloud hosting / SaaS / multi-tenancy. OpenJarvis is **one person's personal
   assistant**, not a hosted platform. Multi-device sync is device-to-device over
   the local network, never through a cloud server.
 - Public API or external clients. The only network surface is encrypted device-to-device sync.
@@ -58,36 +58,36 @@ OpenHawkins is **your personal AI assistant** — one brain, your devices. It ru
 
 ---
 
-## 3. Problems with OpenClaw / the source architecture (and how OpenHawkins fixes each)
+## 3. Problems with OpenClaw / the source architecture (and how OpenJarvis fixes each)
 
 This is the analysis the project was started to produce. Each problem below is
 derived from reading the `openclaw-hawkins` source (`src/dispatcher.ts`,
 `orchestrator/AGENTS.md`, `skills/`, `vines/`, `vecna/`).
 
-| #       | Problem (OpenClaw / source)                                                                                                                                                  | Root cause                                                                                                                                                                                                 | OpenHawkins fix                                                                                                                                                                                                                                                                             |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P1**  | **Models hallucinate when they don't call tools**, even with clear skill instructions.                                                                                       | Skills/`AGENTS.md` are _passive prose_ injected into context. Tool-use is _optional_ — the model decides. Weak local models (kimi-k2, gemma via ollama) answer from parametric memory. No grounding check. | **The Grounding engine** (§5) — runtime-enforced tool-required skills, claim-citation verification, structured outputs, and an "I-don't-know / call-a-tool" path. The runtime _rejects_ ungrounded final answers and re-prompts.                                                            |
-| **P2**  | **Dispatch is subprocess-based and fragile.** `dispatchSpecialist` runs `openclaw agent … --json`, parses stdout.                                                            | Brittle: PATH/ENOENT, JSON parse failures, 16 MB buffer cap, no streaming, timeout = SIGTERM kill, no mid-flight cancellation.                                                                             | **In-process dispatch** over a typed message bus. Streaming token + tool-call events, cancellation, structured results — no subprocess, no stdout parsing.                                                                                                                                  |
-| **P3**  | **No streaming / no progress.** Synchronous request→response with a hard timeout; the Nexus blocks on a subprocess.                                                          | The runtime has no event model.                                                                                                                                                                            | **Event-sourced runtime.** Every turn emits `token`, `tool_call`, `tool_result`, `phase`, `state` events over WebSocket to channels + dashboard.                                                                                                                                            |
-| **P4**  | **Hard MariaDB dependency** for durability (VINES + VECNA).                                                                                                                  | Both subsystems require a MariaDB instance.                                                                                                                                                                | **Embedded SQLite default** (zero-config, cross-platform). SQLite on every device, synced device-to-device. No external database required.                                                                                                                                                  |
-| **P5**  | **State & memory are bolt-ons the LLM must remember to call.** VINES/VECNA are CLIs the orchestrator invokes via bash; if the model forgets `vines set-state`, state drifts. | Durability depends on LLM discipline.                                                                                                                                                                      | **Runtime-owned state & memory.** The orchestrator engine writes state transitions automatically as it drives the Pulse. Memory is **auto-injected** each turn — no manual `vecna recall` paste.                                                                                            |
-| **P6**  | **Operator oversight requires Linear** (third-party SaaS).                                                                                                                   | No built-in UI.                                                                                                                                                                                            | **Built-in Astro dashboard** + local event store. Linear/GitHub Issues become optional _exporters_, not the source of truth.                                                                                                                                                                |
-| **P7**  | **Concurrency is prose, not enforced.** "No more than 2 dispatches", "sequential by default" live in `AGENTS.md`.                                                            | The model is asked to self-limit.                                                                                                                                                                          | **Runtime scheduler** with enforced concurrency limits, queueing, and backpressure.                                                                                                                                                                                                         |
-| **P8**  | **Permissions are convention, not sandbox.** Tendrils are full agents with shell access; "never auto-send" is a prose rule.                                                  | No capability gating.                                                                                                                                                                                      | **Capability sandbox.** Each agent gets a typed, scoped tool surface enforced by the runtime. Side-effecting tools (send email, post to Discord) require an explicit approval gate the runtime mediates.                                                                                    |
-| **P9**  | **Linux-only assumptions.** `system-agent` = apt/systemd/ufw/cron; `setup.sh` is bash; paths assume `~/.openclaw`.                                                           | Built for one OS.                                                                                                                                                                                          | **OS-abstraction layer.** Platform detection; package-manager abstraction (apt/brew/winget/choco); pwsh vs bash; OS-appropriate config dirs (XDG / AppData / Library).                                                                                                                      |
-| **P10** | **No typed tool contract at the engine boundary.** Tool calls are free-form bash via `exec`; TypeBox validation exists only inside the plugin.                               | Tools aren't first-class at the runtime.                                                                                                                                                                   | **Typed tool registry.** Every tool has a JSON-schema (TypeBox/Zod) for args + result; the runtime validates both directions and feeds schemas to the model as native tool definitions.                                                                                                     |
-| **P11** | **Manual memory injection.** VECNA recall must be pre-fetched and pasted into the prompt.                                                                                    | Context assembly is the model's job.                                                                                                                                                                       | **Automatic context assembly.** The runtime retrieves relevant memory (topic + embedding similarity) and injects it into the system prompt before each turn.                                                                                                                                |
-| **P12** | **No observability / eval / replay.** Post-mortem = reading `.jsonl` session files by hand.                                                                                  | No trace store.                                                                                                                                                                                            | **Trace store + replay.** Token accounting, cost, latency per orchestration; deterministic replay; eval harness. Surfaced in the dashboard.                                                                                                                                                 |
-| **P13** | **Credential & data exposure.** Secrets/API keys in plain-text `.env` under `~/.openclaw`; documented active exploits; no encrypted storage.                                 | No secrets management.                                                                                                                                                                                     | **Encrypted credential vault.** Secrets live in the OS keychain (macOS Keychain · Windows Credential Manager · libsecret) or an age/libsodium-encrypted vault unlocked by a master key — **never plaintext on disk**. Optional 1Password/Vault backends. Config files refuse secret values. |
-| **P14** | **No access-control boundaries (no RBAC).** Granting the agent your creds gives it all your permissions; a compromised agent moves laterally — its shell is your shell.      | No privilege separation.                                                                                                                                                                                   | **RBAC + least-privilege isolation.** Per-agent roles and capability grants (extends P8). Tendrils run in constrained sandboxes (restricted child process / OS sandbox / optional container), **not** as ambient you. Default-deny; explicit scoped grants only.                            |
-| **P15** | **Indirect prompt injection.** External content (WhatsApp/web/email/attachments) carries hidden instructions the LLM treats as system commands.                              | No data/instruction separation.                                                                                                                                                                            | **Untrusted-content firewall.** All externally-ingested content is fenced as _data, never instructions_, with provenance tags. Injection heuristics + a "tainted input ⇒ side-effecting actions require approval" rule. Tool calls triggered by tainted content are gated and logged.       |
-| **P16** | **State/session corruption.** Long async tool calls or concurrent messages bypass the command queue's serialization → conflicting tool outputs.                              | Weak concurrency model.                                                                                                                                                                                    | **Single-writer per session.** Each session is a serialized actor over the event-sourced log (extends P7); transactional state transitions, idempotency keys, optimistic locking. Concurrency happens _across_ sessions, never _within_ one.                                                |
-| **P17** | **Inadequate audit logging.** Local conversation logs only; no tamper-evident, centralized trail for debugging/compliance.                                                   | Logs aren't auditable.                                                                                                                                                                                     | **Tamper-evident audit log.** Append-only, hash-chained record of every decision, tool call, state transition, and approval — exportable for compliance, queryable in the dashboard (extends P12 with integrity).                                                                           |
-| **P18** | **Unpredictable autonomy.** Background heartbeat daemon may fire high-risk actions (send email, modify files) without final approval if guardrails are off/misconfigured.    | Autonomy not runtime-gated.                                                                                                                                                                                | **Runtime-enforced approval gates + autonomy levels.** Side-effecting actions are risk-classified; high-risk = default human-in-the-loop, mediated by the runtime (not a config flag the model can ignore). Dry-run mode; per-action autonomy policy.                                       |
-| **P19** | **Skill conflicts & brittleness.** Global vs workspace `SKILL.md` collide; agent picks the wrong tool or loops.                                                              | No deterministic resolution.                                                                                                                                                                               | **Deterministic skill resolution.** Explicit precedence + namespacing + scoping; conflict detection at load time; loop/circuit-breaker detection in the agent loop.                                                                                                                         |
-| **P20** | **Configuration friction.** Maintenance means hand-debugging YAML/Markdown; non-technical users can't fix broken integrations.                                               | Untyped, hand-edited config.                                                                                                                                                                               | **Typed config + dashboard-driven settings.** Schema-validated config with migrations; integration health checks + a `doctor` that self-diagnoses; no hand-editing required for common changes.                                                                                             |
-| **P21** | **Resource & energy drain.** Persistent polling, heartbeats, and heavy local work (audio transcription, etc.) tax laptops.                                                   | Busy-poll architecture.                                                                                                                                                                                    | **Event-driven, not polling.** Webhook/long-poll channel intake; lazy on-demand tendril spawning with idle suspension; resource budgets; offload heavy media tasks.                                                                                                                         |
-| **P22** | **Impersonation risk.** Recipients on Telegram/Slack/WhatsApp can't tell agent from human; unintended commitments.                                                           | No identity disclosure.                                                                                                                                                                                    | **Mandatory identity disclosure.** Outbound messages are signed/labeled as the assistant (configurable), never as the user (extends the source `comm-agent` rule into a runtime guarantee); outbound audit trail.                                                                           |
+| #       | Problem (OpenClaw / source)                                                                                                                                                                         | Root cause                                                                                                                                                                                                 | OpenJarvis fix                                                                                                                                                                                                                                                                              |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P1**  | **Models hallucinate when they don't call tools**, even with clear skill instructions.                                                                                                              | Skills/`AGENTS.md` are _passive prose_ injected into context. Tool-use is _optional_ — the model decides. Weak local models (kimi-k2, gemma via ollama) answer from parametric memory. No grounding check. | **The Grounding engine** (§5) — runtime-enforced tool-required skills, claim-citation verification, structured outputs, and an "I-don't-know / call-a-tool" path. The runtime _rejects_ ungrounded final answers and re-prompts.                                                            |
+| **P2**  | **Dispatch is subprocess-based and fragile.** `dispatchSpecialist` runs `openclaw agent … --json`, parses stdout.                                                                                   | Brittle: PATH/ENOENT, JSON parse failures, 16 MB buffer cap, no streaming, timeout = SIGTERM kill, no mid-flight cancellation.                                                                             | **In-process dispatch** over a typed message bus. Streaming token + tool-call events, cancellation, structured results — no subprocess, no stdout parsing.                                                                                                                                  |
+| **P3**  | **No streaming / no progress.** Synchronous request→response with a hard timeout; the Nexus blocks on a subprocess.                                                                                 | The runtime has no event model.                                                                                                                                                                            | **Event-sourced runtime.** Every turn emits `token`, `tool_call`, `tool_result`, `phase`, `state` events over WebSocket to channels + dashboard.                                                                                                                                            |
+| **P4**  | **Hard MariaDB dependency** for durability (JarvisStateStore + JarvisMemoryStore).                                                                                                                  | Both subsystems require a MariaDB instance.                                                                                                                                                                | **Embedded SQLite default** (zero-config, cross-platform). SQLite on every device, synced device-to-device. No external database required.                                                                                                                                                  |
+| **P5**  | **State & memory are bolt-ons the LLM must remember to call.** JarvisStateStore/JarvisMemoryStore are CLIs the orchestrator invokes via bash; if the model forgets `vines set-state`, state drifts. | Durability depends on LLM discipline.                                                                                                                                                                      | **Runtime-owned state & memory.** The orchestrator engine writes state transitions automatically as it drives the Pulse. Memory is **auto-injected** each turn — no manual `vecna recall` paste.                                                                                            |
+| **P6**  | **Operator oversight requires Linear** (third-party SaaS).                                                                                                                                          | No built-in UI.                                                                                                                                                                                            | **Built-in Astro dashboard** + local event store. Linear/GitHub Issues become optional _exporters_, not the source of truth.                                                                                                                                                                |
+| **P7**  | **Concurrency is prose, not enforced.** "No more than 2 dispatches", "sequential by default" live in `AGENTS.md`.                                                                                   | The model is asked to self-limit.                                                                                                                                                                          | **Runtime scheduler** with enforced concurrency limits, queueing, and backpressure.                                                                                                                                                                                                         |
+| **P8**  | **Permissions are convention, not sandbox.** Agents are full agents with shell access; "never auto-send" is a prose rule.                                                                           | No capability gating.                                                                                                                                                                                      | **Capability sandbox.** Each agent gets a typed, scoped tool surface enforced by the runtime. Side-effecting tools (send email, post to Discord) require an explicit approval gate the runtime mediates.                                                                                    |
+| **P9**  | **Linux-only assumptions.** `system-agent` = apt/systemd/ufw/cron; `setup.sh` is bash; paths assume `~/.openclaw`.                                                                                  | Built for one OS.                                                                                                                                                                                          | **OS-abstraction layer.** Platform detection; package-manager abstraction (apt/brew/winget/choco); pwsh vs bash; OS-appropriate config dirs (XDG / AppData / Library).                                                                                                                      |
+| **P10** | **No typed tool contract at the engine boundary.** Tool calls are free-form bash via `exec`; TypeBox validation exists only inside the plugin.                                                      | Tools aren't first-class at the runtime.                                                                                                                                                                   | **Typed tool registry.** Every tool has a JSON-schema (TypeBox/Zod) for args + result; the runtime validates both directions and feeds schemas to the model as native tool definitions.                                                                                                     |
+| **P11** | **Manual memory injection.** JarvisMemoryStore recall must be pre-fetched and pasted into the prompt.                                                                                               | Context assembly is the model's job.                                                                                                                                                                       | **Automatic context assembly.** The runtime retrieves relevant memory (topic + embedding similarity) and injects it into the system prompt before each turn.                                                                                                                                |
+| **P12** | **No observability / eval / replay.** Post-mortem = reading `.jsonl` session files by hand.                                                                                                         | No trace store.                                                                                                                                                                                            | **Trace store + replay.** Token accounting, cost, latency per orchestration; deterministic replay; eval harness. Surfaced in the dashboard.                                                                                                                                                 |
+| **P13** | **Credential & data exposure.** Secrets/API keys in plain-text `.env` under `~/.openclaw`; documented active exploits; no encrypted storage.                                                        | No secrets management.                                                                                                                                                                                     | **Encrypted credential vault.** Secrets live in the OS keychain (macOS Keychain · Windows Credential Manager · libsecret) or an age/libsodium-encrypted vault unlocked by a master key — **never plaintext on disk**. Optional 1Password/Vault backends. Config files refuse secret values. |
+| **P14** | **No access-control boundaries (no RBAC).** Granting the agent your creds gives it all your permissions; a compromised agent moves laterally — its shell is your shell.                             | No privilege separation.                                                                                                                                                                                   | **RBAC + least-privilege isolation.** Per-agent roles and capability grants (extends P8). Agents run in constrained sandboxes (restricted child process / OS sandbox / optional container), **not** as ambient you. Default-deny; explicit scoped grants only.                              |
+| **P15** | **Indirect prompt injection.** External content (WhatsApp/web/email/attachments) carries hidden instructions the LLM treats as system commands.                                                     | No data/instruction separation.                                                                                                                                                                            | **Untrusted-content firewall.** All externally-ingested content is fenced as _data, never instructions_, with provenance tags. Injection heuristics + a "tainted input ⇒ side-effecting actions require approval" rule. Tool calls triggered by tainted content are gated and logged.       |
+| **P16** | **State/session corruption.** Long async tool calls or concurrent messages bypass the command queue's serialization → conflicting tool outputs.                                                     | Weak concurrency model.                                                                                                                                                                                    | **Single-writer per session.** Each session is a serialized actor over the event-sourced log (extends P7); transactional state transitions, idempotency keys, optimistic locking. Concurrency happens _across_ sessions, never _within_ one.                                                |
+| **P17** | **Inadequate audit logging.** Local conversation logs only; no tamper-evident, centralized trail for debugging/compliance.                                                                          | Logs aren't auditable.                                                                                                                                                                                     | **Tamper-evident audit log.** Append-only, hash-chained record of every decision, tool call, state transition, and approval — exportable for compliance, queryable in the dashboard (extends P12 with integrity).                                                                           |
+| **P18** | **Unpredictable autonomy.** Background heartbeat daemon may fire high-risk actions (send email, modify files) without final approval if guardrails are off/misconfigured.                           | Autonomy not runtime-gated.                                                                                                                                                                                | **Runtime-enforced approval gates + autonomy levels.** Side-effecting actions are risk-classified; high-risk = default human-in-the-loop, mediated by the runtime (not a config flag the model can ignore). Dry-run mode; per-action autonomy policy.                                       |
+| **P19** | **Skill conflicts & brittleness.** Global vs workspace `SKILL.md` collide; agent picks the wrong tool or loops.                                                                                     | No deterministic resolution.                                                                                                                                                                               | **Deterministic skill resolution.** Explicit precedence + namespacing + scoping; conflict detection at load time; loop/circuit-breaker detection in the agent loop.                                                                                                                         |
+| **P20** | **Configuration friction.** Maintenance means hand-debugging YAML/Markdown; non-technical users can't fix broken integrations.                                                                      | Untyped, hand-edited config.                                                                                                                                                                               | **Typed config + dashboard-driven settings.** Schema-validated config with migrations; integration health checks + a `doctor` that self-diagnoses; no hand-editing required for common changes.                                                                                             |
+| **P21** | **Resource & energy drain.** Persistent polling, heartbeats, and heavy local work (audio transcription, etc.) tax laptops.                                                                          | Busy-poll architecture.                                                                                                                                                                                    | **Event-driven, not polling.** Webhook/long-poll channel intake; lazy on-demand agent spawning with idle suspension; resource budgets; offload heavy media tasks.                                                                                                                           |
+| **P22** | **Impersonation risk.** Recipients on Telegram/Slack/WhatsApp can't tell agent from human; unintended commitments.                                                                                  | No identity disclosure.                                                                                                                                                                                    | **Mandatory identity disclosure.** Outbound messages are signed/labeled as the assistant (configurable), never as the user (extends the source `comm-agent` rule into a runtime guarantee); outbound audit trail.                                                                           |
 
 ---
 
@@ -112,7 +112,7 @@ optional (an Ollama server, an opt-in Postgres/MariaDB).
               ┌──────────────────┼──────────┐            │
         ┌─────▼────┐ ┌────▼────┐ ┌────▼─────┐ …          │
         │ system   │ │ code    │ │ research │  TENDRILS  │
-        │ tendril  │ │ tendril │ │ tendril  │ (in-proc)  │
+        │ agent  │ │ agent │ │ agent  │ (in-proc)  │
         └────┬─────┘ └────┬────┘ └────┬─────┘            │
              │ every agent runs on ↓  │                  │
        ┌─────▼──────────────────────────────────────┐    │
@@ -126,7 +126,7 @@ optional (an Ollama server, an opt-in Postgres/MariaDB).
        └─────────────────────┬───────────────────────┘    │
                              │                             │
        ┌─────────────────────▼─────────────────────────────▼──────┐
-       │  STATE (VINES)             │   MEMORY (VECNA)             │
+       │  STATE (JarvisStateStore)             │   MEMORY (JarvisMemoryStore)             │
        │  durable orchestration row │   decay-aware shared memory  │
        │  runtime-owned transitions │   auto-injected each turn    │
        │  SQLite per device          │   SQLite+embeddings per device│
@@ -148,28 +148,28 @@ optional (an Ollama server, an opt-in Postgres/MariaDB).
                              │
               ┌──────────────▼───────────────┐
               │  DASHBOARD (Astro, motion-rich)│  ◄── real-time over WebSocket
-              │  Pulse board · tendrils · mem  │
+              │  Pulse board · agents · mem  │
               │  traces · cost · replay        │
               └────────────────────────────────┘
 ```
 
 ### 4.1 Packages
 
-| Package                     | Responsibility                                                                                                                                                          | Key deps                                                      |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `@openhawkins/core`         | Agent loop, model adapters, typed tool registry, **Grounding engine**, capability sandbox, event bus                                                                    | `@anthropic-ai/sdk`, `openai`, ollama client, `zod`/`typebox` |
-| `@openhawkins/state`        | VINES reborn — durable orchestration ledger, runtime-owned transitions, recovery (SQLite per device)                                                                    | `better-sqlite3`                                              |
-| `@openhawkins/memory`       | VECNA reborn — fragments, decay ranking, embeddings, auto-injection (SQLite per device)                                                                                 | sqlite-vec / local embeddings                                 |
-| `@openhawkins/sync`         | **Track B** — device identity, local-first sync, CRDT, mDNS discovery, Noise encrypted sync, cross-device task routing                                                  | `@openhawkins/state`, `@openhawkins/memory`                   |
-| `@openhawkins/tickets`      | **The Board** — operator ticket tracking (Cases); replaces Linear; SQLite-backed                                                                                        | state store                                                   |
-| `@openhawkins/orchestrator` | The Nexus — routing, the Pulse engine (in code), synthesis                                                                                                              | core, state, memory, tickets                                  |
-| `@openhawkins/tendrils`     | 6 specialist agent definitions + scoped tool surfaces                                                                                                                   | core                                                          |
-| `@openhawkins/channels`     | Telegram (grammY), Discord (discord.js), CLI, WebSocket adapters                                                                                                        | grammY, discord.js, ws                                        |
-| `@openhawkins/dashboard`    | Astro app — real-time operator UI                                                                                                                                       | Astro, view-transitions, motion lib                           |
-| `@openhawkins/gateway`      | The daemon: wires channels↔orchestrator↔core, serves dashboard + WS                                                                                                     | fastify/hono                                                  |
-| `@openhawkins/plugin-sdk`   | The **public extension contract** — types + helpers third parties build against (Tendrils, tools, channels, model adapters, storage drivers, dashboard widgets, skills) | core types only                                               |
-| `@openhawkins/registry`     | Plugin loader + resolver + capability gating + (future) marketplace client                                                                                              | plugin-sdk, core                                              |
-| `@openhawkins/cli`          | `openhawkins` command (start/stop/config/agent/**plugins**/doctor)                                                                                                      | commander                                                     |
+| Package                    | Responsibility                                                                                                                                                        | Key deps                                                      |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `@openjarvis/core`         | Agent loop, model adapters, typed tool registry, **Grounding engine**, capability sandbox, event bus                                                                  | `@anthropic-ai/sdk`, `openai`, ollama client, `zod`/`typebox` |
+| `@openjarvis/state`        | JarvisStateStore reborn — durable orchestration ledger, runtime-owned transitions, recovery (SQLite per device)                                                       | `better-sqlite3`                                              |
+| `@openjarvis/memory`       | JarvisMemoryStore reborn — fragments, decay ranking, embeddings, auto-injection (SQLite per device)                                                                   | sqlite-vec / local embeddings                                 |
+| `@openjarvis/sync`         | **Track B** — device identity, local-first sync, CRDT, mDNS discovery, Noise encrypted sync, cross-device task routing                                                | `@openjarvis/state`, `@openjarvis/memory`                     |
+| `@openjarvis/tickets`      | **The Board** — operator ticket tracking (Cases); replaces Linear; SQLite-backed                                                                                      | state store                                                   |
+| `@openjarvis/orchestrator` | The Nexus — routing, the Pulse engine (in code), synthesis                                                                                                            | core, state, memory, tickets                                  |
+| `@openjarvis/agents`       | 6 specialist agent definitions + scoped tool surfaces                                                                                                                 | core                                                          |
+| `@openjarvis/channels`     | Telegram (grammY), Discord (discord.js), CLI, WebSocket adapters                                                                                                      | grammY, discord.js, ws                                        |
+| `@openjarvis/dashboard`    | Astro app — real-time operator UI                                                                                                                                     | Astro, view-transitions, motion lib                           |
+| `@openjarvis/gateway`      | The daemon: wires channels↔orchestrator↔core, serves dashboard + WS                                                                                                   | fastify/hono                                                  |
+| `@openjarvis/plugin-sdk`   | The **public extension contract** — types + helpers third parties build against (Agents, tools, channels, model adapters, storage drivers, dashboard widgets, skills) | core types only                                               |
+| `@openjarvis/registry`     | Plugin loader + resolver + capability gating + (future) marketplace client                                                                                            | plugin-sdk, core                                              |
+| `@openjarvis/cli`          | `openjarvis` command (start/stop/config/agent/**plugins**/doctor)                                                                                                     | commander                                                     |
 
 ### 4.2 Why in-process beats subprocess dispatch
 
@@ -232,7 +232,7 @@ test on all three OSes.
 ## 5.5 Security, Trust & Safety model
 
 OpenClaw's most serious failures are not functional — they are security and
-trust failures (P13–P22). OpenHawkins treats security as a **core runtime
+trust failures (P13–P22). OpenJarvis treats security as a **core runtime
 pillar**, designed alongside the Grounding engine, not bolted on. The unifying
 principle mirrors Grounding: **the runtime enforces safety; it is never left to
 the model's discretion or a config flag.**
@@ -252,9 +252,9 @@ model.
 
 ### 5.5.2 Privilege separation & RBAC (P14)
 
-- **Least privilege per agent.** Each Tendril/plugin gets a typed capability
+- **Least privilege per agent.** Each Agent/plugin gets a typed capability
   grant; the runtime denies anything outside it (shared mechanism with §8.5.3).
-- **Sandboxed execution.** Tendril tool handlers run in constrained workers
+- **Sandboxed execution.** Agent tool handlers run in constrained workers
   (restricted child processes; optional OS sandbox/container) — the agent's shell
   is **not** the user's shell.
 - **RBAC roles** map operators → permitted agents/tools/approval authority, so a
@@ -332,15 +332,15 @@ Support` on macOS, `%APPDATA%` on Windows).
 
 ### 6.1 Model selection — free, cross-platform, chosen at setup (Cerebro + Mr. Clarke)
 
-No paid account is required to run OpenHawkins. The **setup wizard ("Mr. Clarke")**
+No paid account is required to run OpenJarvis. The **setup wizard ("Mr. Clarke")**
 asks the operator to tune **Cerebro** (the model layer) to one of several free,
 cross-platform options:
 
 | Option                         | What                                                                                | Notes                                                                                                                                             |
 | ------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Local / Ollama** _(default)_ | Fully free, private, offline-capable; runs on Win/Mac/Linux                         | Wizard offers a small capable default (e.g. a Llama/Qwen-class model) and checks hardware                                                         |
-| **Ollama cloud** _(v1)_        | Ollama-hosted models (e.g. the source's `…:cloud` tags) — no local hardware needed  | Same Ollama adapter/API surface as local; user supplies an Ollama key, stored in **The Cabin**. Great for laptops that can't run big local models |
-| **Free cloud tier**            | A provider with a no-cost tier (e.g. Google Gemini / Groq / OpenRouter free models) | User pastes a free API key; stored encrypted in **The Cabin** (§5.5.1)                                                                            |
+| **Ollama cloud** _(v1)_        | Ollama-hosted models (e.g. the source's `…:cloud` tags) — no local hardware needed  | Same Ollama adapter/API surface as local; user supplies an Ollama key, stored in **the Vault**. Great for laptops that can't run big local models |
+| **Free cloud tier**            | A provider with a no-cost tier (e.g. Google Gemini / Groq / OpenRouter free models) | User pastes a free API key; stored encrypted in **the Vault** (§5.5.1)                                                                            |
 | **Bring your own**             | Anthropic / OpenAI / any provider                                                   | Opt-in; unlocks stronger grounding-tier routing                                                                                                   |
 
 The **Ollama adapter must support both local and `…:cloud` models in v1** behind a
@@ -349,17 +349,17 @@ integration (this mirrors how the source used `ollama/kimi-k2.6:cloud`).
 
 The adapter layer is **provider-agnostic** — model choice is policy, not
 hard-coded. **Important synergy:** weaker free models hallucinate _more_, which is
-exactly why the **Grounding engine (Eleven, §5)** is mandatory, not optional — it
+exactly why the **Grounding engine (GroundingEngine, §5)** is mandatory, not optional — it
 is the mitigation that makes free local models trustworthy. Grounding-critical
 steps can be routed to a stronger model (incl. Ollama cloud) if configured.
 
-### 6.2 Cross-platform tendrils (esp. `system-agent`)
+### 6.2 Cross-platform agents (esp. `system-agent`)
 
 The six functional ids are kept, but `system-agent` is redefined from Linux-only
 sysadmin to an **OS-aware host agent**: it inspects the host and selects the right
 package manager (`winget`/`choco` · `brew` · `apt`/`dnf`), the right shell
 (PowerShell vs bash/zsh), and cross-platform service control — via the
-OS-abstraction layer above. The other tendrils (`code`, `research`, `data`,
+OS-abstraction layer above. The other agents (`code`, `research`, `data`,
 `comm`, `vision`) are already platform-neutral.
 
 ---
@@ -373,7 +373,7 @@ OS-abstraction layer above. The other tendrils (`code`, `research`, `data`,
   it?" becomes a Telegram/Discord button the runtime mediates — no auto-send.
 - **Media passthrough:** images/files routed to the `vision-agent`.
 - A `telegram` Claude-Code plugin already exists in this environment and can seed
-  patterns (token storage, allowlist/policy), but OpenHawkins ships its own
+  patterns (token storage, allowlist/policy), but OpenJarvis ships its own
   channel adapters.
 
 ---
@@ -388,8 +388,8 @@ Views:
 
 - **The Pulse board** — live orchestrations through the 5 phases (Sensitivity →
   Anchoring → Deep Seeking → Connection → Consolidation), animated transitions.
-- **Tendrils** — per-specialist activity, current task, token/latency.
-- **Memory (VECNA)** — browse/search fragments, importance, decay, evolution graph.
+- **Agents** — per-specialist activity, current task, token/latency.
+- **Memory (JarvisMemoryStore)** — browse/search fragments, importance, decay, evolution graph.
 - **Traces & replay** — step through any orchestration; token + cost accounting.
 - **Settings** — models, channels, capability/approval policy.
 
@@ -401,7 +401,7 @@ become optional exporters).
 
 ## 8.5 Plugin system & marketplace
 
-OpenHawkins is **extensible by design** and aims, in the future, to host a
+OpenJarvis is **extensible by design** and aims, in the future, to host a
 **community marketplace** where authors submit plugins. This is not a v1
 afterthought — it shapes the runtime now, because a stable, versioned extension
 contract and a real capability sandbox must exist _before_ third-party code runs
@@ -413,7 +413,7 @@ A plugin is a versioned package that contributes one or more **extension points*
 
 | Extension point      | Example                                                     |
 | -------------------- | ----------------------------------------------------------- |
-| **Tendril**          | A new specialist agent (e.g. `media-agent`, `devops-agent`) |
+| **Agent**            | A new specialist agent (e.g. `media-agent`, `devops-agent`) |
 | **Tool**             | A typed, schema-validated capability an agent can call      |
 | **Channel**          | A new chat front-end (Slack, WhatsApp, Matrix, SMS)         |
 | **Model adapter**    | A new provider (Gemini, Groq, Bedrock, a local server)      |
@@ -423,7 +423,7 @@ A plugin is a versioned package that contributes one or more **extension points*
 
 ### 8.5.2 Plugin manifest
 
-Every plugin ships an `openhawkins.plugin.json` (echoing the source repo's
+Every plugin ships an `openjarvis.plugin.json` (echoing the source repo's
 `openclaw.plugin.json`) declaring:
 
 - `id`, `version`, `author`, `license`, `description`;
@@ -432,7 +432,7 @@ Every plugin ships an `openhawkins.plugin.json` (echoing the source repo's
   `filesystem:read`, `filesystem:write`, `send-message`, `model-call`, …);
 - `config`: a JSON schema for its settings (secrets refused — env-only, per the
   source's secrets policy);
-- `compat`: supported OpenHawkins version range.
+- `compat`: supported OpenJarvis version range.
 
 ### 8.5.3 Capability sandbox (the safety foundation — ties to P8)
 
@@ -451,8 +451,8 @@ Third-party code is **untrusted**. The runtime enforces:
 
 ### 8.5.4 Loading & distribution (v1)
 
-- **Local dir** — drop a plugin folder in the OpenHawkins plugins path.
-- **npm** — `openhawkins plugins install npm:<pkg>`.
+- **Local dir** — drop a plugin folder in the OpenJarvis plugins path.
+- **npm** — `openjarvis plugins install npm:<pkg>`.
 - **Skill compatibility** — read the same `SKILL.md` format the Claude `skills`
   CLI uses (the format used to install `emil-design-eng`, `impeccable`,
   `design-taste-frontend` for this very project), so the existing skill ecosystem
@@ -460,7 +460,7 @@ Third-party code is **untrusted**. The runtime enforces:
 
 ### 8.5.5 The marketplace (future phase)
 
-A hosted registry (the OpenHawkins analogue of npm / the source's "ClawHub"):
+A hosted registry (the OpenJarvis analogue of npm / the source's "ClawHub"):
 
 - **Submission flow:** author publishes → automated **manifest validation** +
   **security scan** (static capability audit, dependency check) → versioned,
@@ -468,7 +468,7 @@ A hosted registry (the OpenHawkins analogue of npm / the source's "ClawHub"):
 - **Trust & safety:** signed packages; capability disclosure surfaced at install;
   a review/curation process; report/takedown path; semver + deprecation.
 - **Discovery:** browse/search in the dashboard ("Marketplace" view) and via
-  `openhawkins plugins search <query>`; ratings, install counts.
+  `openjarvis plugins search <query>`; ratings, install counts.
 - **Optional monetization** (paid/private plugins) — left open, not v1.
 
 The marketplace is **deferred to its own phase (M1, §9)**, but the **plugin SDK,
@@ -486,8 +486,8 @@ the umbrella; do **not** try to implement it all from one plan.
 | ----------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **S0**            | **Repo + monorepo scaffold + this Plan**     | Git repo, workspace skeleton, CI, this design doc                                                                                                                                                                                                                             | Foundation for everything (in progress)                                                                                                          |
 | **S1**            | **Core runtime + Grounding engine**          | Model adapters (incl. **Ollama local + cloud**) + agent loop + typed tool registry + Grounding, **event-sourced recording + deterministic replay + eval harness** (§10.1), proven by a thin vertical slice (1 agent, 1 tool, grounding enforced, replayable) on Win/Mac/Linux | The foundation **and** the direct fix for the #1 pain point. Highest value, highest risk → first. Replay/eval must be designed in from turn one. |
-| **S2**            | **State + Memory (SQLite-default)**          | VINES + VECNA reborn, runtime-owned, auto-injected, **+ per-Tendril learning loop** (§10.1)                                                                                                                                                                                   | Orchestrator depends on these; learning loop closes P11                                                                                          |
-| **S3**            | **Orchestrator + Tendrils**                  | The Nexus (Pulse in code) + 6 specialists, in-process dispatch                                                                                                                                                                                                                | The pattern itself                                                                                                                               |
+| **S2**            | **State + Memory (SQLite-default)**          | JarvisStateStore + JarvisMemoryStore reborn, runtime-owned, auto-injected, **+ per-Agent learning loop** (§10.1)                                                                                                                                                              | Orchestrator depends on these; learning loop closes P11                                                                                          |
+| **S3**            | **Orchestrator + Agents**                    | The Nexus (Pulse in code) + 6 specialists, in-process dispatch                                                                                                                                                                                                                | The pattern itself                                                                                                                               |
 | **S4**            | **Channels + Gateway**                       | Telegram + Discord + CLI + WS daemon                                                                                                                                                                                                                                          | Makes it usable by humans                                                                                                                        |
 | **S5**            | **Dashboard**                                | Astro real-time motion-rich UI **+ "Pulse replay" shareable HTML artifacts** (§10.1)                                                                                                                                                                                          | Operator oversight (replaces Linear)                                                                                                             |
 | **S6**            | **Plugin SDK + loader + capability sandbox** | `plugin-sdk` + `registry`: load local/npm plugins, **`SKILL.md` skill-marketplace compatibility** (§10.1), declared-capability gating, install-time disclosure                                                                                                                | Makes the platform extensible; **prerequisite for the marketplace**                                                                              |
@@ -517,27 +517,27 @@ auditable, and shareable_. Each is anchored to the subproject that owns it.
   recorded so any orchestration can be **replayed deterministically** to debug, to
   A/B a prompt/model change, and to regression-test agent behavior. The eval
   harness runs recorded scenarios as automated tests — and is the natural home for
-  the **Eleven** grounding acceptance tests (§5). Builds directly on **Murray**
+  the **GroundingEngine** grounding acceptance tests (§5). Builds directly on **Audit**
   (§5.5.5) and the trace store (P12).
-- **Per-Tendril learning loop** _(owned by S2, **VECNA**)_ — memory fragments are
-  tagged by tendril; on each dispatch the runtime auto-injects that specialist's
-  own accumulated lessons, so each Tendril measurably improves its future
+- **Per-Agent learning loop** _(owned by S2, **JarvisMemoryStore**)_ — memory fragments are
+  tagged by agent; on each dispatch the runtime auto-injects that specialist's
+  own accumulated lessons, so each Agent measurably improves its future
   grounding over time (closes the loop on P11). Includes a feedback signal from
   approval/audit outcomes back into fragment importance.
 - **"Pulse replay" as shareable artifacts** _(owned by S5, dashboard)_ — export
   any orchestration as a **self-contained, animated HTML trace** (the Pulse phases,
-  tendril dispatches, tool calls, grounding decisions) that can be shared/opened
+  agent dispatches, tool calls, grounding decisions) that can be shared/opened
   offline. Uses the same replay data as the eval harness.
 - **Skill-marketplace compatibility** _(owned by S6, **The AV Club**)_ — read the
   same `SKILL.md` format the `skills` CLI uses (the format used to install
   `emil-design-eng` / `impeccable` / `design-taste-frontend` for this project), so
-  the existing community skill ecosystem drops into OpenHawkins directly, and
+  the existing community skill ecosystem drops into OpenJarvis directly, and
   **Melvald's** (M1) can host them.
 
 ### 10.2 Future / not committed
 
-- **MCP support** — OpenHawkins as both an MCP _client_ (consume external tools)
-  and an MCP _server_ (expose Tendrils to other agents). Huge interop win.
+- **MCP support** — OpenJarvis as both an MCP _client_ (consume external tools)
+  and an MCP _server_ (expose Agents to other agents). Huge interop win.
 - **Cost & token budgets per orchestration**, enforced by the scheduler (hard cap
   → graceful stop), surfaced live in the dashboard.
 - **Local-first / offline mode** — fully functional with local Ollama, no cloud.
@@ -557,7 +557,7 @@ auditable, and shareable_. Each is anchored to the subproject that owns it.
    native tool-calling (`zod-to-json-schema`). The TypeBox usages in the copied
    reference code are **migrated to Zod** during the port (we own the code now;
    we won't carry two schema libs). _Override possible if continuity wins._
-4. **Tendril set — adjusted for cross-platform.** Keep the six functional ids, but
+4. **Agent set — adjusted for cross-platform.** Keep the six functional ids, but
    redefine `system-agent` from Linux-only sysadmin to an **OS-aware host agent**
    (winget/choco · brew · apt/dnf; PowerShell vs bash; cross-platform service
    control). See §6.2.
@@ -568,10 +568,10 @@ auditable, and shareable_. Each is anchored to the subproject that owns it.
    phase now opens a **Case on The Board** instead of a Linear ticket.
 6. **License — MIT** (matches the source). `LICENSE` added.
 
-> **Naming:** all subsystems keep the **Stranger Things** theme per
-> [`docs/branding.md`](../branding.md) — e.g. the Grounding engine is **Eleven**,
-> the firewall is **The Gate**, the sandbox is **The Lab**, the vault is **The
-> Cabin**, approvals are **Hopper**, audit is **Murray**, tickets are **The
+> **Naming:** all subsystems keep the **OpenJarvis** theme per
+> [`docs/branding.md`](../branding.md) — e.g. the Grounding engine is **GroundingEngine**,
+> the firewall is **the Gate**, the sandbox is **the Lab**, the vault is **The
+> Cabin**, approvals are **Hopper**, audit is **Audit**, tickets are **The
 > Board**, models are **Cerebro**, channels are **Supercomm**, the plugin layer
 > is **The AV Club**, the future marketplace is **Melvald's**, setup is **Mr.
 > Clarke**. _Brand the prose, not the protocol._
@@ -580,8 +580,8 @@ auditable, and shareable_. Each is anchored to the subproject that owns it.
 
 ## 12. What this plan deliberately keeps from `openclaw-hawkins`
 
-- The **Nexus + Tendrils** mental model and the **5-phase Pulse**.
-- **VINES** (durable state) and **VECNA** (decay-aware memory) as concepts — but
+- The **Nexus + Agents** mental model and the **5-phase Pulse**.
+- **JarvisStateStore** (durable state) and **JarvisMemoryStore** (decay-aware memory) as concepts — but
   reborn as runtime-owned, SQLite-default, auto-driven subsystems.
 - The **TypeScript + strict-typing + high-coverage** engineering culture.
 - The **Stranger-Things-flavored vocabulary** is optional branding; the protocol

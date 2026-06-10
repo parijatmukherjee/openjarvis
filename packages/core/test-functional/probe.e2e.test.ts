@@ -28,7 +28,7 @@ function assertProbeOutput(out: Record<string, unknown>): void {
   expect(["windows", "macos", "linux"]).toContain(out.os);
   expect(typeof out.shell).toBe("string");
   expect((out.shell as string).length).toBeGreaterThan(0);
-  expect(String(out.configDir)).toContain("openhawkins");
+  expect(String(out.configDir)).toContain("openjarvis");
   expect(Number.isInteger(out.freeDiskBytes)).toBe(true);
   expect(out.freeDiskBytes as number).toBeGreaterThan(0);
 }
@@ -43,7 +43,7 @@ describe("probe CLI — functional (black-box, exactly as a user runs it)", () =
     "the Bun single-file binary (the shipped artifact) runs standalone and prints the same shape",
     async () => {
       const dir = mkdtempSync(join(tmpdir(), "oh-fn-"));
-      const bin = join(dir, "openhawkins-probe");
+      const bin = join(dir, "openjarvis-probe");
       // Compile exactly what a user downloads, then run it with no Node/Bun on PATH assumed.
       await run("bun", ["build", "packages/core/src/bin/probe.ts", "--compile", "--outfile", bin]);
       const { stdout } = await run(bin, []);

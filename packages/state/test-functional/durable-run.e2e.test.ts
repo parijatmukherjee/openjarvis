@@ -8,9 +8,9 @@ import { join } from "node:path";
 // Black-box: spawn the actual built durable CLI, then RE-SPAWN a separate process to
 // verify — proving events + the keyed audit chain survive across processes on disk.
 const run = promisify(execFile);
-const CLI = "packages/state/dist/bin/openhawkins-run.js";
+const CLI = "packages/state/dist/bin/openjarvis-run.js";
 
-describe("openhawkins-run — durable functional (black-box, cross-process)", () => {
+describe("openjarvis-run — durable functional (black-box, cross-process)", () => {
   it("persists a keyed-audit run and a fresh process verifies it", async () => {
     const d = mkdtempSync(join(tmpdir(), "oh-a1b-fn-"));
     const db = join(d, "run.db");

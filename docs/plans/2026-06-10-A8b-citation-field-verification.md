@@ -235,7 +235,7 @@ Expected: all green, coverage 100%.
 
 - [ ] **Step 3: Docker gate**
 
-Run: `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test`
+Run: `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test`
 
 Expected: `✅ ALL GATES PASSED`
 

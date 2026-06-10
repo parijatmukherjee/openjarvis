@@ -1,4 +1,3 @@
-import type { AuditEntry } from "@openhawkins/core";
 import type { Intent } from "../intent.js";
 import type { JarvisContext } from "../context.js";
 
@@ -12,5 +11,6 @@ export interface AgentResult {
   output: unknown;
   success: boolean;
   error?: string;
-  auditEntry: AuditEntry;
+  /** Audit snapshot — may be a full AuditEntry or a lightweight record. */
+  auditEntry: { kind: string; at: number; data: Record<string, unknown> };
 }

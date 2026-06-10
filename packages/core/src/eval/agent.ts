@@ -8,7 +8,11 @@ import type { AgentGrant } from "../security/capability.js";
 import type { ToolDefinition } from "../tools/tool.js";
 import { runAgentTurn, type AgentLoopConfig } from "../loop/agent-loop.js";
 import type { TurnRecord } from "../loop/turn.js";
-import { Eleven, groundingInstruction, type ElevenConfig } from "../grounding/eleven.js";
+import {
+  GroundingEngine,
+  groundingInstruction,
+  type GroundingEngineConfig,
+} from "../grounding/grounding-engine.js";
 import { type AuditLog, InMemoryAuditLog } from "../security/audit.js";
 import type { MemoryStore } from "../memory.js";
 import type { MetricsCollector } from "../observability/metrics.js";
@@ -19,8 +23,8 @@ type AnyToolDefinition = ToolDefinition<any, any>;
 
 /**
  * The runtime object a caller (the CLI, the eval harness) actually drives. It ties
- * the event-sourced Session (single-writer), the agent loop, Eleven grounding, and
- * the Murray audit into one `ask()` — so grounding, session integrity, and audit are
+ * the event-sourced Session (single-writer), the agent loop, grounding, and
+ * the audit into one `ask()` — so grounding, session integrity, and audit are
  * owned by the runtime, not the model (spec §2 goals).
  */
 export interface AgentConfig {
@@ -29,7 +33,7 @@ export interface AgentConfig {
   registry: ToolRegistry;
   grant: AgentGrant;
   tools: AnyToolDefinition[];
-  grounding: ElevenConfig;
+  grounding: GroundingEngineConfig;
   systemPrompt?: string;
   maxModelCalls?: number;
   store?: EventStore;
@@ -62,10 +66,10 @@ export class Agent {
     return new Agent(cfg, session, clock, audit);
   }
 
-  /** Run one grounded turn. Serialized by the Session; audited by Murray. */
+  /** Run one grounded turn. Serialized by the Session; audited. */
   async ask(input: string): Promise<TurnRecord> {
     const metrics = this.cfg.metrics ?? noopMetricsCollector;
-    const policy = new Eleven(this.cfg.grounding, metrics);
+    const policy = new GroundingEngine(this.cfg.grounding, metrics);
     const instruction = groundingInstruction(
       this.cfg.grounding.mode,
       this.cfg.grounding.qualifyingTools,
@@ -116,7 +120,7 @@ export class Agent {
     return record;
   }
 
-  /** Derive Murray audit entries from a completed turn (every step is auditable). */
+  /** Derive audit entries from a completed turn (every step is auditable). */
   private async writeAudit(rec: TurnRecord): Promise<void> {
     for (const mc of rec.modelCalls) {
       await this.audit.append({

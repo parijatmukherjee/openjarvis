@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { MockUser } from "../../../src/e2e/mock-user.js";
 import type { VisualCommand } from "../../../src/synthesis.js";
 import type { BusEvent } from "../../../src/event-bus.js";
-import type { AuditEntry } from "@openhawkins/core";
+import type { AuditEntry } from "@openjarvis/core";
 
 describe("E2E: Event audit trail", () => {
   it("should emit intent_parsed, agent_started, agent_completed, synthesis_done", async () => {

@@ -1,7 +1,7 @@
 # Backup and Restore Operations
 
-> Operational guide for backing up and restoring the OpenHawkins durable state
-> (SQLite event store + Vault file). Applies to any node running `openhawkins-run`.
+> Operational guide for backing up and restoring the OpenJarvis durable state
+> (SQLite event store + Vault file). Applies to any node running `openjarvis-run`.
 
 ---
 
@@ -9,10 +9,10 @@
 
 Two files contain all durable state:
 
-| File                     | Purpose                        | Notes                                                                                      |
-| ------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------ |
-| `openhawkins.db`         | SQLite event store + audit log | WAL mode enabled; sibling `-wal` and `-shm` files appear at runtime                        |
-| `openhawkins-vault.json` | Encrypted Vault (AES-256-GCM)  | Holds the audit HMAC key and any adapter secrets; **never** back up without the passphrase |
+| File                    | Purpose                        | Notes                                                                                      |
+| ----------------------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
+| `openjarvis.db`         | SQLite event store + audit log | WAL mode enabled; sibling `-wal` and `-shm` files appear at runtime                        |
+| `openjarvis-vault.json` | Encrypted Vault (AES-256-GCM)  | Holds the audit HMAC key and any adapter secrets; **never** back up without the passphrase |
 
 > **Important:** The SQLite database uses WAL (`journal_mode = WAL`). You must include
 > the `-wal` and `-shm` files if you copy while the process is running, **or** perform a
@@ -27,9 +27,9 @@ Two files contain all durable state:
 Use the SQLite CLI to perform a checkpoint, then copy all three files atomically:
 
 ```bash
-DB=/var/lib/openhawkins/openhawkins.db
-VAULT=/var/lib/openhawkins/openhawkins-vault.json
-BACKUP_DIR=/backup/openhawkins/$(date +%Y%m%d-%H%M%S)
+DB=/var/lib/openjarvis/openjarvis.db
+VAULT=/var/lib/openjarvis/openjarvis-vault.json
+BACKUP_DIR=/backup/openjarvis/$(date +%Y%m%d-%H%M%S)
 
 mkdir -p "$BACKUP_DIR"
 
@@ -38,11 +38,11 @@ sqlite3 "$DB" "PRAGMA wal_checkpoint(TRUNCATE);"
 
 # 2. Copy the now self-contained .db file and the Vault
 #    Use cp --reflink=auto when available (CoW filesystems) for instant snapshots
-cp --reflink=auto "$DB" "$BACKUP_DIR/openhawkins.db"
-cp --reflink=auto "$VAULT" "$BACKUP_DIR/openhawkins-vault.json"
+cp --reflink=auto "$DB" "$BACKUP_DIR/openjarvis.db"
+cp --reflink=auto "$VAULT" "$BACKUP_DIR/openjarvis-vault.json"
 
 # 3. Record checksums
-sha256sum "$BACKUP_DIR/openhawkins.db" "$BACKUP_DIR/openhawkins-vault.json" > "$BACKUP_DIR/sha256sums"
+sha256sum "$BACKUP_DIR/openjarvis.db" "$BACKUP_DIR/openjarvis-vault.json" > "$BACKUP_DIR/sha256sums"
 ```
 
 > `TRUNCATE` blocks writers briefly, merges the WAL completely, and deletes the `-wal`/`-shm`
@@ -54,15 +54,15 @@ sha256sum "$BACKUP_DIR/openhawkins.db" "$BACKUP_DIR/openhawkins-vault.json" > "$
 If you can stop the service (e.g. during a maintenance window):
 
 ```bash
-systemctl stop openhawkins.service
+systemctl stop openjarvis.service
 
-BACKUP_DIR=/backup/openhawkins/$(date +%Y%m%d-%H%M%S)
+BACKUP_DIR=/backup/openjarvis/$(date +%Y%m%d-%H%M%S)
 mkdir -p "$BACKUP_DIR"
-cp /var/lib/openhawkins/openhawkins.db   "$BACKUP_DIR/"
-cp /var/lib/openhawkins/openhawkins-vault.json "$BACKUP_DIR/"
+cp /var/lib/openjarvis/openjarvis.db   "$BACKUP_DIR/"
+cp /var/lib/openjarvis/openjarvis-vault.json "$BACKUP_DIR/"
 sha256sum "$BACKUP_DIR"/* > "$BACKUP_DIR/sha256sums"
 
-systemctl start openhawkins.service
+systemctl start openjarvis.service
 ```
 
 ### Option C — SQLite online backup API (most robust)
@@ -71,8 +71,8 @@ If the `sqlite3` CLI is available, use its built-in backup command, which handle
 consistency automatically:
 
 ```bash
-sqlite3 /var/lib/openhawkins/openhawkins.db ".backup '$BACKUP_DIR/openhawkins.db'"
-cp /var/lib/openhawkins/openhawkins-vault.json "$BACKUP_DIR/"
+sqlite3 /var/lib/openjarvis/openjarvis.db ".backup '$BACKUP_DIR/openjarvis.db'"
+cp /var/lib/openjarvis/openjarvis-vault.json "$BACKUP_DIR/"
 ```
 
 ---
@@ -82,44 +82,44 @@ cp /var/lib/openhawkins/openhawkins-vault.json "$BACKUP_DIR/"
 1. **Stop the service** (never restore into a live database):
 
    ```bash
-   systemctl stop openhawkins.service
+   systemctl stop openjarvis.service
    ```
 
 2. **Restore the files**:
 
    ```bash
    # Example: restoring from today's backup
-   RESTORE_DIR=/backup/openhawkins/20260610-030000
-   DB_DIR=/var/lib/openhawkins
+   RESTORE_DIR=/backup/openjarvis/20260610-030000
+   DB_DIR=/var/lib/openjarvis
 
-   cp "$RESTORE_DIR/openhawkins.db" "$DB_DIR/"
-   cp "$RESTORE_DIR/openhawkins-vault.json" "$DB_DIR/"
-   chown openhawkins:openhawkins "$DB_DIR/openhawkins.db" "$DB_DIR/openhawkins-vault.json"
-   chmod 600 "$DB_DIR/openhawkins-vault.json"
+   cp "$RESTORE_DIR/openjarvis.db" "$DB_DIR/"
+   cp "$RESTORE_DIR/openjarvis-vault.json" "$DB_DIR/"
+   chown openjarvis:openjarvis "$DB_DIR/openjarvis.db" "$DB_DIR/openjarvis-vault.json"
+   chmod 600 "$DB_DIR/openjarvis-vault.json"
    ```
 
 3. **Remove stale WAL/SHM** if they exist from a previous run (they would mismatch the restored DB):
 
    ```bash
-   rm -f "$DB_DIR/openhawkins.db-wal" "$DB_DIR/openhawkins.db-shm"
+   rm -f "$DB_DIR/openjarvis.db-wal" "$DB_DIR/openjarvis.db-shm"
    ```
 
 4. **Start the service**:
 
    ```bash
-   systemctl start openhawkins.service
+   systemctl start openjarvis.service
    ```
 
 ---
 
 ## How to verify integrity after restore
 
-Run `verifyDurable` via the `openhawkins-run` CLI in `--verify` mode:
+Run `verifyDurable` via the `openjarvis-run` CLI in `--verify` mode:
 
 ```bash
-node packages/state/dist/bin/openhawkins-run.js \
-  --db /var/lib/openhawkins/openhawkins.db \
-  --vault /var/lib/openhawkins/openhawkins-vault.json \
+node packages/state/dist/bin/openjarvis-run.js \
+  --db /var/lib/openjarvis/openjarvis.db \
+  --vault /var/lib/openjarvis/openjarvis-vault.json \
   --verify
 ```
 
@@ -132,9 +132,9 @@ verify: {"events":1234,"auditEntries":1234,"auditVerified":true}
 Or with `--json` for programmatic use:
 
 ```bash
-node packages/state/dist/bin/openhawkins-run.js \
-  --db /var/lib/openhawkins/openhawkins.db \
-  --vault /var/lib/openhawkins/openhawkins-vault.json \
+node packages/state/dist/bin/openjarvis-run.js \
+  --db /var/lib/openjarvis/openjarvis.db \
+  --vault /var/lib/openjarvis/openjarvis-vault.json \
   --verify --json
 ```
 
@@ -164,7 +164,7 @@ node packages/state/dist/bin/openhawkins-run.js \
 
 ### Automation tips
 
-- Run backups from a systemd timer or cron job as the `openhawkins` user (or root with `sudo -u openhawkins`).
+- Run backups from a systemd timer or cron job as the `openjarvis` user (or root with `sudo -u openjarvis`).
 - Always validate the checksum of the backup immediately after creation (`sha256sum -c sha256sums`).
 - Store backups off-host; the Vault file is encrypted, but treat it with the same care as the database.
 - Test restores quarterly on a non-production instance.

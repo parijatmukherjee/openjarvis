@@ -9,7 +9,7 @@
 
 ## 1. One-paragraph thesis
 
-OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every user owns exactly one brain (one Vault, one event store, one VECNA memory graph). That brain lives on the user's devices — PC, laptop, phone — and syncs between them over the local network, never through a cloud server. Each device can run tasks, answer questions, and remember context; the system routes work intelligently based on device capabilities, battery state, and proximity. The model proposes; the runtime enforces; and the user's data never leaves the user's network.
+OpenJarvis is **one person's personal assistant**, not a SaaS platform. Every user owns exactly one brain (one Vault, one event store, one JarvisMemoryStore memory graph). That brain lives on the user's devices — PC, laptop, phone — and syncs between them over the local network, never through a cloud server. Each device can run tasks, answer questions, and remember context; the system routes work intelligently based on device capabilities, battery state, and proximity. The model proposes; the runtime enforces; and the user's data never leaves the user's network.
 
 ---
 
@@ -17,7 +17,7 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 
 ### Goals
 
-1. **One brain, multiple devices.** The same VECNA memory, the same audit chain, the same tool registry — synchronized across all approved devices.
+1. **One brain, multiple devices.** The same JarvisMemoryStore memory, the same audit chain, the same tool registry — synchronized across all approved devices.
 2. **Local-first, always.** All data stays on the user's devices. Sync is device-to-device over the local network (Wi-Fi / LAN). No cloud server, no relay, no third-party storage.
 3. **Works offline.** Each device has a full copy of the brain. Network absence is normal, not an error. Changes sync when devices reconnect.
 4. **Battery-aware, capability-aware.** The phone handles notifications and quick queries. The PC handles heavy document processing. The laptop handles code. The system routes work to the right device.
@@ -29,7 +29,7 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 
 - **No multi-tenancy.** One user, one brain. There is no `tenantId`.
 - **No cloud hosting.** No AWS, no hosted backend, no relay server. If the user has only one device, it works fine standalone.
-- **No public API.** No external clients connect to OpenHawkins. The only network surface is device-to-device sync.
+- **No public API.** No external clients connect to OpenJarvis. The only network surface is device-to-device sync.
 - **No federation.** Alice's brain does not talk to Bob's brain. This is a single-user system.
 - **No web app / PWA.** The primary UI is native (Electron on desktop, Flutter on mobile), not a browser-based web app.
 
@@ -49,7 +49,7 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 │  │  │ (UI + Daemon)   │  │   │  │ (UI + Daemon)   │  │           │
 │  │  │                 │  │   │  │                 │  │           │
 │  │  │  ┌──────────┐   │  │   │  │  ┌──────────┐   │  │           │
-│  │  │  │OpenHawkins│   │  │   │  │  │OpenHawkins│   │  │           │
+│  │  │  │OpenJarvis│   │  │   │  │  │OpenJarvis│   │  │           │
 │  │  │  │ Daemon   │   │  │   │  │  │ Daemon   │   │  │           │
 │  │  │  └────┬─────┘   │  │   │  │  └────┬─────┘   │  │           │
 │  │  │       │         │  │   │  │       │         │  │           │
@@ -80,7 +80,7 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 **Desktop (Electron):**
 
 - **Frontend:** React/Vue/Svelte inside Electron Chromium (or the existing Astro dashboard rendered in a WebView)
-- **Backend:** The OpenHawkins daemon runs as a hidden Node.js process inside Electron (via `child_process` or `NodeIntegration`)
+- **Backend:** The OpenJarvis daemon runs as a hidden Node.js process inside Electron (via `child_process` or `NodeIntegration`)
 - **IPC:** Electron's `ipcMain`/`ipcRenderer` for UI ↔ daemon communication
 - **Packaging:** Electron Builder (`electron-builder`) for `.exe` (Windows), `.dmg` (macOS), `.AppImage`/`.deb` (Linux)
 - **Auto-update:** Electron's `autoUpdater` (or `electron-updater`) with update files served from the user's primary device (no external server)
@@ -88,7 +88,7 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 **Mobile (Flutter):**
 
 - **Frontend:** Flutter UI (Dart) — one codebase for iOS and Android
-- **Backend:** The OpenHawkins daemon compiled to a native library (via `dart:ffi` binding to a Rust/C++ wrapper around the TypeScript core, or via a headless Flutter isolate running the daemon)
+- **Backend:** The OpenJarvis daemon compiled to a native library (via `dart:ffi` binding to a Rust/C++ wrapper around the TypeScript core, or via a headless Flutter isolate running the daemon)
 - **Communication:** Flutter `MethodChannel`/`EventChannel` for UI ↔ daemon
 - **Packaging:** Flutter build for `.ipa` (iOS) and `.apk`/`.aab` (Android)
 - **Background sync:** Flutter's `workmanager` for periodic sync when app is backgrounded
@@ -111,7 +111,7 @@ OpenHawkins is **one person's personal assistant**, not a SaaS platform. Every u
 
 ### 3.4 Shared core
 
-Both Electron and Flutter apps embed the same OpenHawkins daemon (the TypeScript core compiled to a native binary or run via Node.js). The daemon exposes a JSON-RPC or gRPC interface over a local Unix socket / TCP port, which the UI connects to.
+Both Electron and Flutter apps embed the same OpenJarvis daemon (the TypeScript core compiled to a native binary or run via Node.js). The daemon exposes a JSON-RPC or gRPC interface over a local Unix socket / TCP port, which the UI connects to.
 
 ```
 ┌─────────────────────────────────────┐
@@ -151,7 +151,7 @@ Both Electron and Flutter apps embed the same OpenHawkins daemon (the TypeScript
 | #   | Subsystem                           | What it is                                                                                                                                    | Depends on       |
 | --- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | B1  | **Device Identity & Approval**      | Pairing flow. Each device gets a `deviceId` + Ed25519 keypair. User approves new devices on existing devices. The Vault becomes a sync group. | — (foundational) |
-| B2  | **Local-First Data Architecture**   | SQLite per device + CRDT/event-log sync. VECNA memory replicates. Event store syncs. Conflict resolution.                                     | B1               |
+| B2  | **Local-First Data Architecture**   | SQLite per device + CRDT/event-log sync. JarvisMemoryStore memory replicates. Event store syncs. Conflict resolution.                         | B1               |
 | B3  | **Device Discovery & Sync Network** | mDNS/Bonjour on LAN. Encrypted sync (Noise protocol). Master device election. Offline-capable.                                                | B1, B2           |
 | B4  | **Cross-Device Task Scheduling**    | Route tasks to best device. Battery-aware. Offline queueing.                                                                                  | B1, B2, B3       |
 | B5  | **Device-Level Capability Grants**  | User grants capabilities per device: "phone can send SMS", "PC can access ~/Documents".                                                       | B1               |
@@ -164,7 +164,7 @@ Both Electron and Flutter apps embed the same OpenHawkins daemon (the TypeScript
 
 Each device has:
 
-- `deviceId`: UUID (generated on first run, persisted in `~/.openhawkins/device.json`)
+- `deviceId`: UUID (generated on first run, persisted in `~/.openjarvis/device.json`)
 - `deviceName`: user-editable (e.g., "Parijat's MacBook Pro")
 - `deviceType`: `"desktop" | "laptop" | "mobile" | "tablet" | "server"`
 - `keypair`: Ed25519 (public key = device identity; private key = stored in OS keychain)
@@ -173,7 +173,7 @@ Each device has:
 
 ### 5.2 Pairing flow
 
-**Scenario:** User has OpenHawkins running on their PC. They want to add their phone.
+**Scenario:** User has OpenJarvis running on their PC. They want to add their phone.
 
 ```
 PC (existing)                           Phone (new)
@@ -215,7 +215,7 @@ The Vault is re-interpreted:
 - **Conflict resolution:** Last-write-wins with a vector clock per key. If two devices write the same key simultaneously, the lexicographically larger vector clock wins, and the losing write is kept as a conflict tombstone.
 - **Sync key:** Derived from the user's Vault passphrase via HKDF-SHA256:
   ```
-  syncMasterKey = HKDF-SHA256(passphrase, salt="openhawkins-sync-v1", info="")
+  syncMasterKey = HKDF-SHA256(passphrase, salt="openjarvis-sync-v1", info="")
   devicePairKey  = HKDF-SHA256(syncMasterKey, salt=deviceId_A + deviceId_B, info="pair")
   syncChannelKey = HKDF-SHA256(syncMasterKey, salt="sync-channel", info="")
   ```
@@ -234,7 +234,7 @@ The Vault is re-interpreted:
 
 ### 6.1 Per-device SQLite
 
-Every device has a full SQLite database (`~/.openhawkins/brain.db`). The schema is the same across devices.
+Every device has a full SQLite database (`~/.openjarvis/brain.db`). The schema is the same across devices.
 
 ```sql
 -- New table: device registry
@@ -267,7 +267,7 @@ CREATE TABLE _sync_state (
 );
 ```
 
-### 6.2 CRDT for VECNA memory
+### 6.2 CRDT for JarvisMemoryStore memory
 
 Memory fragments are naturally CRDT-friendly:
 
@@ -480,12 +480,12 @@ The first device automatically gets `device:admin`. The user can grant/revoke `d
 
 ## 10. Backward compatibility
 
-The single-device "self-host" profile is unchanged. All multi-device code is behind a `--sync` flag or auto-detected (if multiple devices are configured). Existing users running OpenHawkins on one machine see no behavior change.
+The single-device "self-host" profile is unchanged. All multi-device code is behind a `--sync` flag or auto-detected (if multiple devices are configured). Existing users running OpenJarvis on one machine see no behavior change.
 
 When upgrading from single-device to multi-device:
 
 1. The existing device becomes the "bootstrap" device (automatically gets `device:admin`)
-2. The user runs `openhawkins device add` to start pairing
+2. The user runs `openjarvis device add` to start pairing
 3. The existing SQLite database is treated as the "master" copy; new devices receive a full sync
 
 ---

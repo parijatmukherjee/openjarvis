@@ -7,7 +7,7 @@ import { type PlaybookRunState, type PhaseEvent, reducePlaybook } from "./events
 import { step } from "./machine.js";
 import type { PhaseGate } from "./gates.js";
 
-/** Everything a run needs: the manifest, the session/run ids, the VINES store + Murray
+/** Everything a run needs: the manifest, the session/run ids, the JarvisStateStore store + Audit
  *  audit it writes to, the operator's capability grant, and the two gates it dispatches to. */
 export interface PlaybookRunDeps {
   manifest: PlaybookManifest;
@@ -32,7 +32,7 @@ const OVERRIDE_CAPABILITY = "playbook:override" as const;
 
 /**
  * The single-writer driver for one Playbook run. It evaluates each phase's gate, applies
- * the pure `step` transition, and commits the resulting `PhaseEvent`s to VINES + Murray
+ * the pure `step` transition, and commits the resulting `PhaseEvent`s to JarvisStateStore + Audit
  * (so the run replays and is tamper-evident). Soft phases pause for a capability-gated,
  * audited operator `override`. Methods are awaited in order; one run = one writer.
  */
@@ -184,7 +184,7 @@ export class PlaybookRun {
     });
   }
 
-  /** Append to VINES, mirror to Murray, fold into local state — in that order. */
+  /** Append to JarvisStateStore, mirror to Audit, fold into local state — in that order. */
   private async commit(event: PhaseEvent): Promise<void> {
     await this.deps.store.append(event);
     await this.deps.audit.append({ kind: event.type, data: { ...event }, at: event.at });

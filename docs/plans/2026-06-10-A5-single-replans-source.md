@@ -127,7 +127,7 @@ describe("playbook machine — step", () => {
 
 - [ ] **Step 2: Run the machine tests to verify they fail**
 
-Run: `npm run -w @openhawkins/core test -- machine.test.ts`
+Run: `npm run -w @openjarvis/core test -- machine.test.ts`
 Expected: FAIL — the old `step` returns `{ next: {...}, outcome }`, not `{ phase, outcome }`.
 
 - [ ] **Step 3: Reshape `Transition` and `step` in `machine.ts`**
@@ -212,7 +212,7 @@ this._status = this.statusForPhase(transition.phase);
 
 - [ ] **Step 5: Run the machine + runner tests to verify they pass**
 
-Run: `npm run -w @openhawkins/core test -- machine.test.ts runner.test.ts`
+Run: `npm run -w @openjarvis/core test -- machine.test.ts runner.test.ts`
 Expected: PASS. The runner's observable behavior (phases, replans, escalation thresholds) is
 unchanged — only `step`'s internal shape moved.
 
@@ -279,7 +279,7 @@ const status = await run.advance(); // fails; replans (0) >= maxReplans (0) -> e
 
 - [ ] **Step 3: Run the runner tests**
 
-Run: `npm run -w @openhawkins/core test -- runner.test.ts`
+Run: `npm run -w @openjarvis/core test -- runner.test.ts`
 Expected: PASS (the invariant holds; the comment change is inert).
 
 - [ ] **Step 4: Mark A5 done in the review roadmap**
@@ -302,7 +302,7 @@ Expected: all green, coverage 100%.
 
 - [ ] **Step 6: Docker gate**
 
-Run: `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test`
+Run: `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test`
 Expected: `✅ ALL GATES PASSED`
 
 - [ ] **Step 7: Commit**

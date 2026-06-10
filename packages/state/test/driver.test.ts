@@ -15,7 +15,7 @@ describe("openDatabase pragmas", () => {
 
 describe("SqlDriver vacuum", () => {
   it("reclaims disk space after heavy inserts and deletes", () => {
-    const dir = mkdtempSync(join(tmpdir(), "openhawkins-vacuum-test-"));
+    const dir = mkdtempSync(join(tmpdir(), "openjarvis-vacuum-test-"));
     const dbPath = join(dir, "test.db");
 
     const db = openDatabase({ path: dbPath });

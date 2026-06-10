@@ -1,16 +1,16 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ScriptedOperator, weakHostFactsModel, ValidateGate, JsonLogger } from "@openhawkins/core";
+import { ScriptedOperator, weakHostFactsModel, ValidateGate, JsonLogger } from "@openjarvis/core";
 import { buildDurableAgentRun, verifyDurable } from "../build-durable-agent-run.js";
 import { checkHealth } from "../health.js";
-import { anchorAuditChain, verifyAnchor, FileVault, resolveAuditKey } from "@openhawkins/core";
+import { anchorAuditChain, verifyAnchor, FileVault, resolveAuditKey } from "@openjarvis/core";
 import { openDatabase } from "../driver/driver.js";
 import { SqliteAuditLog } from "../audit-store.js";
 import { rollback } from "../migrate.js";
 import { SCHEMA } from "../schema.js";
 
 /**
- * `openhawkins-run` — a durable, keyed-audit agent run over SQLite (A1b: F-C1/F-C2 at
+ * `openjarvis-run` — a durable, keyed-audit agent run over SQLite (A1b: F-C1/F-C2 at
  * runtime). The scripted model + a trivial Validate make a deterministic offline demo; the
  * SQLite event store, the Vault-resolved audit key, and the keyed HMAC chain are all REAL.
  * `--verify` reopens an existing db+vault (a SEPARATE process) and reports whether the
@@ -29,13 +29,9 @@ function flag(args: string[], name: string, fallback: string): string {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const dbPath = flag(args, "--db", join(tmpdir(), "openhawkins.db"));
-  const vaultPath = flag(args, "--vault", join(tmpdir(), "openhawkins-vault.json"));
-  const passphrase = flag(
-    args,
-    "--passphrase",
-    process.env.OPENHAWKINS_VAULT_PASS ?? "openhawkins",
-  );
+  const dbPath = flag(args, "--db", join(tmpdir(), "openjarvis.db"));
+  const vaultPath = flag(args, "--vault", join(tmpdir(), "openjarvis-vault.json"));
+  const passphrase = flag(args, "--passphrase", process.env.OPENJARVIS_VAULT_PASS ?? "openjarvis");
   const asJson = args.includes("--json");
   const anchorPath = flag(args, "--anchor", "");
   const verifyAnchorPath = flag(args, "--verify-anchor", "");

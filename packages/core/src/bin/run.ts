@@ -1,7 +1,7 @@
 import { tmpdir } from "node:os";
 import { createInterface } from "node:readline";
 import type { ModelAdapter } from "../models/adapter.js";
-import type { GroundingMode } from "../grounding/eleven.js";
+import type { GroundingMode } from "../grounding/grounding-engine.js";
 import { weakHostFactsModel } from "../eval/scenarios.js";
 import { buildAgentRun } from "../playbook/build-agent-run.js";
 import { HumanOperator, ScriptedOperator } from "../playbook/operators.js";
@@ -10,7 +10,7 @@ import { JsonLogger } from "../observability/logger.js";
 import type { Operator } from "../playbook/agent-run.js";
 
 /**
- * `openhawkins run` — drive a real agent run as a Playbook-governed process. The scripted
+ * `openjarvis run` — drive a real agent run as a Playbook-governed process. The scripted
  * model + a trivial Validate make a deterministic, offline demo (the REAL orchestrator,
  * gates plumbing, events and audit still run). `--approve-all` runs unattended (a
  * ScriptedOperator that approves every soft phase — still audited); otherwise a human is

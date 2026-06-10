@@ -1,11 +1,11 @@
-# Reproducible Linux test environment for OpenHawkins.
+# Reproducible Linux test environment for OpenJarvis.
 #
 # Builds a clean image with the project's exact dependencies and runs the full
 # CI gate (build + lint + format:check + test) as the container's default
 # command. This is the gate every PR must pass before merging to main.
 #
-#   docker build -f Dockerfile.test -t openhawkins-test .
-#   docker run --rm openhawkins-test
+#   docker build -f Dockerfile.test -t openjarvis-test .
+#   docker run --rm openjarvis-test
 #
 # or, via compose:  docker compose run --rm test
 FROM node:24-slim

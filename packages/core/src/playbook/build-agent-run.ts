@@ -3,13 +3,14 @@ import type { ModelAdapter } from "../models/adapter.js";
 import { ToolRegistry } from "../tools/registry.js";
 import { diskFreeTool } from "../tools/disk-free.js";
 import { createDocumentTool, type DocumentConverter } from "../tools/document-tool.js";
-import type { GroundingMode } from "../grounding/eleven.js";
+import type { GroundingMode } from "../grounding/grounding-engine.js";
 import { InMemoryEventStore, type EventStore } from "../session/events.js";
 import { RedactingEventStore } from "../session/redacting-store.js";
 import { InMemoryAuditLog, type AuditLog } from "../security/audit.js";
 import { type Clock, systemClock } from "../util/clock.js";
 import type { AgentGrant } from "../security/capability.js";
 import { type Logger, noopLogger } from "../observability/logger.js";
+import type { MemoryStore } from "../memory.js";
 import { DEFAULT_MANIFEST, type Phase } from "./manifest.js";
 import { SoftGate, ValidateGate, type PhaseGate } from "./gates.js";
 import { gateCommandPredicate, DEFAULT_GATE_COMMANDS } from "./gate-command.js";
@@ -32,9 +33,11 @@ export interface BuildAgentRunOpts {
   /** Structured logger for swallow-point diagnostics; defaults to a no-op (silent). The
    *  CLIs inject a JsonLogger to turn observability on. */
   logger?: Logger;
-  /** Optional document converter for token reduction (e.g. `@openhawkins/markdownify`).
+  /** Optional document converter for token reduction (e.g. `@openjarvis/markdownify`).
    *  When provided, a `convert_document` tool is registered with the agent. */
   documentConverter?: DocumentConverter;
+  /** Optional memory store for context injection before each turn (e.g. JarvisMemoryStore). */
+  memory?: MemoryStore;
 }
 
 export interface BuiltAgentRun {
@@ -82,6 +85,7 @@ export async function buildAgentRun(opts: BuildAgentRunOpts): Promise<BuiltAgent
     store,
     audit,
     clock,
+    ...(opts.memory ? { memory: opts.memory } : {}),
   });
 
   // `exactOptionalPropertyTypes` makes the prompt values `string` (an explicit `undefined`

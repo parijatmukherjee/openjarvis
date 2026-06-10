@@ -4,7 +4,7 @@
 
 **Goal:** Implement the vision skill (camera input, detection, presence awareness) and E2E automation suite (MockUser, 15 scenarios) per spec `docs/specs/2026-06-10-vision-skill-and-e2e-automation.md`.
 
-**Architecture:** Add `@openhawkins/jarvis` vision interfaces (`VisionEngine`, `DetectionModel`, `PresenceStateMachine`, `VisionEvent`), mock implementations using fixtures, auto-display `VisualResolver`, and an in-process E2E test harness (`MockUser`) that exercises all Jarvis features end-to-end.
+**Architecture:** Add `@openjarvis/jarvis` vision interfaces (`VisionEngine`, `DetectionModel`, `PresenceStateMachine`, `VisionEvent`), mock implementations using fixtures, auto-display `VisualResolver`, and an in-process E2E test harness (`MockUser`) that exercises all Jarvis features end-to-end.
 
 **Tech Stack:** TypeScript (strict ESM, `.js` specifiers), Vitest, Node.js `worker_threads`, SQLite, pre-recorded frame fixtures.
 
@@ -869,8 +869,8 @@ Expected: FAIL
 
 ```typescript
 // packages/agents/src/built-in/vision.ts
-import type { AgentResult } from "@openhawkins/jarvis";
-import type { DetectedObject, PresenceState } from "@openhawkins/jarvis";
+import type { AgentResult } from "@openjarvis/jarvis";
+import type { DetectedObject, PresenceState } from "@openjarvis/jarvis";
 
 export interface VisionAgent {
   execute(intent: VisionIntent, context: VisionContext): Promise<VisionAgentResult>;
@@ -963,7 +963,7 @@ Expected: FAIL
 import type { VisualCommand } from "../../src/synthesis.js";
 import type { VisionEvent } from "../../src/vision/events.js";
 import type { BusEvent } from "../../src/event-bus.js";
-import type { AuditEntry } from "@openhawkins/core";
+import type { AuditEntry } from "@openjarvis/core";
 
 export interface JarvisHub {
   wakeWordEngine: { start(callback: () => void): Promise<void> };

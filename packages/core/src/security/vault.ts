@@ -3,7 +3,7 @@ import { readFile, mkdir, open, rename } from "node:fs/promises";
 import { dirname } from "node:path";
 
 /**
- * The Cabin — secrets interface (spec §8.1). Secrets resolve at the point of use
+ * the Vault — secrets interface (spec §8.1). Secrets resolve at the point of use
  * and never land in config, events, or audit. S1 ships an encrypted `FileVault`
  * (AES-256-GCM, key derived from a passphrase via scrypt, file mode 0600) plus an
  * `InMemoryVault` for tests; the `KeychainVault` lands in S6 behind this same

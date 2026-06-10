@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { Eleven } from "../../src/grounding/eleven.js";
+import { GroundingEngine } from "../../src/grounding/grounding-engine.js";
 import { verifyCitations, type CitedAnswer } from "../../src/grounding/citations.js";
 import type { ToolCallRecord } from "../../src/loop/turn.js";
 
-describe("Eleven cited — unknown path", () => {
+describe("GroundingEngine cited — unknown path", () => {
   it("accepts an honest unknown even in cited mode (before any tool call)", () => {
-    const eleven = new Eleven({ mode: "cited", qualifyingTools: ["disk_free"] });
-    const decision = eleven.evaluate({ final: JSON.stringify({ unknown: true }), toolResults: [] });
+    const engine = new GroundingEngine({ mode: "cited", qualifyingTools: ["disk_free"] });
+    const decision = engine.evaluate({ final: JSON.stringify({ unknown: true }), toolResults: [] });
     expect(decision).toEqual({ accept: true, flagged: "unknown" });
   });
 });

@@ -1,12 +1,12 @@
-# `@openhawkins/markdownify` — native document → Markdown — Design
+# `@openjarvis/markdownify` — native document → Markdown — Design
 
 **Date:** 2026-06-09
 **Status:** Draft for review
-**Parent:** [`2026-06-05-openhawkins-design.md`](./2026-06-05-openhawkins-design.md) (umbrella)
+**Parent:** [`2026-06-05-openjarvis-design.md`](./2026-06-05-openjarvis-design.md) (umbrella)
 
 > A self-owned, native (TypeScript) converter that turns verbose source documents
 > into compact **Markdown** before content enters the agent's context — the
-> token-reduction layer requested as "use markitdown always." It is OpenHawkins's
+> token-reduction layer requested as "use markitdown always." It is OpenJarvis's
 > own implementation (informed by Microsoft's MIT `markitdown`, not a port), so it
 > runs in the **single self-contained binary** with **no Python** and **no external
 > service** — consistent with ADR 0001 and the pure-JS-over-sqlite-vec decision.
@@ -16,11 +16,11 @@
 ## 1. Goal & scope
 
 **Goal.** Given bytes/text + a hint (mime or filename), produce token-efficient
-Markdown. Used at OpenHawkins's ingestion boundary so documents (web pages, Office
+Markdown. Used at OpenJarvis's ingestion boundary so documents (web pages, Office
 files, PDFs, data payloads, tool output) cost far fewer tokens when fed to a model
-or stored in VECNA memory.
+or stored in JarvisMemoryStore memory.
 
-**In scope (v1).** A standalone `@openhawkins/markdownify` package: a converter
+**In scope (v1).** A standalone `@openjarvis/markdownify` package: a converter
 **registry** + these converters — **HTML, CSV, JSON, XML, plain-text** (pure-JS /
 hand-rolled) and **DOCX, XLSX, PPTX, PDF** (light pure-JS libraries) — plus a small
 CLI to exercise it.
@@ -34,7 +34,7 @@ CLI to exercise it.
 
 **Out of scope (later increments / optional).** Image OCR and audio/video
 transcription (markitdown's heaviest, cloud/LLM-dependent converters); the
-"always-on" **wiring** into each ingestion consumer (tool results, VECNA memory,
+"always-on" **wiring** into each ingestion consumer (tool results, JarvisMemoryStore memory,
 channel attachments) — a thin follow-on per consumer as those are touched. v1 ships
 the reusable engine + CLI.
 
@@ -130,7 +130,7 @@ extension → content sniff** (magic bytes: `PK` zip header for docx/xlsx/pptx, 
 for pdf, `<` for html/xml). The registry orders specific converters before the
 `text` fallback. `markdownify` calls the chosen converter inside a `try/catch`: a
 throw becomes a `warning` plus a best-effort text rendering, so ingestion never
-fails the turn (mirrors Eleven/registry "never throws" discipline).
+fails the turn (mirrors GroundingEngine/registry "never throws" discipline).
 
 ---
 
@@ -199,7 +199,7 @@ wiring that lands as each consumer is touched:
 
 - **Tool results** (S1): a tool that returns a document/bytes is markdownified before
   the result re-enters the model's context.
-- **VECNA memory** (S2): external/document content is markdownified before becoming a
+- **JarvisMemoryStore memory** (S2): external/document content is markdownified before becoming a
   fragment (fewer tokens stored + recalled).
 - **Channels** (S4): inbound attachments (PDF/DOCX/…) are markdownified on receipt.
 

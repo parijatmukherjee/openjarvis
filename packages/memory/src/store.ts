@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { Provenance } from "@openhawkins/core";
-import { type SqlDriver, type SqlStatement, openDatabase, migrate } from "@openhawkins/state";
+import type { Provenance } from "@openjarvis/core";
+import { type SqlDriver, type SqlStatement, openDatabase, migrate } from "@openjarvis/state";
 import type { Fragment, ScoredFragment } from "./fragment.js";
 import { MEMORY_SCHEMA } from "./schema.js";
 import { type Candidate, rankCandidates, toMatchQuery, bm25ToRelevance } from "./recall.js";
@@ -36,12 +36,12 @@ interface FragmentRow {
 }
 
 /**
- * VECNA — decay-aware memory over embedded SQLite. `remember` writes a fragment,
+ * JarvisMemoryStore — decay-aware memory over embedded SQLite. `remember` writes a fragment,
  * `recall` returns the most relevant ones for a query (FTS5 text match re-ranked by
  * the pure scorer in recall.ts), and `reinforce` strengthens a fragment that proved
  * useful. The DB handle is injected so tests run against a real `:memory:` SQLite.
  */
-export class VecnaStore {
+export class JarvisMemoryStore {
   private readonly db: SqlDriver;
   private readonly nextId: () => string;
   private readonly embedder: Embedder | undefined;
@@ -78,8 +78,11 @@ export class VecnaStore {
     );
   }
 
-  static open(path: string, opts: { id?: () => string; embedder?: Embedder } = {}): VecnaStore {
-    return new VecnaStore(openDatabase({ path }), opts);
+  static open(
+    path: string,
+    opts: { id?: () => string; embedder?: Embedder } = {},
+  ): JarvisMemoryStore {
+    return new JarvisMemoryStore(openDatabase({ path }), opts);
   }
 
   async remember(input: RememberInput, now: number = Date.now()): Promise<Fragment> {

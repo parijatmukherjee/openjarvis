@@ -10,7 +10,7 @@
 2. **Serialized mutations.** `set`/`delete` are read-modify-write (`load()` the whole map, mutate, `save()`); two concurrent `set`s both load the old map and the second `save` clobbers the first's write (a lost secret). Fix: funnel every operation through a single promise-chain `tail` so they run one-at-a-time in call order — the same pattern the keyed audit log (A2) uses.
 3. **Tunable, raised scrypt cost.** `scryptSync(pass, salt, 32)` uses Node's default cost (N=16384). Fix: derive with explicit, raised parameters (default N=65536), make them a constructor option, and record the parameters used in the vault file so older files (written without them) still decrypt under the legacy default — a file written by old code reads back, and is upgraded to the new cost on its next save.
 
-**Scope note (honest):** This PR hardens the `FileVault` itself. The other half of F-H5 — "CLIs read adapter keys from `process.env` instead of the Vault" (`bin/ask.ts`) — is deferred to **A6b**; the `core/bin/*` commands are the legacy in-memory demo path (the real durable entrypoint is `openhawkins-run` in `packages/state`), so wiring vault-backed adapter keys there is lower-value and is tracked separately.
+**Scope note (honest):** This PR hardens the `FileVault` itself. The other half of F-H5 — "CLIs read adapter keys from `process.env` instead of the Vault" (`bin/ask.ts`) — is deferred to **A6b**; the `core/bin/*` commands are the legacy in-memory demo path (the real durable entrypoint is `openjarvis-run` in `packages/state`), so wiring vault-backed adapter keys there is lower-value and is tracked separately.
 
 **Tech Stack:** TypeScript (strict ESM, `.js` specifiers), `node:crypto` scrypt/AES-256-GCM, `node:fs/promises`, Vitest.
 
@@ -292,7 +292,7 @@ In `docs/reviews/2026-06-09-production-readiness-review.md`, replace the A6 road
 (item 6, "**A6 — Vault durability + security (F-H5).**") with:
 
 ```md
-6. **A6 — Vault durability + security (F-H5) ✅ DONE (PR pending).** `FileVault` now writes atomically (temp file + `fsync` + `rename`, so a crash never corrupts the live vault), serializes every `get`/`set`/`delete` through a single promise-chain tail (concurrent `set`s can no longer drop each other's writes), and derives keys at a raised, tunable scrypt cost (default N=65536) whose parameters are recorded per file so legacy param-less files still decrypt. **A6b (future)** — wire adapter keys through the Vault in the CLI (`bin/ask.ts` still reads `process.env`); deferred because `core/bin/*` is the legacy in-memory demo path, not the durable `openhawkins-run` entrypoint.
+6. **A6 — Vault durability + security (F-H5) ✅ DONE (PR pending).** `FileVault` now writes atomically (temp file + `fsync` + `rename`, so a crash never corrupts the live vault), serializes every `get`/`set`/`delete` through a single promise-chain tail (concurrent `set`s can no longer drop each other's writes), and derives keys at a raised, tunable scrypt cost (default N=65536) whose parameters are recorded per file so legacy param-less files still decrypt. **A6b (future)** — wire adapter keys through the Vault in the CLI (`bin/ask.ts` still reads `process.env`); deferred because `core/bin/*` is the legacy in-memory demo path, not the durable `openjarvis-run` entrypoint.
 ```
 
 - [ ] **Step 2: Full repo gate**
@@ -307,7 +307,7 @@ Expected: all green, coverage 100%.
 
 - [ ] **Step 3: Docker gate**
 
-Run: `docker build -f Dockerfile.test -t openhawkins-test . && docker run --rm openhawkins-test`
+Run: `docker build -f Dockerfile.test -t openjarvis-test . && docker run --rm openjarvis-test`
 Expected: `✅ ALL GATES PASSED`
 
 - [ ] **Step 4: Commit**

@@ -11,7 +11,7 @@ import {
   foldPlaybook,
   mintAuditKey,
   type PhaseEvent,
-} from "@openhawkins/core";
+} from "@openjarvis/core";
 import { openDatabase, SqliteEventStore, SqliteAuditLog } from "../src/index.js";
 
 const PROMPT = "How much disk space is free on this machine?";

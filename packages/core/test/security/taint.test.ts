@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { provenance, requiresApproval } from "../../src/security/taint.js";
 
-describe("provenance (The Gate)", () => {
+describe("provenance (the Gate)", () => {
   it("marks external content as tainted and trusted sources as clean", () => {
     expect(provenance("external", "telegram-msg").taint).toBe(true);
     expect(provenance("operator", "cli").taint).toBe(false);

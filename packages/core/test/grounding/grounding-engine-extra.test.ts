@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Eleven, groundingInstruction } from "../../src/grounding/eleven.js";
+import { GroundingEngine, groundingInstruction } from "../../src/grounding/grounding-engine.js";
 import { parseAnswer } from "../../src/grounding/citations.js";
 import type { ToolCallRecord } from "../../src/loop/turn.js";
 
@@ -8,12 +8,12 @@ const okDiskFree: ToolCallRecord = {
   result: { id: "oc-1", tool: "disk_free", ok: true, data: { path: "/", freeBytes: 12345 } },
 };
 
-describe("Eleven — cited mode edge cases", () => {
-  const eleven = new Eleven({ mode: "cited", qualifyingTools: ["disk_free"] });
+describe("GroundingEngine — cited mode edge cases", () => {
+  const engine = new GroundingEngine({ mode: "cited", qualifyingTools: ["disk_free"] });
 
   it("rejects a structurally valid answer with zero claims", () => {
     const final = JSON.stringify({ text: "I am sure", claims: [] });
-    const decision = eleven.evaluate({ final, toolResults: [okDiskFree] });
+    const decision = engine.evaluate({ final, toolResults: [okDiskFree] });
     expect(decision.accept).toBe(false);
     expect(decision.correction).toMatch(/cite at least one tool result/);
   });

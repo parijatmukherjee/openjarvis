@@ -10,7 +10,7 @@ describe("Vault-wired adapter config", () => {
     const getKey = async () => {
       const v = await vault.get("openai-key");
       if (v !== null) return v;
-      return process.env.OPENHAWKINS_OPENAI_KEY;
+      return process.env.OPENJARVIS_OPENAI_KEY;
     };
 
     expect(await getKey()).toBe("vault-key-123");
@@ -18,22 +18,22 @@ describe("Vault-wired adapter config", () => {
 
   it("falls back to env when Vault has no entry", async () => {
     const vault = new InMemoryVault();
-    const original = process.env.OPENHAWKINS_OPENAI_KEY;
-    process.env.OPENHAWKINS_OPENAI_KEY = "env-key-456";
+    const original = process.env.OPENJARVIS_OPENAI_KEY;
+    process.env.OPENJARVIS_OPENAI_KEY = "env-key-456";
 
     const getKey = async () => {
       const v = await vault.get("openai-key");
       if (v !== null) return v;
-      return process.env.OPENHAWKINS_OPENAI_KEY;
+      return process.env.OPENJARVIS_OPENAI_KEY;
     };
 
     try {
       expect(await getKey()).toBe("env-key-456");
     } finally {
       if (original !== undefined) {
-        process.env.OPENHAWKINS_OPENAI_KEY = original;
+        process.env.OPENJARVIS_OPENAI_KEY = original;
       } else {
-        delete process.env.OPENHAWKINS_OPENAI_KEY;
+        delete process.env.OPENJARVIS_OPENAI_KEY;
       }
     }
   });
