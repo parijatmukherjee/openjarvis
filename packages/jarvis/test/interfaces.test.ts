@@ -35,6 +35,7 @@ import type {
   DetectionModel,
   VisionEvent,
   VisionEventType,
+  PresenceStateMachine,
 } from "../src/index.js";
 
 describe("jarvis interface compilation", () => {
@@ -176,5 +177,9 @@ describe("jarvis interface compilation", () => {
 
   it("VisionEventType compiles", () => {
     expectTypeOf<VisionEventType>().toBeString();
+  });
+
+  it("PresenceStateMachine compiles", () => {
+    expectTypeOf<PresenceStateMachine>().toBeObject();
   });
 });
