@@ -11,6 +11,8 @@
     { "path": "packages/markdownify/tsconfig.test.json" },
     { "path": "packages/desktop" },
     { "path": "packages/desktop/tsconfig.test.json" },
+    { "path": "packages/skills" },
+    { "path": "packages/skills/tsconfig.test.json" },
     { "path": "packages/jarvis" },
     { "path": "packages/jarvis/tsconfig.test.json" },
     { "path": "packages/agents" },

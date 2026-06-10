@@ -116,20 +116,20 @@ packages/
 
 ## Implementation Roadmap
 
-| Phase | What | Priority | Est. Effort |
-|-------|------|----------|-------------|
-| **J1** | **Design `@openhawkins/jarvis` architecture** — intent parser, delegation protocol, agent pool interface, synthesis engine, voice pipeline interfaces | P0 | 1–2 weeks |
-| **J2** | **Stand up `@openhawkins/agents`** — agent factory, 7 specialist roles, scoped grants | P0 | 2 weeks |
-| **J3** | **Voice pipeline interfaces** — `AudioInput`, `AudioOutput`, `WakeWordEngine`, `SttEngine`, `TtsEngine` | P0 | 1 week |
-| **J4** | **Skills system v0** — `SKILL.md` parser, installer, capability-gated loader | P0 | 2–3 weeks |
-| **J5** | **Monitor controller v0** — `DisplayManager`, OS app launchers, multi-monitor | P0 | 1–2 weeks |
-| **J6** | **Wire memory + markdownify** — make VECNA default-injected | P1 | 3–5 days |
-| **J7** | **Proactive scheduler** — job registry, event bus, time-based initiation | P1 | 2 weeks |
-| **J8** | **Electron dashboard skeleton** | P1 | 2 weeks |
-| **J9** | **Security package extraction** | P2 | 1 week |
-| **J10** | **Agent-level isolation** | P2 | 3–4 weeks |
-| **J11** | **Channels gateway** | P2 | 2–3 weeks |
-| **J12** | **Skill marketplace client** | P3 | 2–3 weeks |
+| Phase   | What                                                                                                                                                  | Priority | Est. Effort |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------- |
+| **J1**  | **Design `@openhawkins/jarvis` architecture** — intent parser, delegation protocol, agent pool interface, synthesis engine, voice pipeline interfaces | P0       | 1–2 weeks   |
+| **J2**  | **Stand up `@openhawkins/agents`** — agent factory, 7 specialist roles, scoped grants                                                                 | P0       | 2 weeks     |
+| **J3**  | **Voice pipeline interfaces** — `AudioInput`, `AudioOutput`, `WakeWordEngine`, `SttEngine`, `TtsEngine`                                               | P0       | 1 week      |
+| **J4**  | **Skills system v0** — `SKILL.md` parser, installer, capability-gated loader                                                                          | P0       | 2–3 weeks   |
+| **J5**  | **Monitor controller v0** — `DisplayManager`, OS app launchers, multi-monitor                                                                         | P0       | 1–2 weeks   |
+| **J6**  | **Wire memory + markdownify** — make VECNA default-injected                                                                                           | P1       | 3–5 days    |
+| **J7**  | **Proactive scheduler** — job registry, event bus, time-based initiation                                                                              | P1       | 2 weeks     |
+| **J8**  | **Electron dashboard skeleton**                                                                                                                       | P1       | 2 weeks     |
+| **J9**  | **Security package extraction**                                                                                                                       | P2       | 1 week      |
+| **J10** | **Agent-level isolation**                                                                                                                             | P2       | 3–4 weeks   |
+| **J11** | **Channels gateway**                                                                                                                                  | P2       | 2–3 weeks   |
+| **J12** | **Skill marketplace client**                                                                                                                          | P3       | 2–3 weeks   |
 
 ---
 
@@ -147,4 +147,4 @@ packages/
 
 ---
 
-*Review conducted on 2026-06-10. All 245 source files examined.*
+_Review conducted on 2026-06-10. All 245 source files examined._

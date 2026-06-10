@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { MockVisionEngine, MockDetectionModel, MockPresenceStateMachine } from "../../src/vision/mock.js";
+import {
+  MockVisionEngine,
+  MockDetectionModel,
+  MockPresenceStateMachine,
+} from "../../src/vision/mock.js";
 import type { VisionConfig, BurstOptions } from "../../src/vision/engine.js";
 
 describe("MockVisionEngine", () => {

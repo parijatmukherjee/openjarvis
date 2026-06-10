@@ -15,6 +15,7 @@
 ### Task 1.1: Create `@openhawkins/jarvis` package skeleton
 
 **Files:**
+
 - Create: `packages/jarvis/package.json`
 - Create: `packages/jarvis/tsconfig.json`
 - Create: `packages/jarvis/tsconfig.test.json`
@@ -58,6 +59,7 @@
 ### Task 1.2: Define core interfaces
 
 **Files:**
+
 - Create: `packages/jarvis/src/intent.ts`
 - Create: `packages/jarvis/src/context.ts`
 - Create: `packages/jarvis/src/synthesis.ts`
@@ -128,6 +130,7 @@ export interface VoiceProfile {
 ### Task 1.3: Define voice pipeline interfaces
 
 **Files:**
+
 - Create: `packages/jarvis/src/voice/wake-word.ts`
 - Create: `packages/jarvis/src/voice/stt.ts`
 - Create: `packages/jarvis/src/voice/tts.ts`
@@ -164,6 +167,7 @@ export interface AudioOutput {
 ### Task 1.4: Define display manager interface
 
 **Files:**
+
 - Create: `packages/jarvis/src/display/display-manager.ts`
 - Create: `packages/jarvis/src/display/index.ts`
 - Test: `packages/jarvis/test/display/interfaces.test.ts`
@@ -190,6 +194,7 @@ export interface DisplayInfo {
 ### Task 1.5: Define delegator and agent pool interfaces
 
 **Files:**
+
 - Create: `packages/jarvis/src/agents/delegator.ts`
 - Create: `packages/jarvis/src/agents/pool.ts`
 - Create: `packages/jarvis/src/agents/index.ts`
@@ -234,6 +239,7 @@ export interface AgentInfo {
 ### Task 1.6: Define scheduler and event bus interfaces
 
 **Files:**
+
 - Create: `packages/jarvis/src/scheduler.ts`
 - Create: `packages/jarvis/src/event-bus.ts`
 - Test: `packages/jarvis/test/scheduler.test.ts`
@@ -244,6 +250,7 @@ export interface AgentInfo {
 ### Task 1.7: Create `@openhawkins/agents` package skeleton
 
 **Files:**
+
 - Create: `packages/agents/package.json`
 - Create: `packages/agents/tsconfig.json`
 - Create: `packages/agents/src/index.ts`
@@ -256,6 +263,7 @@ export interface AgentInfo {
 ### Task 1.8: Create `@openhawkins/skills` package skeleton
 
 **Files:**
+
 - Create: `packages/skills/package.json`
 - Create: `packages/skills/tsconfig.json`
 - Create: `packages/skills/src/index.ts`
@@ -269,6 +277,7 @@ export interface AgentInfo {
 ### Task 1.9: Create `@openhawkins/desktop` package skeleton (Electron)
 
 **Files:**
+
 - Create: `packages/desktop/package.json`
 - Create: `packages/desktop/tsconfig.json`
 - Create: `packages/desktop/src/main.ts`
@@ -284,13 +293,14 @@ export interface AgentInfo {
 ### Task 2.1: Implement mock voice pipeline
 
 **Files:**
+
 - Create: `packages/jarvis/src/voice/mock.ts`
 - Test: `packages/jarvis/test/voice/mock.test.ts`
 
 ```typescript
 export class MockWakeWordEngine implements WakeWordEngine {
   private callback?: () => void;
-  
+
   async start(callback: () => void): Promise<void> {
     this.callback = callback;
     // Listen for keyboard shortcut
@@ -300,7 +310,7 @@ export class MockWakeWordEngine implements WakeWordEngine {
       }
     });
   }
-  
+
   async stop(): Promise<void> {
     this.callback = undefined;
   }
@@ -332,27 +342,35 @@ export class MockTtsEngine implements TtsEngine {
 ### Task 2.2: Implement mock display manager
 
 **Files:**
+
 - Create: `packages/jarvis/src/display/mock.ts`
 - Test: `packages/jarvis/test/display/mock.test.ts`
 
 ```typescript
 export class MockDisplayManager implements DisplayManager {
   async listDisplays(): Promise<DisplayInfo[]> {
-    return [{ id: "display-1", name: "Primary", primary: true, bounds: { x: 0, y: 0, width: 1920, height: 1080 } }];
+    return [
+      {
+        id: "display-1",
+        name: "Primary",
+        primary: true,
+        bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+      },
+    ];
   }
-  
+
   async openApp(app: string, displayId?: string): Promise<void> {
     console.log(`[Display] open_app: ${app} on ${displayId || "primary"}`);
   }
-  
+
   async openUrl(url: string, displayId?: string): Promise<void> {
     console.log(`[Display] open_url: ${url} on ${displayId || "primary"}`);
   }
-  
+
   async showText(text: string, displayId?: string): Promise<void> {
     console.log(`[Display] show_text: "${text}" on ${displayId || "primary"}`);
   }
-  
+
   async clear(displayId?: string): Promise<void> {
     console.log(`[Display] clear on ${displayId || "primary"}`);
   }
@@ -364,6 +382,7 @@ export class MockDisplayManager implements DisplayManager {
 ### Task 2.3: Implement simple rule-based intent parser
 
 **Files:**
+
 - Create: `packages/jarvis/src/intent/rule-based.ts`
 - Test: `packages/jarvis/test/intent/rule-based.test.ts`
 
@@ -371,22 +390,28 @@ export class MockDisplayManager implements DisplayManager {
 export class RuleBasedIntentParser implements IntentParser {
   async parse(input: string, context: JarvisContext): Promise<Intent> {
     const normalized = input.toLowerCase().trim();
-    
+
     if (normalized.includes("open")) {
       const app = normalized.replace("open", "").trim();
       return { action: "open_app", params: { app }, confidence: 0.9, ambiguous: false };
     }
-    
+
     if (normalized.includes("search")) {
       const query = normalized.replace("search", "").replace("for", "").trim();
       return { action: "search", params: { query }, confidence: 0.85, ambiguous: false };
     }
-    
+
     if (normalized.includes("update")) {
       return { action: "get_updates", params: {}, confidence: 0.8, ambiguous: false };
     }
-    
-    return { action: "unknown", params: { text: input }, confidence: 0.3, ambiguous: true, suggestedClarification: "Could you rephrase that?" };
+
+    return {
+      action: "unknown",
+      params: { text: input },
+      confidence: 0.3,
+      ambiguous: true,
+      suggestedClarification: "Could you rephrase that?",
+    };
   }
 }
 ```
@@ -396,17 +421,22 @@ export class RuleBasedIntentParser implements IntentParser {
 ### Task 2.4: Implement synthesizer
 
 **Files:**
+
 - Create: `packages/jarvis/src/synthesis/simple.ts`
 - Test: `packages/jarvis/test/synthesis/simple.test.ts`
 
 ```typescript
 export class SimpleSynthesizer implements Synthesizer {
-  async synthesize(results: AgentResult[], originalIntent: Intent, context: JarvisContext): Promise<Synthesis> {
+  async synthesize(
+    results: AgentResult[],
+    originalIntent: Intent,
+    context: JarvisContext,
+  ): Promise<Synthesis> {
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
-    
+
     let spoken = "";
-    
+
     if (successful.length === 0) {
       spoken = "I wasn't able to complete that task. " + (failed[0]?.error || "");
     } else if (successful.length === 1) {
@@ -414,13 +444,13 @@ export class SimpleSynthesizer implements Synthesizer {
     } else {
       spoken = `Done. I've completed ${successful.length} tasks for you.`;
     }
-    
+
     const visual: VisualCommand[] = [];
-    
+
     if (originalIntent.action === "open_app" && originalIntent.params.app) {
       visual.push({ type: "open_app", app: String(originalIntent.params.app) });
     }
-    
+
     return { spoken, visual };
   }
 }
@@ -431,6 +461,7 @@ export class SimpleSynthesizer implements Synthesizer {
 ### Task 2.5: Implement the Jarvis orchestrator
 
 **Files:**
+
 - Create: `packages/jarvis/src/hub.ts`
 - Test: `packages/jarvis/test/hub.test.ts`
 
@@ -449,49 +480,49 @@ export interface JarvisHubConfig {
 
 export class JarvisHub {
   private state: "idle" | "listening" | "thinking" | "responding" = "idle";
-  
+
   constructor(private readonly config: JarvisHubConfig) {}
-  
+
   async start(): Promise<void> {
     await this.config.wakeWordEngine.start(() => this.onWakeWord());
   }
-  
+
   async stop(): Promise<void> {
     await this.config.wakeWordEngine.stop();
   }
-  
+
   private async onWakeWord(): Promise<void> {
     if (this.state !== "idle") return;
     this.state = "listening";
-    
+
     // Mock: read from keyboard
     const input = await this.readInput();
-    
+
     this.state = "thinking";
     const context = this.buildContext();
     const intent = await this.config.intentParser.parse(input, context);
-    
+
     if (intent.ambiguous) {
       await this.speak(intent.suggestedClarification || "I'm not sure what you mean.");
       this.state = "idle";
       return;
     }
-    
+
     const results = await this.config.delegator.delegate(intent, context);
     const synthesis = await this.config.synthesizer.synthesize(results, intent, context);
-    
+
     this.state = "responding";
     await this.speak(synthesis.spoken);
-    
+
     if (synthesis.visual) {
       for (const cmd of synthesis.visual) {
         await this.executeVisualCommand(cmd);
       }
     }
-    
+
     this.state = "idle";
   }
-  
+
   private async readInput(): Promise<string> {
     // Mock implementation: read from stdin
     return new Promise((resolve) => {
@@ -499,13 +530,13 @@ export class JarvisHub {
       process.stdin.once("data", (data) => resolve(data.toString().trim()));
     });
   }
-  
+
   private async speak(text: string): Promise<void> {
     const stream = await this.config.ttsEngine.synthesize(text);
     // Mock: just log
     console.log(`[Jarvis]: ${text}`);
   }
-  
+
   private async executeVisualCommand(cmd: VisualCommand): Promise<void> {
     switch (cmd.type) {
       case "open_app":
@@ -522,7 +553,7 @@ export class JarvisHub {
         break;
     }
   }
-  
+
   private buildContext(): JarvisContext {
     return {
       sessionId: crypto.randomUUID(),
@@ -541,42 +572,49 @@ export class JarvisHub {
 ### Task 3.1: Implement Research Agent
 
 **Files:**
+
 - Create: `packages/agents/src/research.ts`
 - Test: `packages/agents/test/research.test.ts`
 
 ### Task 3.2: Implement System Agent
 
 **Files:**
+
 - Create: `packages/agents/src/system.ts`
 - Test: `packages/agents/test/system.test.ts`
 
 ### Task 3.3: Implement Code Agent
 
 **Files:**
+
 - Create: `packages/agents/src/code.ts`
 - Test: `packages/agents/test/code.test.ts`
 
 ### Task 3.4: Implement Vision Agent
 
 **Files:**
+
 - Create: `packages/agents/src/vision.ts`
 - Test: `packages/agents/test/vision.test.ts`
 
 ### Task 3.5: Implement Comm Agent
 
 **Files:**
+
 - Create: `packages/agents/src/comm.ts`
 - Test: `packages/agents/test/comm.test.ts`
 
 ### Task 3.6: Implement Memory Agent
 
 **Files:**
+
 - Create: `packages/agents/src/memory.ts`
 - Test: `packages/agents/test/memory.test.ts`
 
 ### Task 3.7: Implement Creative Agent
 
 **Files:**
+
 - Create: `packages/agents/src/creative.ts`
 - Test: `packages/agents/test/creative.test.ts`
 
@@ -587,6 +625,7 @@ export class JarvisHub {
 ### Task 4.1: SKILL.md manifest parser
 
 **Files:**
+
 - Create: `packages/skills/src/manifest.ts`
 - Create: `packages/skills/src/schema.ts` (Zod schema for manifest validation)
 - Test: `packages/skills/test/manifest.test.ts`
@@ -594,12 +633,14 @@ export class JarvisHub {
 ### Task 4.2: Skill loader
 
 **Files:**
+
 - Create: `packages/skills/src/loader.ts`
 - Test: `packages/skills/test/loader.test.ts`
 
 ### Task 4.3: Capability-gated sandbox
 
 **Files:**
+
 - Create: `packages/skills/src/sandbox.ts`
 - Test: `packages/skills/test/sandbox.test.ts`
 
@@ -610,6 +651,7 @@ export class JarvisHub {
 ### Task 5.1: Create `jarvis` CLI entrypoint
 
 **Files:**
+
 - Create: `packages/jarvis/src/bin/jarvis.ts`
 - Modify: `packages/jarvis/package.json` (add `"bin": { "jarvis": "./dist/bin/jarvis.js" }`)
 
@@ -623,7 +665,14 @@ import { SimpleSynthesizer } from "../synthesis/simple.js";
 import { SimpleDelegator } from "../agents/delegator.js";
 
 const hub = new JarvisHub({
-  persona: { name: "Jarvis", voice: { engine: "mock", speed: 1, pitch: 1 }, greeting: "Hello.", farewell: "Goodbye.", tone: "professional", injectIntoSystemPrompt: (b) => b },
+  persona: {
+    name: "Jarvis",
+    voice: { engine: "mock", speed: 1, pitch: 1 },
+    greeting: "Hello.",
+    farewell: "Goodbye.",
+    tone: "professional",
+    injectIntoSystemPrompt: (b) => b,
+  },
   intentParser: new RuleBasedIntentParser(),
   delegator: new SimpleDelegator(),
   synthesizer: new SimpleSynthesizer(),
@@ -641,6 +690,7 @@ console.log("Jarvis is running. Press Ctrl+J to wake.");
 ### Task 5.2: Wire into root CLI
 
 **Files:**
+
 - Modify: `packages/cli/src/index.ts` (or create `packages/cli` if not exists)
 - Add: `openhawkins jarvis` command
 
@@ -651,6 +701,7 @@ console.log("Jarvis is running. Press Ctrl+J to wake.");
 ### Task 6.1: Add skills and agents tables to state schema
 
 **Files:**
+
 - Modify: `packages/state/src/schema.ts`
 - Test: `packages/state/test/schema.test.ts`
 
@@ -680,6 +731,7 @@ CREATE TABLE agents (
 ### Task 6.2: Add Jarvis event types to event store
 
 **Files:**
+
 - Modify: `packages/core/src/session/events.ts`
 - Add: `JarvisEvent` variants (WakeWordDetected, IntentParsed, AgentDelegated, etc.)
 
@@ -717,4 +769,4 @@ All must pass before merge.
 
 ---
 
-*Plan written 2026-06-10. Estimated: 30+ tasks, ~2-3 weeks of implementation time.*
+_Plan written 2026-06-10. Estimated: 30+ tasks, ~2-3 weeks of implementation time._

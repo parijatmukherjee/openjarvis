@@ -10,11 +10,9 @@ import type { DetectionModel } from "./detection.js";
 import type { PresenceStateMachine } from "./presence.js";
 
 export class MockVisionEngine implements VisionEngine {
-  private config?: VisionConfig;
   private presenceState: PresenceState = "unknown";
 
-  async start(config: VisionConfig): Promise<void> {
-    this.config = config;
+  async start(_config: VisionConfig): Promise<void> {
     this.presenceState = "present";
   }
 

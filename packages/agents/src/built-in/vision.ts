@@ -52,7 +52,7 @@ export class MockVisionAgent implements VisionAgent {
       agentName: "VisionAgent",
       output: { summary, objects, presence: context.presenceState },
       success: true,
-      auditEntry: {} as any, // Placeholder
+      auditEntry: {} as AgentResult["auditEntry"],
     };
   }
 }

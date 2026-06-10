@@ -15,8 +15,9 @@ describe("VisualResolver interface", () => {
   });
 
   it("resolve accepts correct parameters and returns VisualCommand[]", () => {
-    expectTypeOf<VisualResolver["resolve"]>()
-      .parameters.toEqualTypeOf<[Intent, AgentResult[], JarvisContext]>();
+    expectTypeOf<VisualResolver["resolve"]>().parameters.toEqualTypeOf<
+      [Intent, AgentResult[], JarvisContext]
+    >();
     expectTypeOf<VisualResolver["resolve"]>().returns.toEqualTypeOf<VisualCommand[]>();
   });
 });

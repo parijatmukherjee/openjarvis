@@ -118,10 +118,10 @@ export interface IntentParser {
 }
 
 export interface Intent {
-  action: string;         // e.g., "get_updates", "open_app", "search_web"
+  action: string; // e.g., "get_updates", "open_app", "search_web"
   params: Record<string, unknown>;
-  confidence: number;     // 0-1
-  ambiguous: boolean;     // true if parser is unsure
+  confidence: number; // 0-1
+  ambiguous: boolean; // true if parser is unsure
   suggestedClarification?: string; // e.g., "Did you mean your calendar or the news?"
 }
 
@@ -130,7 +130,7 @@ export interface JarvisContext {
   userId: string;
   recentIntents: Intent[];
   currentTime: Date;
-  location?: string;        // derived from IP or manual config
+  location?: string; // derived from IP or manual config
 }
 ```
 
@@ -164,7 +164,7 @@ export interface AgentPool {
 
 export interface AgentHandle {
   id: string;
-  process: ChildProcess;  // or in-process reference
+  process: ChildProcess; // or in-process reference
   grant: AgentGrant;
 }
 ```
@@ -179,13 +179,17 @@ export interface AgentHandle {
 
 ```typescript
 export interface Synthesizer {
-  synthesize(results: AgentResult[], originalIntent: Intent, context: JarvisContext): Promise<Synthesis>;
+  synthesize(
+    results: AgentResult[],
+    originalIntent: Intent,
+    context: JarvisContext,
+  ): Promise<Synthesis>;
 }
 
 export interface Synthesis {
-  spoken: string;           // What Jarvis says via TTS
+  spoken: string; // What Jarvis says via TTS
   visual?: VisualCommand[]; // What Jarvis shows on monitor(s)
-  action?: string;          // e.g., "await_user_confirmation"
+  action?: string; // e.g., "await_user_confirmation"
 }
 
 export type VisualCommand =
@@ -197,6 +201,7 @@ export type VisualCommand =
 ```
 
 **Default implementation:** A local model (Ollama) with a prompt template:
+
 ```
 You are Jarvis. You have received results from your specialist agents.
 Summarize them for the user in a natural, conversational way.
@@ -216,23 +221,24 @@ Response format (JSON):
 
 ```typescript
 export interface Persona {
-  name: string;             // "Jarvis"
-  voice: VoiceProfile;      // TTS voice characteristics
-  greeting: string;         // "Good morning, Parijat."
-  farewell: string;         // "As you wish."
+  name: string; // "Jarvis"
+  voice: VoiceProfile; // TTS voice characteristics
+  greeting: string; // "Good morning, Parijat."
+  farewell: string; // "As you wish."
   tone: "formal" | "casual" | "professional";
   injectIntoSystemPrompt(base: string): string;
 }
 
 export interface VoiceProfile {
-  engine: string;           // "local-piper", "elevenlabs", "system"
-  model?: string;           // e.g., "en_US-lessac-medium"
-  speed: number;            // 0.8-1.2
-  pitch: number;            // 0.8-1.2
+  engine: string; // "local-piper", "elevenlabs", "system"
+  model?: string; // e.g., "en_US-lessac-medium"
+  speed: number; // 0.8-1.2
+  pitch: number; // 0.8-1.2
 }
 ```
 
 **Default:** "Jarvis" persona with a calm, helpful tone. The system prompt includes:
+
 - "You are Jarvis, a personal AI assistant."
 - "You delegate to specialist agents; explain what you're doing."
 - "You are concise but warm."
@@ -266,12 +272,14 @@ export interface AudioOutput {
 ```
 
 **v1 implementations:**
+
 - `MockWakeWordEngine` — listens for keyboard shortcut (`Ctrl+J`) instead of voice
 - `MockSttEngine` — reads from `readline` (keyboard input)
 - `MockTtsEngine` — writes to `console.log` with `[Jarvis says]` prefix
 - `MockAudioInput` / `MockAudioOutput` — no-op / console-based
 
 **v1.1 implementations:**
+
 - `WhisperSttEngine` — local Whisper-small model via `@openai/whisper` or ollama
 - `PiperTtsEngine` — local Piper TTS (fast, small models)
 - `PorcupineWakeWordEngine` — Picovoice Porcupine wake word (free tier)
@@ -298,6 +306,7 @@ export interface DisplayInfo {
 ```
 
 **Platform implementations:**
+
 - **macOS:** `open` command + AppleScript for window placement
 - **Linux:** `xdg-open` + `wmctrl` / `xrandr` for display detection
 - **Windows:** `Start-Process` + PowerShell for display detection
@@ -318,8 +327,8 @@ export interface Scheduler {
 export interface ScheduledJob {
   id?: string;
   name: string;
-  cron: string;              // "0 9 * * 1-5" = 9am weekdays
-  intent: Intent;            // What to do when triggered
+  cron: string; // "0 9 * * 1-5" = 9am weekdays
+  intent: Intent; // What to do when triggered
   enabled: boolean;
   lastRun?: Date;
   nextRun?: Date;
@@ -342,7 +351,7 @@ export interface BusEvent {
   topic: string;
   payload: unknown;
   timestamp: number;
-  source: string;        // agentId or "jarvis"
+  source: string; // agentId or "jarvis"
 }
 
 export interface Subscription {
@@ -351,6 +360,7 @@ export interface Subscription {
 ```
 
 **Implementation:** In-memory pub/sub for v1. Durable event bus (backed by SQLite) for v1.1. Topics include:
+
 - `agent.completed` — an agent finished its task
 - `agent.failed` — an agent crashed or was killed
 - `user.presence` — user entered/left the room (detected by camera/motion)
@@ -383,12 +393,12 @@ export interface Subscription {
 
 ### 6.1 Agent Isolation
 
-| Isolation Level | Used For | Mechanism |
-|-----------------|----------|-----------|
-| **In-process** | Low-risk agents (memory, calculator, clock) | Same Node.js process |
-| **Worker thread** | Medium-risk agents (file read, web search) | `worker_threads` |
-| **Child process** | High-risk agents (shell, file write, network send) | `child_process.spawn` |
-| **OS sandbox** | Untrusted agents (community skills) | `seccomp`, `landlock`, `pledge` |
+| Isolation Level   | Used For                                           | Mechanism                       |
+| ----------------- | -------------------------------------------------- | ------------------------------- |
+| **In-process**    | Low-risk agents (memory, calculator, clock)        | Same Node.js process            |
+| **Worker thread** | Medium-risk agents (file read, web search)         | `worker_threads`                |
+| **Child process** | High-risk agents (shell, file write, network send) | `child_process.spawn`           |
+| **OS sandbox**    | Untrusted agents (community skills)                | `seccomp`, `landlock`, `pledge` |
 
 ### 6.2 Capability Revocation
 
@@ -419,7 +429,13 @@ Extends `DomainEvent` with Jarvis-specific events:
 ```typescript
 type JarvisEvent =
   | { type: "WakeWordDetected"; sessionId: string; deviceId: string; at: number }
-  | { type: "TranscriptionComplete"; sessionId: string; text: string; confidence: number; at: number }
+  | {
+      type: "TranscriptionComplete";
+      sessionId: string;
+      text: string;
+      confidence: number;
+      at: number;
+    }
   | { type: "IntentParsed"; sessionId: string; intent: Intent; at: number }
   | { type: "AgentDelegated"; sessionId: string; agentId: string; intent: Intent; at: number }
   | { type: "AgentCompleted"; sessionId: string; agentId: string; success: boolean; at: number }
@@ -461,6 +477,7 @@ CREATE TABLE agents (
 The existing `openhawkins-run` CLI and `bin/ask.ts` remain unchanged. The Jarvis hub is a **new top-level entrypoint**: `packages/jarvis/src/bin/jarvis.ts`. It reuses all existing packages (`core`, `state`, `memory`, `security`) as libraries.
 
 When upgrading from single-agent to Jarvis hub:
+
 1. The existing SQLite database is reused (events, audit, memory)
 2. The skills registry table is added via migration
 3. The agents table is seeded with built-in agents (research, system, code, etc.)
@@ -496,4 +513,4 @@ When upgrading from single-agent to Jarvis hub:
 
 ---
 
-*Next step: Write implementation plan for J1, then execute. See [`docs/plans/2026-06-10-jarvis-hub-implementation.md`](../plans/2026-06-10-jarvis-hub-implementation.md).*
+_Next step: Write implementation plan for J1, then execute. See [`docs/plans/2026-06-10-jarvis-hub-implementation.md`](../plans/2026-06-10-jarvis-hub-implementation.md)._

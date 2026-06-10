@@ -12,4 +12,9 @@ export interface VisionEvent extends BusEvent {
   };
 }
 
-export type VisionEventType = "frame" | "presence_change" | "object_entered" | "object_exited" | "alert";
+export type VisionEventType =
+  | "frame"
+  | "presence_change"
+  | "object_entered"
+  | "object_exited"
+  | "alert";
