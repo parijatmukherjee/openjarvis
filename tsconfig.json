@@ -7,9 +7,9 @@
     { "path": "packages/state/tsconfig.test.json" },
     { "path": "packages/memory" },
     { "path": "packages/memory/tsconfig.test.json" },
-    { "path": "packages/agents" },
-    { "path": "packages/agents/tsconfig.test.json" },
     { "path": "packages/markdownify" },
-    { "path": "packages/markdownify/tsconfig.test.json" }
+    { "path": "packages/markdownify/tsconfig.test.json" },
+    { "path": "packages/desktop" },
+    { "path": "packages/desktop/tsconfig.test.json" }
   ]
 }
