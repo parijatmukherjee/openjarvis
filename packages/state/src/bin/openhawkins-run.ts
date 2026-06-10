@@ -2,6 +2,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ScriptedOperator, weakHostFactsModel, ValidateGate, JsonLogger } from "@openhawkins/core";
 import { buildDurableAgentRun, verifyDurable } from "../build-durable-agent-run.js";
+import { checkHealth } from "../health.js";
 
 /**
  * `openhawkins-run` — a durable, keyed-audit agent run over SQLite (A1b: F-C1/F-C2 at
@@ -9,6 +10,8 @@ import { buildDurableAgentRun, verifyDurable } from "../build-durable-agent-run.
  * SQLite event store, the Vault-resolved audit key, and the keyed HMAC chain are all REAL.
  * `--verify` reopens an existing db+vault (a SEPARATE process) and reports whether the
  * keyed chain still verifies — the cross-process durability proof.
+ * `--health` reports DB connectivity, vault unlock status, last audit verification, and
+ * recent error rate.
  */
 function flag(args: string[], name: string, fallback: string): string {
   const i = args.indexOf(name);
@@ -25,6 +28,12 @@ async function main(): Promise<void> {
     process.env.OPENHAWKINS_VAULT_PASS ?? "openhawkins",
   );
   const asJson = args.includes("--json");
+
+  if (args.includes("--health")) {
+    const h = await checkHealth({ dbPath, vaultPath, passphrase });
+    console.log(asJson ? JSON.stringify({ mode: "health", ...h }) : `health: ${JSON.stringify(h)}`);
+    return;
+  }
 
   if (args.includes("--verify")) {
     const v = await verifyDurable({ dbPath, vaultPath, passphrase });
