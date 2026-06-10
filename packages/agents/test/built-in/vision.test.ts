@@ -67,8 +67,7 @@ describe("VisionAgent interface", () => {
 
     expect(result.output.summary).toBe("I see 1 person");
   });
-  it("MockVisionAgent.execute('vision_count') returns correct plural count", async () =>
-  {
+  it("MockVisionAgent.execute('vision_count') returns correct plural count", async () => {
     const agent = new MockVisionAgent();
     const intent: VisionIntent = {
       action: "vision_count",
@@ -85,8 +84,7 @@ describe("VisionAgent interface", () => {
     expect(result.output.summary).toBe("I see 1 person");
   });
 
-  it("MockVisionAgent.execute('vision_count') returns plural for multiple objects", async () =>
-  {
+  it("MockVisionAgent.execute('vision_count') returns plural for multiple objects", async () => {
     const agent = new MockVisionAgent();
     // Override the mock to have 2 person objects
     const result = await agent.execute(
@@ -96,8 +94,7 @@ describe("VisionAgent interface", () => {
     expect(result.output.summary).toBe("I see 0 cups");
   });
 
-  it("MockVisionAgent.execute('vision_count') defaults label when empty", async () =>
-  {
+  it("MockVisionAgent.execute('vision_count') defaults label when empty", async () => {
     const agent = new MockVisionAgent();
     const result = await agent.execute(
       { action: "vision_count", params: { label: "" } } as VisionIntent,
