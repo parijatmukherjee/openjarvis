@@ -15,7 +15,10 @@
     { "path": "packages/skills/tsconfig.test.json" },
     { "path": "packages/jarvis" },
     { "path": "packages/jarvis/tsconfig.test.json" },
+    { "path": "packages/track-b" },
+    { "path": "packages/track-b/tsconfig.test.json" },
     { "path": "packages/agents" },
-    { "path": "packages/agents/tsconfig.test.json" }
+    { "path": "packages/agents/tsconfig.test.json" },
+    { "path": "packages/track-b" }
   ]
 }
