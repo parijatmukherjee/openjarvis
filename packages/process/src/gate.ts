@@ -46,7 +46,7 @@ export async function checkTests(): Promise<boolean> {
   }
 }
 
-export async function checkCoverage(threshold = 0.99): Promise<boolean> {
+export async function checkCoverage(_threshold = 0.99): Promise<boolean> {
   try {
     execSync(`npm run coverage`, { stdio: "pipe" });
     return true;
@@ -79,7 +79,7 @@ export async function runGate(
 }
 
 export async function validatePhase(
-  state: ProcessState,
+  _state: ProcessState,
   checkers?: Record<string, () => Promise<boolean>>,
 ): Promise<{ logs: string[] }> {
   const rules = PHASE_RULES.validate;

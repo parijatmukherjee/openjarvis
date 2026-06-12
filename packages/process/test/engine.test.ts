@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ProcessEngine, ProcessError } from "../src/engine.js";
-import { AGENT_LOOP_PHASES, PHASE_DEPENDENCIES } from "../src/manifest.js";
+import { AGENT_LOOP_PHASES } from "../src/manifest.js";
 
 describe("ProcessEngine", () => {
   it("runs all 6 phases in order", async () => {

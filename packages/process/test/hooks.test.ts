@@ -78,7 +78,7 @@ describe("Lifecycle Hooks", () => {
     expect(phaseHandler).not.toHaveBeenCalled();
   });
 
-  it("installs default hooks that require plan file for execute", async () => {
+  it("installs default hooks that validate execute requires plan file", async () => {
     const registry = new HookRegistry();
     installDefaultHooks(registry);
 
@@ -87,7 +87,7 @@ describe("Lifecycle Hooks", () => {
     await expect(registry.run("pre-phase", engine.state)).rejects.toThrow(ProcessError);
   });
 
-  it("allows execute when plan file is set", async () => {
+  it("installs default hooks that allow execute when plan file is set", async () => {
     const registry = new HookRegistry();
     installDefaultHooks(registry);
 
@@ -96,4 +96,3 @@ describe("Lifecycle Hooks", () => {
     await expect(registry.run("pre-phase", engine.state)).resolves.toBeUndefined();
   });
 });
-

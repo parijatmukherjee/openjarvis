@@ -1,10 +1,7 @@
 export interface ProcessState {
   currentPhase: string;
   completedPhases: string[];
-  phaseResults: Record<
-    string,
-    { status: "success" | "failure" | "skipped"; logs: string[] }
-  >;
+  phaseResults: Record<string, { status: "success" | "failure" | "skipped"; logs: string[] }>;
   startTime: number;
   metadata: Record<string, unknown>;
 }
@@ -42,9 +39,7 @@ export class ProcessEngine {
     if (deps) {
       for (const dep of deps) {
         if (!this.state.completedPhases.includes(dep)) {
-          throw new ProcessError(
-            `Phase ${phaseId} requires ${dep} to be completed first`,
-          );
+          throw new ProcessError(`Phase ${phaseId} requires ${dep} to be completed first`);
         }
       }
     }
