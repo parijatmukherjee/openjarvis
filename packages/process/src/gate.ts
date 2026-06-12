@@ -83,8 +83,6 @@ export async function validatePhase(
   checkers?: Record<string, () => Promise<boolean>>,
 ): Promise<{ logs: string[] }> {
   const rules = PHASE_RULES.validate;
-  if (!rules) return { logs: ["no validation rules"] };
-
   const { passed, failures } = await runGate(rules.gateChecks ?? [], checkers);
   if (!passed) throw new ProcessError(`Gate failed: ${failures.join(", ")}`);
 
