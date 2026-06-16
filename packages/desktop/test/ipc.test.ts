@@ -30,14 +30,28 @@ describe("registerIpcHandlers", () => {
   });
 
   it("delegates settings:load to the store", async () => {
-    const settings = { version: 1, theme: "dark" as const, reducedMotion: false, shortcut: "Cmd+J", autoStart: true, locale: "en-US" };
+    const settings = {
+      version: 1,
+      theme: "dark" as const,
+      reducedMotion: false,
+      shortcut: "Cmd+J",
+      autoStart: true,
+      locale: "en-US",
+    };
     mockStore.loadSettings.mockResolvedValue(settings);
     const handler = handlers.get("settings:load")!;
     expect(await handler()).toEqual(settings);
   });
 
   it("delegates settings:save to the store", async () => {
-    const settings = { version: 1, theme: "light" as const, reducedMotion: true, shortcut: "Alt+J", autoStart: false, locale: "fr-FR" };
+    const settings = {
+      version: 1,
+      theme: "light" as const,
+      reducedMotion: true,
+      shortcut: "Alt+J",
+      autoStart: false,
+      locale: "fr-FR",
+    };
     const handler = handlers.get("settings:save")!;
     await handler(null, settings);
     expect(mockStore.saveSettings).toHaveBeenCalledWith(settings);

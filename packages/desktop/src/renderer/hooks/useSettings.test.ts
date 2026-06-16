@@ -38,7 +38,7 @@ function createApi(overrides = {}) {
 type Api = ReturnType<typeof createApi>;
 
 async function mountUseSettings(
-  api?: Api
+  api?: Api,
 ): Promise<{ result: UseSettingsResult; flush: () => Promise<void> }> {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 

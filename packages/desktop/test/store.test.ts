@@ -28,7 +28,14 @@ describe("DesktopStore", () => {
   });
 
   it("round-trips custom settings", async () => {
-    const settings = { version: 1 as const, theme: "light" as const, reducedMotion: true, shortcut: "Alt+J", autoStart: false, locale: "fr-FR" };
+    const settings = {
+      version: 1 as const,
+      theme: "light" as const,
+      reducedMotion: true,
+      shortcut: "Alt+J",
+      autoStart: false,
+      locale: "fr-FR",
+    };
     await store.saveSettings(settings);
     const loaded = await store.loadSettings();
     expect(loaded).toEqual(settings);
@@ -42,7 +49,14 @@ describe("DesktopStore", () => {
   });
 
   it("merges partial legacy settings", async () => {
-    await store.saveSettings({ version: 1 as const, theme: "light" as const, reducedMotion: false, shortcut: "Alt+J", autoStart: true, locale: "en-US" });
+    await store.saveSettings({
+      version: 1 as const,
+      theme: "light" as const,
+      reducedMotion: false,
+      shortcut: "Alt+J",
+      autoStart: true,
+      locale: "en-US",
+    });
     const fresh = new DesktopStore(dir);
     const loaded = await fresh.loadSettings();
     expect(loaded.shortcut).toBe("Alt+J");

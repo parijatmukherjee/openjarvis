@@ -53,9 +53,11 @@ export function useSettings(): UseSettingsResult {
       if (!api || !settings) return;
       const next = { ...settings, [key]: value };
       setSettings(next);
-      api.setSettings(next).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+      api
+        .setSettings(next)
+        .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
     },
-    [api, settings]
+    [api, settings],
   );
 
   const updateProfile = useCallback(
@@ -63,9 +65,11 @@ export function useSettings(): UseSettingsResult {
       if (!api || !profile) return;
       const next = { ...profile, ...patch };
       setProfile(next);
-      api.setProfile(next).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+      api
+        .setProfile(next)
+        .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
     },
-    [api, profile]
+    [api, profile],
   );
 
   return {

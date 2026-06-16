@@ -26,19 +26,25 @@ export class DesktopStore {
     await mkdir(this.configDir, { recursive: true });
   }
 
-  private async readJson<T>(file: string, fallback: T, schema: z.ZodSchema<T, any, any>): Promise<T> {
+  private async readJson<T>(
+    file: string,
+    fallback: T,
+    schema: z.ZodSchema<T, z.ZodTypeDef, unknown>,
+  ): Promise<T> {
     try {
       const text = await readFile(this.path(file), "utf-8");
       const parsed = JSON.parse(text) as unknown;
       const result = schema.safeParse(parsed);
-      if (result.success) return result.data as T;
-      return schema.parse({ ...fallback, ...(parsed as Record<string, unknown>) }) as T;
+      if (result.success) return result.data;
+      return schema.parse({ ...fallback, ...(parsed as Record<string, unknown>) });
     } catch (err) {
-      if (err && typeof err === "object" && "code" in err && err.code === "ENOENT") {
-        return fallback;
-      }
+      if (this.isEnoent(err)) return fallback;
       return fallback;
     }
+  }
+
+  private isEnoent(err: unknown): err is { code: string } {
+    return err instanceof Error && "code" in err && (err as { code: string }).code === "ENOENT";
   }
 
   private async writeJson(file: string, data: unknown): Promise<void> {
