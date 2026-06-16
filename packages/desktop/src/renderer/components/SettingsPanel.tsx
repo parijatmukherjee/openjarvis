@@ -1,21 +1,7 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { GlassPanel } from "./ui/GlassPanel";
 import { NeonButton } from "./ui/NeonButton";
-
-interface Settings {
-  theme: "dark" | "light";
-  reducedMotion: boolean;
-  shortcut: string;
-  autoStart: boolean;
-}
-
-const defaultSettings: Settings = {
-  theme: "dark",
-  reducedMotion: false,
-  shortcut: "CommandOrControl+Shift+J",
-  autoStart: true,
-};
+import { useSettingsContext } from "../context/SettingsContext";
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -23,11 +9,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
-
-  const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-  };
+  const { settings, profile, isLoading, updateSetting, updateProfile } = useSettingsContext();
 
   return (
     <motion.div
@@ -55,6 +37,18 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
           </div>
 
           <div className="space-y-4">
+            {/* User Name */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm">User Name</span>
+              <input
+                type="text"
+                value={profile.userName}
+                onChange={(e) => updateProfile({ userName: e.target.value })}
+                disabled={isLoading}
+                className="px-3 py-1 rounded text-sm bg-white/5 text-text-secondary border border-white/10 focus:border-neon-cyan/30 outline-none disabled:opacity-50"
+              />
+            </div>
+
             {/* Theme */}
             <div className="flex items-center justify-between">
               <span className="text-sm">Theme</span>
@@ -63,7 +57,8 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                   <button
                     key={t}
                     onClick={() => updateSetting("theme", t)}
-                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                    disabled={isLoading}
+                    className={`px-3 py-1 rounded text-sm transition-colors disabled:opacity-50 ${
                       settings.theme === t
                         ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30"
                         : "bg-white/5 text-text-secondary border border-white/10 hover:border-neon-cyan/20"
@@ -80,7 +75,8 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               <span className="text-sm">Reduced Motion</span>
               <button
                 onClick={() => updateSetting("reducedMotion", !settings.reducedMotion)}
-                className={`w-10 h-6 rounded-full p-1 transition-colors ${
+                disabled={isLoading}
+                className={`w-10 h-6 rounded-full p-1 transition-colors disabled:opacity-50 ${
                   settings.reducedMotion ? "bg-neon-cyan/30" : "bg-white/10"
                 }`}
               >
@@ -105,7 +101,8 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
               <span className="text-sm">Auto-start on Login</span>
               <button
                 onClick={() => updateSetting("autoStart", !settings.autoStart)}
-                className={`w-10 h-6 rounded-full p-1 transition-colors ${
+                disabled={isLoading}
+                className={`w-10 h-6 rounded-full p-1 transition-colors disabled:opacity-50 ${
                   settings.autoStart ? "bg-neon-cyan/30" : "bg-white/10"
                 }`}
               >
