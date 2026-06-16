@@ -1,7 +1,8 @@
-import { contextBridge, ipcRenderer } from "electron";
 import type { ElectronAPI } from "./renderer/types/electron.js";
 
-export function initPreload(): void {
+export async function initPreload(): Promise<void> {
+  const { contextBridge, ipcRenderer } = await import("electron");
+
   const api: ElectronAPI = {
     getSystemLocale: () => ipcRenderer.invoke("locale:getSystemLocale"),
     minimizeWindow: () => ipcRenderer.invoke("window:minimize"),
