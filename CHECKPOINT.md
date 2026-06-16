@@ -4,11 +4,13 @@
 > first, then [`AGENT.md`](AGENT.md) for how to work here. Detailed, authoritative
 > trackers live under `docs/` and are linked below.
 >
-> **Last updated:** 2026-06-11 · **Default branch:** `main` (protected; required
-> `docker-gate`) · **Tests:** 623 passing / 1 skipped, **99.53% coverage** (gate floor 99%).
+> **Last updated:** 2026-06-12 · **Default branch:** `main` (protected; required
+> `docker-gate`) · **Tests:** 742 passing / 1 skipped, **99.53% coverage** (gate floor 99%).
 > **Zero-Flaw Campaign: 24/24 ✅**
-> **S3 Nexus Orchestrator: IMPLEMENTED ✅**
+> **S3 Nexus Orchestrator: MERGED ✅**
 > **Desktop App (Electron): MERGED ✅**
+> **Track B Multi-Device Sync: MERGED ✅**
+> **Process Enforcement: MERGED ✅**
 
 ---
 
@@ -29,10 +31,9 @@ state, capabilities). Full vision: [`docs/specs/2026-06-05-openjarvis-design.md`
 | `@openjarvis/markdownify` | 🟢     | Document → Markdown converters (CSV/HTML/JSON/XML/text) behind a never-throws `ConverterRegistry`. **Wired into the agent path** via `createDocumentTool` + `buildDurableAgentRun`/`buildProbeAgent`.                  |
 | `@openjarvis/jarvis`      | 🟢     | Vision skill interfaces + E2E automation suite (`MockUser`, 15 scenarios). **S3 Nexus Orchestrator** (IntentRouter, AgentPool, Synthesizer, NexusEngine, TaskBoard, ReplayEngine) with 28 tests.                       |
 | `@openjarvis/agents`      | 🟢     | Built-in agents package with `VisionAgent`/`MockVisionAgent` (agent delegator, pool interfaces).                                                                                                                       |
-| `@openjarvis/desktop`     | 🟢     | Electron desktop app with Iron Man neon dashboard: frameless window, glassmorphism, voice waveform, agent radar, task board, onboarding flow (5 steps), settings panel, system tray, global shortcut.                  |
-
-Planned-but-not-started packages (orchestrator/Nexus, agents, channels, dashboard,
-tickets/Board, gateway, plugin-sdk, registry, cli) are described in [`README.md`](README.md).
+| `@openjarvis/desktop`     | 🟡     | Electron desktop app with Iron Man neon dashboard. **Dashboard components now wired to NexusContext** (mock bridge — see PR #39).                                                                                      |
+| `@openjarvis/track-b`     | 🟢     | Multi-device sync: device identity, CRDT sync, Noise protocol, task router, vault sync. 56 tests.                                                                                                                      |
+| `@openjarvis/process`     | 🟢     | Process Enforcement: AGENT.md loop runtime enforcement with ProcessEngine, gate checks, lifecycle hooks, event bus. 57 tests.                                                                                          |
 
 ## 3. What's built and proven (done)
 
@@ -65,25 +66,51 @@ integration); `ask`/`run` CLIs + eval harness. Specs: `docs/specs/2026-06-05-S1-
 
 **Track A is now COMPLETE.** All 24 Zero-Flaw items closed.
 
+**Track B is now COMPLETE (PR #37, merged).** Multi-device sync with:
+
+- Device identity + registry with Ed25519 keypairs (`tweetnacl`)
+- Pairing flow with QR tokens
+- Vector clock CRDT foundation
+- Event log sync with delta sync
+- Memory fragment CRDT with conflict resolution
+- Device discovery over LAN
+- Noise protocol handshake (mock XOR cipher)
+- Cross-device task router with capability-aware scheduling
+- Vault sync with HKDF-like key derivation
+- Package: `@openjarvis/track-b` with 13 test files, 56 tests
+
+**Process Enforcement is now COMPLETE (PR #38, merged).** Runtime-enforced AGENT.md loop:
+
+- Phase manifest with 6 phases and DAG dependencies
+- `ProcessEngine` with state tracking and dependency enforcement
+- Per-phase gate checks (build/lint/format/test/coverage)
+- Lifecycle hooks (pre-phase, post-phase, on-failure, on-complete)
+- Event bus with replay support
+- CLI with injectable factory for testability
+- Package: `@openjarvis/process` with 9 test files, 57 tests
+
 ## 4. In flight
 
-**(nothing)** — all specced work is done. Items below need new design specs before implementation.
+**PR #39 — Desktop-Nexus Wiring** (`desktop-nexus-wiring` branch)
+
+- Wires TaskBoard, AgentStatusGrid, ConversationPanel to NexusContext
+- Adds `NexusBridge` interface mapping Nexus types to UI views
+- Adds `createMockNexusBridge()` preserving existing mock data
+- Local type definitions (`nexus-types.ts`) to avoid deep-import resolution issues
+- Added `references` to `packages/desktop/tsconfig.json` so `tsc -b` builds `@openjarvis/jarvis` before `@openjarvis/desktop`, fixing the Docker/CI deep-import ordering failure.
+- **Status:** Build/lint/format/tests pass locally (742 passing). CI queued.
 
 ## 5. What's next
 
-**S3 — the Nexus orchestrator.** The production-readiness foundation is complete.
-Next canonical work is the **Nexus orchestrator** (the 5-phase Pulse loop, agent
-roster + routing, synthesis, operator endpoint). This is a large, multi-phase
-subsystem requiring a design spec first.
-
-**Track B — personal assistant, local-first, multi-device sync (design-only roadmap; no code until approved).**
-For the "one person's personal assistant" vision: device identity & approval, local-first
-CRDT sync, device discovery over LAN, cross-device task scheduling. Spec written
-(`docs/specs/2026-06-10-track-b-personal-assistant.md`).
-
-**Process enforcement becomes native** — the AGENT.md operating loop itself becomes
-runtime-enforced by the Playbook engine (see [ADR 0002](docs/adr/0002-process-enforcement-native-not-n8n.md)
-and `docs/specs/2026-06-09-playbook-process-engine-design.md`).
+1. **Merge PR #39** (Desktop-Nexus wiring) once CI passes
+2. **Update CHECKPOINT.md** after PR #39 merges
+3. **Consider remaining roadmap items:**
+   - Real Electron main process with IPC to NexusEngine
+   - Real audio analysis (Web Audio API) for VoiceWaveform
+   - Settings persistence
+   - Plugin SDK / registry
+   - Gateway (network API)
+   - CLI binary packaging
 
 ## 6. How to work here
 
