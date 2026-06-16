@@ -15,7 +15,7 @@ export const defaultAppSettings: AppSettings = appSettingsSchema.parse({});
 
 export const userProfileSchema = z.object({
   version: z.literal(1).default(1),
-  userName: z.string().trim().min(1).max(64).default("User"),
+  userName: z.string().trim().max(64).default("User"),
   avatar: z.string().optional(),
 });
 
