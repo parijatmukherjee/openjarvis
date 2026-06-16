@@ -4,8 +4,8 @@
 > first, then [`AGENT.md`](AGENT.md) for how to work here. Detailed, authoritative
 > trackers live under `docs/` and are linked below.
 >
-> **Last updated:** 2026-06-12 · **Default branch:** `main` (protected; required
-> `docker-gate`) · **Tests:** 742 passing / 1 skipped, **99.53% coverage** (gate floor 99%).
+> **Last updated:** 2026-06-17 · **Default branch:** `main` (protected; required
+> `docker-gate`) · **Tests:** 751 passing / 1 skipped, **99.62% coverage** (gate floor 99%).
 > **Zero-Flaw Campaign: 24/24 ✅**
 > **S3 Nexus Orchestrator: MERGED ✅**
 > **Desktop App (Electron): MERGED ✅**
@@ -31,7 +31,7 @@ state, capabilities). Full vision: [`docs/specs/2026-06-05-openjarvis-design.md`
 | `@openjarvis/markdownify` | 🟢     | Document → Markdown converters (CSV/HTML/JSON/XML/text) behind a never-throws `ConverterRegistry`. **Wired into the agent path** via `createDocumentTool` + `buildDurableAgentRun`/`buildProbeAgent`.                  |
 | `@openjarvis/jarvis`      | 🟢     | Vision skill interfaces + E2E automation suite (`MockUser`, 15 scenarios). **S3 Nexus Orchestrator** (IntentRouter, AgentPool, Synthesizer, NexusEngine, TaskBoard, ReplayEngine) with 28 tests.                       |
 | `@openjarvis/agents`      | 🟢     | Built-in agents package with `VisionAgent`/`MockVisionAgent` (agent delegator, pool interfaces).                                                                                                                       |
-| `@openjarvis/desktop`     | 🟡     | Electron desktop app with Iron Man neon dashboard. **Dashboard components now wired to NexusContext** (mock bridge — see PR #39).                                                                                      |
+| `@openjarvis/desktop`     | 🟢     | Electron desktop app with Iron Man neon dashboard. Dashboard components wired to NexusContext. **Settings + user profile persisted to disk and exposed through typed IPC bridge.**                                     |
 | `@openjarvis/track-b`     | 🟢     | Multi-device sync: device identity, CRDT sync, Noise protocol, task router, vault sync. 56 tests.                                                                                                                      |
 | `@openjarvis/process`     | 🟢     | Process Enforcement: AGENT.md loop runtime enforcement with ProcessEngine, gate checks, lifecycle hooks, event bus. 57 tests.                                                                                          |
 
@@ -91,26 +91,24 @@ integration); `ask`/`run` CLIs + eval harness. Specs: `docs/specs/2026-06-05-S1-
 
 ## 4. In flight
 
-**PR #39 — Desktop-Nexus Wiring** (`desktop-nexus-wiring` branch)
+**PR #40 — Desktop Settings Persistence + User Profile** (`desktop-settings-persistence` branch)
 
-- Wires TaskBoard, AgentStatusGrid, ConversationPanel to NexusContext
-- Adds `NexusBridge` interface mapping Nexus types to UI views
-- Adds `createMockNexusBridge()` preserving existing mock data
-- Local type definitions (`nexus-types.ts`) to avoid deep-import resolution issues
-- Added `references` to `packages/desktop/tsconfig.json` so `tsc -b` builds `@openjarvis/jarvis` before `@openjarvis/desktop`, fixing the Docker/CI deep-import ordering failure.
-- **Status:** Build/lint/format/tests pass locally (742 passing). CI queued.
+- Adds `DesktopStore` for typed, atomic JSON persistence of `AppSettings` and `UserProfile`
+- Zod schemas with version field and safe defaults for forward migration
+- Real Electron IPC bridge: `settings:load/save`, `profile:load/save`, `locale:getSystemLocale`, `window:*`
+- `useSettings` hook + `SettingsContext` for renderer state
+- `Header.tsx` greets the persisted user name; `SettingsPanel.tsx` edits and saves settings + name
+- 17 desktop tests passing; full gate passes (build, lint, format:check, 99.62% coverage, unit, functional)
+- **Status:** Ready for PR
 
 ## 5. What's next
 
-1. **Merge PR #39** (Desktop-Nexus wiring) once CI passes
-2. **Update CHECKPOINT.md** after PR #39 merges
-3. **Consider remaining roadmap items:**
-   - Real Electron main process with IPC to NexusEngine
-   - Real audio analysis (Web Audio API) for VoiceWaveform
-   - Settings persistence
-   - Plugin SDK / registry
-   - Gateway (network API)
-   - CLI binary packaging
+1. **Open PR #40** for review/merge
+2. **Real Electron main process wiring** — instantiate `DesktopStore`, register IPC handlers in `electron-main.ts`, load `index.html`
+3. **Real audio analysis (Web Audio API)** for `VoiceWaveform`
+4. **Plugin SDK / registry**
+5. **Gateway (network API)**
+6. **CLI binary packaging**
 
 ## 6. How to work here
 
