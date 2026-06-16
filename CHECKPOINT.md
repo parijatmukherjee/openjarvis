@@ -31,9 +31,9 @@ state, capabilities). Full vision: [`docs/specs/2026-06-05-openjarvis-design.md`
 | `@openjarvis/markdownify` | 🟢     | Document → Markdown converters (CSV/HTML/JSON/XML/text) behind a never-throws `ConverterRegistry`. **Wired into the agent path** via `createDocumentTool` + `buildDurableAgentRun`/`buildProbeAgent`.                  |
 | `@openjarvis/jarvis`      | 🟢     | Vision skill interfaces + E2E automation suite (`MockUser`, 15 scenarios). **S3 Nexus Orchestrator** (IntentRouter, AgentPool, Synthesizer, NexusEngine, TaskBoard, ReplayEngine) with 28 tests.                       |
 | `@openjarvis/agents`      | 🟢     | Built-in agents package with `VisionAgent`/`MockVisionAgent` (agent delegator, pool interfaces).                                                                                                                       |
-| `@openjarvis/desktop`     | 🟡     | Electron desktop app with Iron Man neon dashboard. **Dashboard components now wired to NexusContext** (mock bridge — see PR #39).                                                                                    |
-| `@openjarvis/track-b`     | 🟢     | Multi-device sync: device identity, CRDT sync, Noise protocol, task router, vault sync. 56 tests.                                                                                                                     |
-| `@openjarvis/process`     | 🟢     | Process Enforcement: AGENT.md loop runtime enforcement with ProcessEngine, gate checks, lifecycle hooks, event bus. 57 tests.                                                                                       |
+| `@openjarvis/desktop`     | 🟡     | Electron desktop app with Iron Man neon dashboard. **Dashboard components now wired to NexusContext** (mock bridge — see PR #39).                                                                                      |
+| `@openjarvis/track-b`     | 🟢     | Multi-device sync: device identity, CRDT sync, Noise protocol, task router, vault sync. 56 tests.                                                                                                                      |
+| `@openjarvis/process`     | 🟢     | Process Enforcement: AGENT.md loop runtime enforcement with ProcessEngine, gate checks, lifecycle hooks, event bus. 57 tests.                                                                                          |
 
 ## 3. What's built and proven (done)
 
@@ -67,6 +67,7 @@ integration); `ask`/`run` CLIs + eval harness. Specs: `docs/specs/2026-06-05-S1-
 **Track A is now COMPLETE.** All 24 Zero-Flaw items closed.
 
 **Track B is now COMPLETE (PR #37, merged).** Multi-device sync with:
+
 - Device identity + registry with Ed25519 keypairs (`tweetnacl`)
 - Pairing flow with QR tokens
 - Vector clock CRDT foundation
@@ -79,6 +80,7 @@ integration); `ask`/`run` CLIs + eval harness. Specs: `docs/specs/2026-06-05-S1-
 - Package: `@openjarvis/track-b` with 13 test files, 56 tests
 
 **Process Enforcement is now COMPLETE (PR #38, merged).** Runtime-enforced AGENT.md loop:
+
 - Phase manifest with 6 phases and DAG dependencies
 - `ProcessEngine` with state tracking and dependency enforcement
 - Per-phase gate checks (build/lint/format/test/coverage)
@@ -90,12 +92,13 @@ integration); `ask`/`run` CLIs + eval harness. Specs: `docs/specs/2026-06-05-S1-
 ## 4. In flight
 
 **PR #39 — Desktop-Nexus Wiring** (`desktop-nexus-wiring` branch)
+
 - Wires TaskBoard, AgentStatusGrid, ConversationPanel to NexusContext
 - Adds `NexusBridge` interface mapping Nexus types to UI views
 - Adds `createMockNexusBridge()` preserving existing mock data
 - Local type definitions (`nexus-types.ts`) to avoid deep-import resolution issues
+- Added `references` to `packages/desktop/tsconfig.json` so `tsc -b` builds `@openjarvis/jarvis` before `@openjarvis/desktop`, fixing the Docker/CI deep-import ordering failure.
 - **Status:** Build/lint/format/tests pass locally (742 passing). CI queued.
-- **Blocker:** Docker gate may fail on `@openjarvis/jarvis/nexus` deep import — mitigated by using local types.
 
 ## 5. What's next
 
