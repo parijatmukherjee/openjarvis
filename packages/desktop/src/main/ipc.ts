@@ -1,7 +1,9 @@
 import type { BrowserWindow, IpcMain } from "electron";
 import type { DesktopStore } from "./store.js";
 
-export function registerIpcHandlers(store: DesktopStore, ipcMain: IpcMain): void {
+type MinimalIpcMain = Pick<IpcMain, "handle">;
+
+export function registerIpcHandlers(store: DesktopStore, ipcMain: MinimalIpcMain): void {
   ipcMain.handle("settings:load", () => store.loadSettings());
   ipcMain.handle("settings:save", (_event, settings) => store.saveSettings(settings));
   ipcMain.handle("profile:load", () => store.loadProfile());
@@ -13,7 +15,7 @@ export function registerIpcHandlers(store: DesktopStore, ipcMain: IpcMain): void
   });
 }
 
-export function registerWindowHandlers(ipcMain: IpcMain, getWindow: () => BrowserWindow | null): void {
+export function registerWindowHandlers(ipcMain: MinimalIpcMain, getWindow: () => BrowserWindow | null): void {
   ipcMain.handle("window:minimize", () => {
     getWindow()?.minimize();
   });
