@@ -4,7 +4,7 @@ import { GlassPanel } from "../ui/GlassPanel";
 import { StatusDot } from "../ui/StatusDot";
 import { AgentDetailModal } from "../AgentDetailModal";
 import { useNexus } from "../../contexts/NexusContext";
-import type { AgentView } from "../../lib/nexus-bridge";
+import type { AgentView } from "../../lib/nexus-types";
 
 export function AgentStatusGrid() {
   const nexus = useNexus();

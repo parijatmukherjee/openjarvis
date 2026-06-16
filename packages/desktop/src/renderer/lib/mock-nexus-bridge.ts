@@ -1,5 +1,4 @@
-import type { NexusBridge, AgentView, MessageView } from "./nexus-bridge.js";
-import type { Task } from "@openjarvis/jarvis/nexus";
+import type { NexusBridge, Task, AgentView, MessageView } from "./nexus-types.js";
 
 // Mock bridge that returns the same data currently hardcoded in components.
 // In a real Electron app, this would be replaced with an IPC bridge to the
@@ -103,16 +102,36 @@ const mockTasks: Task[] = [
 ];
 
 const mockMessages: MessageView[] = [
-  { id: "1", type: "user", text: "What's the weather like?", timestamp: "10:23 AM" },
+  {
+    id: "1",
+    type: "user",
+    text: "What's the weather like?",
+    timestamp: "10:23 AM",
+  },
   {
     id: "2",
     type: "jarvis",
     text: "It's 72°F and sunny. Would you like me to open the weather app?",
     timestamp: "10:23 AM",
   },
-  { id: "3", type: "system", text: "Agent 'weather' dispatched", timestamp: "10:23 AM" },
-  { id: "4", type: "user", text: "Yes, please", timestamp: "10:24 AM" },
-  { id: "5", type: "jarvis", text: "Done. Calendar app opened.", timestamp: "10:24 AM" },
+  {
+    id: "3",
+    type: "system",
+    text: "Agent 'weather' dispatched",
+    timestamp: "10:23 AM",
+  },
+  {
+    id: "4",
+    type: "user",
+    text: "Yes, please",
+    timestamp: "10:24 AM",
+  },
+  {
+    id: "5",
+    type: "jarvis",
+    text: "Done. Calendar app opened.",
+    timestamp: "10:24 AM",
+  },
 ];
 
 export function createMockNexusBridge(): NexusBridge {

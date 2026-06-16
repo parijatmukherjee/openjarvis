@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GlassPanel } from "../ui/GlassPanel";
 import { StatusDot } from "../ui/StatusDot";
 import { useNexus } from "../../contexts/NexusContext";
-import type { Task } from "@openjarvis/jarvis/nexus";
+import type { Task } from "../../lib/nexus-types";
 
 const statusLabels = {
   pending: "Pending",

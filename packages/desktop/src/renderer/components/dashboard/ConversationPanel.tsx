@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassPanel } from "../ui/GlassPanel";
 import { useNexus } from "../../contexts/NexusContext";
-import type { MessageView } from "../../lib/nexus-bridge";
+import type { MessageView } from "../../lib/nexus-types";
 
 export function ConversationPanel() {
   const nexus = useNexus();

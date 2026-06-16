@@ -13,9 +13,7 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {
-    "@openjarvis/jarvis": "*"
-  },
+  "dependencies": {},
   "devDependencies": {},
   "peerDependencies": {
     "electron": ">=30.0.0"

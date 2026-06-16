@@ -1,32 +1,9 @@
 import type { NexusEngine, TaskBoard, AgentPool } from "@openjarvis/jarvis/nexus";
-import type { Task } from "@openjarvis/jarvis/nexus";
 import type { EventBus } from "@openjarvis/jarvis";
+import type { AgentView, MessageView } from "./nexus-types.js";
 
-export interface AgentView {
-  id: string;
-  name: string;
-  role: string;
-  status: "active" | "busy" | "failed" | "idle";
-  description: string;
-  capabilities: string[];
-  lastActivity: string;
-  tasksCompleted: number;
-}
-
-export interface MessageView {
-  id: string;
-  type: "user" | "jarvis" | "system";
-  text: string;
-  timestamp: string;
-}
-
-export interface NexusBridge {
-  getTasks(): Promise<Task[]>;
-  getAgents(): Promise<AgentView[]>;
-  getMessages(): Promise<MessageView[]>;
-  executeIntent(action: string, params: Record<string, unknown>): Promise<void>;
-  subscribeToEvents(handler: (event: unknown) => void): () => void;
-}
+export type { AgentView, MessageView };
+export type { NexusBridge } from "./nexus-types.js";
 
 // Factory to create a bridge from a Nexus engine instance
 export function createNexusBridge(
@@ -34,7 +11,7 @@ export function createNexusBridge(
   taskBoard: TaskBoard,
   _agentPool: AgentPool,
   eventBus: EventBus,
-): NexusBridge {
+): import("./nexus-types.js").NexusBridge {
   const messages: MessageView[] = [];
   let messageId = 0;
 
@@ -44,7 +21,6 @@ export function createNexusBridge(
     },
 
     async getAgents() {
-      // Map pool agents to AgentView — pool has mock factories
       return [
         {
           id: "research",
