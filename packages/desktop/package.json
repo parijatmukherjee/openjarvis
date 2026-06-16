@@ -13,8 +13,10 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {},
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^30.0.0"
+  },
   "peerDependencies": {
     "electron": ">=30.0.0"
   },
