@@ -138,10 +138,24 @@ describe("DiscordGateway", () => {
       createdTimestamp: 1700000000000,
       editedTimestamp: 1700000001000,
       attachments: {
-        map: (fn: (a: unknown) => unknown) =>
+        map: (
+          cb: (a: {
+            id: string;
+            url: string;
+            name: string;
+            contentType: string | null;
+            size: number;
+          }) => unknown,
+        ) =>
           [
-            { id: "att1", url: "https://example.com/file.png", name: "file.png", contentType: "image/png", size: 1234 },
-          ].map(fn as (a: never) => unknown),
+            {
+              id: "att1",
+              url: "https://example.com/file.png",
+              name: "file.png",
+              contentType: "image/png",
+              size: 1234,
+            },
+          ].map(cb),
       },
     };
     capturedListener!(userMsg);
@@ -155,7 +169,13 @@ describe("DiscordGateway", () => {
     expect(mapped.timestamp).toBe(1700000000000);
     expect(mapped.editedTimestamp).toBe(1700000001000);
     expect(mapped.attachments).toEqual([
-      { id: "att1", url: "https://example.com/file.png", filename: "file.png", contentType: "image/png", size: 1234 },
+      {
+        id: "att1",
+        url: "https://example.com/file.png",
+        filename: "file.png",
+        contentType: "image/png",
+        size: 1234,
+      },
     ]);
   });
 

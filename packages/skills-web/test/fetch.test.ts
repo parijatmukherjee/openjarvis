@@ -135,9 +135,7 @@ describe("web_fetch", () => {
     });
     const tool = createWebFetchTool({ fetch: fetchMock });
     await tool.handler({ url: "https://example.com", format: "markdown" }, ctx);
-    expect(mockMarkdownify).toHaveBeenCalledWith(
-      expect.objectContaining({ mime: "text/html" }),
-    );
+    expect(mockMarkdownify).toHaveBeenCalledWith(expect.objectContaining({ mime: "text/html" }));
   });
 
   it("omits mime when content-type header is absent", async () => {
