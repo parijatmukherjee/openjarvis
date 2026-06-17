@@ -5,10 +5,10 @@
 > trackers live under `docs/` and are linked below.
 >
 > **Last updated:** 2026-06-17 · **Default branch:** `main` (protected; required
-> `docker-gate`) · **Tests:** 751 passing / 1 skipped, **99.62% coverage** (gate floor 99%).
+> `docker-gate`) · **Tests:** 764 passing / 1 skipped, **99.62% coverage** (gate floor 99%).
 > **Zero-Flaw Campaign: 24/24 ✅**
 > **S3 Nexus Orchestrator: MERGED ✅**
-> **Desktop App (Electron): MERGED ✅**
+> **Desktop App (Electron): IN PROGRESS — Electron main-process wiring on branch `desktop-electron-main-wiring`**
 > **Track B Multi-Device Sync: MERGED ✅**
 > **Process Enforcement: MERGED ✅**
 
@@ -31,7 +31,7 @@ state, capabilities). Full vision: [`docs/specs/2026-06-05-openjarvis-design.md`
 | `@openjarvis/markdownify` | 🟢     | Document → Markdown converters (CSV/HTML/JSON/XML/text) behind a never-throws `ConverterRegistry`. **Wired into the agent path** via `createDocumentTool` + `buildDurableAgentRun`/`buildProbeAgent`.                  |
 | `@openjarvis/jarvis`      | 🟢     | Vision skill interfaces + E2E automation suite (`MockUser`, 15 scenarios). **S3 Nexus Orchestrator** (IntentRouter, AgentPool, Synthesizer, NexusEngine, TaskBoard, ReplayEngine) with 28 tests.                       |
 | `@openjarvis/agents`      | 🟢     | Built-in agents package with `VisionAgent`/`MockVisionAgent` (agent delegator, pool interfaces).                                                                                                                       |
-| `@openjarvis/desktop`     | 🟢     | Electron desktop app with Iron Man neon dashboard. Dashboard components wired to NexusContext. **Settings + user profile persisted to disk and exposed through typed IPC bridge.**                                     |
+| `@openjarvis/desktop`     | 🟢     | Electron desktop app with Iron Man neon dashboard. Dashboard components wired to NexusContext. **Settings + user profile persisted to disk and exposed through typed IPC bridge.** **Real Electron main-process wiring on branch `desktop-electron-main-wiring`.** |
 | `@openjarvis/track-b`     | 🟢     | Multi-device sync: device identity, CRDT sync, Noise protocol, task router, vault sync. 56 tests.                                                                                                                      |
 | `@openjarvis/process`     | 🟢     | Process Enforcement: AGENT.md loop runtime enforcement with ProcessEngine, gate checks, lifecycle hooks, event bus. 57 tests.                                                                                          |
 
@@ -91,24 +91,26 @@ integration); `ask`/`run` CLIs + eval harness. Specs: `docs/specs/2026-06-05-S1-
 
 ## 4. In flight
 
-**PR #40 — Desktop Settings Persistence + User Profile** (`desktop-settings-persistence` branch)
+**PR #41 — Desktop Electron Main-Process Wiring** (`desktop-electron-main-wiring` branch)
 
-- Adds `DesktopStore` for typed, atomic JSON persistence of `AppSettings` and `UserProfile`
-- Zod schemas with version field and safe defaults for forward migration
-- Real Electron IPC bridge: `settings:load/save`, `profile:load/save`, `locale:getSystemLocale`, `window:*`
-- `useSettings` hook + `SettingsContext` for renderer state
-- `Header.tsx` greets the persisted user name; `SettingsPanel.tsx` edits and saves settings + name
-- 17 desktop tests passing; full gate passes (build, lint, format:check, 99.62% coverage, unit, functional)
-- **Status:** Ready for PR
+- Real `electron-main.ts` entry point: BrowserWindow creation, frameless chrome, dev/prod renderer loading
+- `DesktopStore` instantiation and IPC handler registration in `bootstrap()`
+- Electron lifecycle: single-instance lock, window-all-closed, activate (macOS), closed handler
+- Dev detection via `app.isPackaged` + `OPENJARVIS_DEV` env var
+- Unhandled promise rejection catching on `bootstrap()` and `handleActivate`
+- 13 unit tests with full Electron API mocking
+- Renderer HTML updated with `<div id="root">` React mount point
+- Package scripts: `dev`, `start`, `build:renderer`, `pack`
+- `tailwindcss@3` + `autoprefixer` added as dev deps
+- **Status:** All gates pass — ready for PR
 
 ## 5. What's next
 
-1. **Open PR #40** for review/merge
-2. **Real Electron main process wiring** — instantiate `DesktopStore`, register IPC handlers in `electron-main.ts`, load `index.html`
-3. **Real audio analysis (Web Audio API)** for `VoiceWaveform`
-4. **Plugin SDK / registry**
-5. **Gateway (network API)**
-6. **CLI binary packaging**
+1. **Merge PR #41** for Electron main-process wiring
+2. **Real audio analysis (Web Audio API)** for `VoiceWaveform`
+3. **Plugin SDK / registry**
+4. **Gateway (network API)**
+5. **CLI binary packaging**
 
 ## 6. How to work here
 
