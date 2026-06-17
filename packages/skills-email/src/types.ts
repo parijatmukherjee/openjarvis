@@ -133,11 +133,15 @@ export const EmailDraftSchema = z.object({
   subject: z.string(),
   body: z.string(),
   htmlBody: z.string().optional(),
-  attachments: z.array(z.object({
-    filename: z.string(),
-    contentType: z.string(),
-    content: z.instanceof(Uint8Array),
-  })).optional(),
+  attachments: z
+    .array(
+      z.object({
+        filename: z.string(),
+        contentType: z.string(),
+        content: z.instanceof(Uint8Array),
+      }),
+    )
+    .optional(),
 });
 
 export const ListOptionsSchema = z.object({

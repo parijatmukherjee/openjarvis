@@ -35,8 +35,22 @@ describe("GmailImapClient", () => {
     it("returns mapped EmailFolder[]", async () => {
       const mock = createMockClient();
       mock.list.mockResolvedValue([
-        { path: "INBOX", name: "INBOX", delimiter: ".", flags: new Set(), listed: true, subscribed: true },
-        { path: "Sent", name: "Sent", delimiter: ".", flags: new Set(), listed: true, subscribed: true },
+        {
+          path: "INBOX",
+          name: "INBOX",
+          delimiter: ".",
+          flags: new Set(),
+          listed: true,
+          subscribed: true,
+        },
+        {
+          path: "Sent",
+          name: "Sent",
+          delimiter: ".",
+          flags: new Set(),
+          listed: true,
+          subscribed: true,
+        },
       ]);
       const client = new GmailImapClient(makeConfig(), mock as any);
       const folders: EmailFolder[] = await client.listFolders();
@@ -54,7 +68,12 @@ describe("GmailImapClient", () => {
       mock.getMailboxLock.mockResolvedValue(lock);
       mock.search.mockResolvedValue([1, 2]);
       mock.fetchAll.mockResolvedValue([
-        { uid: 1, seq: 1, envelope: makeEnvelope({ subject: "Sub 1" }), flags: new Set(["\\Seen"]) },
+        {
+          uid: 1,
+          seq: 1,
+          envelope: makeEnvelope({ subject: "Sub 1" }),
+          flags: new Set(["\\Seen"]),
+        },
         { uid: 2, seq: 2, envelope: makeEnvelope({ subject: "Sub 2" }), flags: new Set() },
       ]);
       const client = new GmailImapClient(makeConfig(), mock as any);

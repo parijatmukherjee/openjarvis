@@ -18,9 +18,16 @@ function makeClients(): EmailToolClients {
       listFolders: vi.fn().mockResolvedValue([{ name: "INBOX", path: "INBOX", delimiter: "." }]),
       listMessages: vi.fn().mockResolvedValue([]),
       getMessage: vi.fn().mockResolvedValue({
-        id: "1", from: { name: "A", address: "a@b.com" },
-        to: [], cc: [], subject: "Test", body: "Hello",
-        date: "2026-06-17T00:00:00Z", attachments: [], folder: "INBOX", flags: [],
+        id: "1",
+        from: { name: "A", address: "a@b.com" },
+        to: [],
+        cc: [],
+        subject: "Test",
+        body: "Hello",
+        date: "2026-06-17T00:00:00Z",
+        attachments: [],
+        folder: "INBOX",
+        flags: [],
       }),
       send: vi.fn().mockResolvedValue("msg123"),
       search: vi.fn().mockResolvedValue([]),
@@ -29,16 +36,25 @@ function makeClients(): EmailToolClients {
       listFolders: vi.fn().mockResolvedValue([{ name: "Inbox", path: "inbox", delimiter: "/" }]),
       listMessages: vi.fn().mockResolvedValue([]),
       getMessage: vi.fn().mockResolvedValue({
-        id: "g1", from: { name: "A", address: "a@b.com" },
-        to: [], cc: [], subject: "Test", body: "Hello",
-        date: "2026-06-17T00:00:00Z", attachments: [], folder: "Inbox", flags: [],
+        id: "g1",
+        from: { name: "A", address: "a@b.com" },
+        to: [],
+        cc: [],
+        subject: "Test",
+        body: "Hello",
+        date: "2026-06-17T00:00:00Z",
+        attachments: [],
+        folder: "Inbox",
+        flags: [],
       }),
       send: vi.fn().mockResolvedValue("sent"),
       search: vi.fn().mockResolvedValue([]),
       startDeviceCodeAuth: vi.fn().mockResolvedValue({
-        deviceCode: "dc123", userCode: "ABC-XYZ",
+        deviceCode: "dc123",
+        userCode: "ABC-XYZ",
         verificationUrl: "https://microsoft.com/devicelogin",
-        expiresIn: 900, interval: 5,
+        expiresIn: 900,
+        interval: 5,
       }),
       waitForAuth: vi.fn().mockResolvedValue({ success: true }),
       refreshToken: vi.fn().mockResolvedValue({ success: true }),
@@ -100,12 +116,15 @@ describe("createEmailDraftTool", () => {
   it("returns a draftId and preview without sending", async () => {
     const clients = makeClients();
     const tool = createEmailDraftTool(clients);
-    const result = await tool.handler({
-      provider: "gmail",
-      to: [{ address: "bob@example.com" }],
-      subject: "Test draft",
-      body: "Draft body",
-    }, ctx);
+    const result = await tool.handler(
+      {
+        provider: "gmail",
+        to: [{ address: "bob@example.com" }],
+        subject: "Test draft",
+        body: "Draft body",
+      },
+      ctx,
+    );
     expect(result.draftId).toBeDefined();
     expect(result.preview.subject).toBe("Test draft");
     expect(clients.gmail!.send).not.toHaveBeenCalled();
@@ -122,17 +141,22 @@ describe("createEmailSendTool", () => {
   it("calls gmail send when provider is gmail", async () => {
     const clients = makeClients();
     const tool = createEmailSendTool(clients);
-    await tool.handler({
-      provider: "gmail",
-      to: [{ address: "bob@example.com" }],
-      subject: "Hello",
-      body: "Hi Bob",
-    }, ctx);
-    expect(clients.gmail!.send).toHaveBeenCalledWith(expect.objectContaining({
-      to: [{ address: "bob@example.com" }],
-      subject: "Hello",
-      body: "Hi Bob",
-    }));
+    await tool.handler(
+      {
+        provider: "gmail",
+        to: [{ address: "bob@example.com" }],
+        subject: "Hello",
+        body: "Hi Bob",
+      },
+      ctx,
+    );
+    expect(clients.gmail!.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: [{ address: "bob@example.com" }],
+        subject: "Hello",
+        body: "Hi Bob",
+      }),
+    );
   });
 });
 
@@ -154,7 +178,11 @@ describe("registerEmailTools", () => {
     registerEmailTools(registry, clients);
     const noGrant: AgentGrant = { agentId: "test-agent", capabilities: [] };
     const result = await registry.invoke(
-      { id: "c1", tool: "email_send", args: { provider: "gmail", to: [{ address: "x@y.com" }], subject: "Hi", body: "yo" } },
+      {
+        id: "c1",
+        tool: "email_send",
+        args: { provider: "gmail", to: [{ address: "x@y.com" }], subject: "Hi", body: "yo" },
+      },
       noGrant,
       ctx,
     );

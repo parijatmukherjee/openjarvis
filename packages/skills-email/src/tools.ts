@@ -134,11 +134,15 @@ const SendArgsSchema = z.object({
   subject: z.string(),
   body: z.string(),
   htmlBody: z.string().optional(),
-  attachments: z.array(z.object({
-    filename: z.string(),
-    contentType: z.string(),
-    content: z.instanceof(Uint8Array),
-  })).optional(),
+  attachments: z
+    .array(
+      z.object({
+        filename: z.string(),
+        contentType: z.string(),
+        content: z.instanceof(Uint8Array),
+      }),
+    )
+    .optional(),
 });
 
 const SendResultSchema = z.object({ messageId: z.string() });
@@ -162,7 +166,9 @@ export function createEmailSendTool(
       }
       const draft: EmailDraft = {
         to: args.to.map((r) => ({ ...(r.name != null && { name: r.name }), address: r.address })),
-        ...(args.cc != null && { cc: args.cc.map((r) => ({ ...(r.name != null && { name: r.name }), address: r.address })) }),
+        ...(args.cc != null && {
+          cc: args.cc.map((r) => ({ ...(r.name != null && { name: r.name }), address: r.address })),
+        }),
         subject: args.subject,
         body: args.body,
         ...(args.htmlBody != null && { htmlBody: args.htmlBody }),

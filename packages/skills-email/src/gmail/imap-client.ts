@@ -1,10 +1,6 @@
 import { ImapFlow } from "imapflow";
 import type { FetchMessageObject } from "imapflow";
-import type {
-  EmailFolder,
-  EmailMessage,
-  ListOptions,
-} from "../types.js";
+import type { EmailFolder, EmailMessage, ListOptions } from "../types.js";
 
 export interface GmailImapConfig {
   host: string;
@@ -37,15 +33,12 @@ export class GmailImapClient {
         path: mb.path,
         delimiter: mb.delimiter,
       }));
-    } catch (err) {
+    } catch {
       return [];
     }
   }
 
-  async listMessages(
-    folder: string,
-    opts?: ListOptions,
-  ): Promise<EmailMessage[]> {
+  async listMessages(folder: string, opts?: ListOptions): Promise<EmailMessage[]> {
     try {
       await this.ensureConnected();
       const lock = await this.client.getMailboxLock(folder);
@@ -70,7 +63,7 @@ export class GmailImapClient {
       } finally {
         lock.release();
       }
-    } catch (err) {
+    } catch {
       return [];
     }
   }
@@ -91,7 +84,7 @@ export class GmailImapClient {
       } finally {
         lock.release();
       }
-    } catch (err) {
+    } catch {
       return null;
     }
   }
@@ -116,15 +109,12 @@ export class GmailImapClient {
       } finally {
         lock.release();
       }
-    } catch (err) {
+    } catch {
       return [];
     }
   }
 
-  private mapMessage(
-    msg: FetchMessageObject,
-    folder: string,
-  ): EmailMessage {
+  private mapMessage(msg: FetchMessageObject, folder: string): EmailMessage {
     const envelope = (msg.envelope ?? {}) as Record<string, unknown>;
     const fromArr = (envelope.from ?? []) as Array<{
       name?: string;
@@ -142,8 +132,7 @@ export class GmailImapClient {
     const from = fromArr[0] ?? { name: "", address: "" };
     const flags = msg.flags instanceof Set ? Array.from(msg.flags as Set<string>) : [];
     const dateVal = envelope.date;
-    const dateStr =
-      dateVal instanceof Date ? dateVal.toISOString() : String(dateVal ?? "");
+    const dateStr = dateVal instanceof Date ? dateVal.toISOString() : String(dateVal ?? "");
 
     return {
       id: String(msg.uid ?? msg.seq ?? ""),
@@ -165,9 +154,7 @@ export class GmailImapClient {
     };
   }
 
-  private parseSearchQuery(
-    query: string,
-  ): Record<string, unknown> {
+  private parseSearchQuery(query: string): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     const tokens = query.split(/\s+/).filter(Boolean);
     for (const token of tokens) {

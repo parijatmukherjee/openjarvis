@@ -85,9 +85,7 @@ describe("GmailSmtpSender", () => {
         to: [{ address: "bob@example.com" }],
         subject: "Hello",
         body: "See attached",
-        attachments: [
-          { filename: "file.pdf", contentType: "application/pdf", content },
-        ],
+        attachments: [{ filename: "file.pdf", contentType: "application/pdf", content }],
       };
 
       await sender.send(draft);

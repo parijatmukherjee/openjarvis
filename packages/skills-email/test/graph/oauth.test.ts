@@ -115,9 +115,7 @@ describe("GraphOAuth", () => {
       expect(vault.set).toHaveBeenCalledWith("graph:access-token", "at-new");
       expect(vault.set).toHaveBeenCalledWith("graph:refresh-token", "rt-new");
 
-      const callBody = new URLSearchParams(
-        (mockFetch.mock.calls[0] as any)[1].body as string,
-      );
+      const callBody = new URLSearchParams((mockFetch.mock.calls[0] as any)[1].body as string);
       expect(callBody.get("refresh_token")).toBe("rt-existing");
     });
 

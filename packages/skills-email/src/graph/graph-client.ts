@@ -132,9 +132,9 @@ export class GraphEmailClient {
 
   async listMessages(folder: string, opts?: ListOptions): Promise<EmailMessage[]> {
     const limit = opts?.limit ?? 20;
-    const data = (await this.graphGet(
-      `/me/mailFolders/${folder}/messages?$top=${limit}`,
-    )) as { value: Array<Record<string, unknown>> };
+    const data = (await this.graphGet(`/me/mailFolders/${folder}/messages?$top=${limit}`)) as {
+      value: Array<Record<string, unknown>>;
+    };
     return data.value.map((m) => this.mapMessage(m));
   }
 
@@ -167,9 +167,9 @@ export class GraphEmailClient {
 
   async search(query: string): Promise<EmailMessage[]> {
     const encoded = encodeURIComponent(`"${query}"`);
-    const data = (await this.graphGet(
-      `/me/messages?$search=${encoded}`,
-    )) as { value: Array<Record<string, unknown>> };
+    const data = (await this.graphGet(`/me/messages?$search=${encoded}`)) as {
+      value: Array<Record<string, unknown>>;
+    };
     return data.value.map((m) => this.mapMessage(m));
   }
 }

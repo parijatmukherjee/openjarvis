@@ -22,9 +22,7 @@ describe("GmailEmailClient", () => {
     it("delegates listFolders to imap client", async () => {
       const imap = createMockImap();
       const smtp = createMockSmtp();
-      const folders: EmailFolder[] = [
-        { name: "INBOX", path: "INBOX", delimiter: "." },
-      ];
+      const folders: EmailFolder[] = [{ name: "INBOX", path: "INBOX", delimiter: "." }];
       imap.listFolders.mockResolvedValue(folders);
 
       const client = new GmailEmailClient(imap as any, smtp as any);
@@ -40,7 +38,18 @@ describe("GmailEmailClient", () => {
       const imap = createMockImap();
       const smtp = createMockSmtp();
       const messages: EmailMessage[] = [
-        { id: "1", from: { name: "A", address: "a@test.com" }, to: [], cc: [], subject: "Hi", body: "", date: "", attachments: [], folder: "INBOX", flags: [] },
+        {
+          id: "1",
+          from: { name: "A", address: "a@test.com" },
+          to: [],
+          cc: [],
+          subject: "Hi",
+          body: "",
+          date: "",
+          attachments: [],
+          folder: "INBOX",
+          flags: [],
+        },
       ];
       imap.listMessages.mockResolvedValue(messages);
 
@@ -57,7 +66,16 @@ describe("GmailEmailClient", () => {
       const imap = createMockImap();
       const smtp = createMockSmtp();
       const message: EmailMessage = {
-        id: "42", from: { name: "A", address: "a@test.com" }, to: [], cc: [], subject: "Hello", body: "", date: "", attachments: [], folder: "INBOX", flags: [],
+        id: "42",
+        from: { name: "A", address: "a@test.com" },
+        to: [],
+        cc: [],
+        subject: "Hello",
+        body: "",
+        date: "",
+        attachments: [],
+        folder: "INBOX",
+        flags: [],
       };
       imap.getMessage.mockResolvedValue(message);
 
@@ -94,7 +112,18 @@ describe("GmailEmailClient", () => {
       const imap = createMockImap();
       const smtp = createMockSmtp();
       const results: EmailMessage[] = [
-        { id: "5", from: { name: "B", address: "b@test.com" }, to: [], cc: [], subject: "Match", body: "", date: "", attachments: [], folder: "INBOX", flags: [] },
+        {
+          id: "5",
+          from: { name: "B", address: "b@test.com" },
+          to: [],
+          cc: [],
+          subject: "Match",
+          body: "",
+          date: "",
+          attachments: [],
+          folder: "INBOX",
+          flags: [],
+        },
       ];
       imap.search.mockResolvedValue(results);
 

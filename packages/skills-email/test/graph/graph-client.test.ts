@@ -16,9 +16,7 @@ const graphMessage = {
   from: {
     emailAddress: { name: "Alice", address: "alice@example.com" },
   },
-  toRecipients: [
-    { emailAddress: { name: "Bob", address: "bob@example.com" } },
-  ],
+  toRecipients: [{ emailAddress: { name: "Bob", address: "bob@example.com" } }],
   ccRecipients: [],
   receivedDateTime: "2026-06-17T12:00:00Z",
   hasAttachments: false,
@@ -191,23 +189,17 @@ describe("GraphEmailClient", () => {
   describe("stub methods", () => {
     it("startDeviceCodeAuth throws", async () => {
       const client = createClient();
-      await expect(client.startDeviceCodeAuth()).rejects.toThrow(
-        "Use GraphOAuth instead",
-      );
+      await expect(client.startDeviceCodeAuth()).rejects.toThrow("Use GraphOAuth instead");
     });
 
     it("waitForAuth throws", async () => {
       const client = createClient();
-      await expect(client.waitForAuth("dc")).rejects.toThrow(
-        "Use GraphOAuth instead",
-      );
+      await expect(client.waitForAuth("dc")).rejects.toThrow("Use GraphOAuth instead");
     });
 
     it("refreshToken throws", async () => {
       const client = createClient();
-      await expect(client.refreshToken()).rejects.toThrow(
-        "Use GraphOAuth instead",
-      );
+      await expect(client.refreshToken()).rejects.toThrow("Use GraphOAuth instead");
     });
   });
 });
