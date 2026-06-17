@@ -76,6 +76,26 @@ export class InProcessAgentPool implements AgentPool {
           active: true,
         },
       ],
+      [
+        "discord",
+        {
+          id: "discord",
+          name: "Discord Agent",
+          role: "communication",
+          capabilities: ["discord:message", "discord:read"],
+          active: true,
+        },
+      ],
+      [
+        "web",
+        {
+          id: "web",
+          name: "Web Agent",
+          role: "web",
+          capabilities: ["web:fetch", "document:convert"],
+          active: true,
+        },
+      ],
     ]);
 
     this.factories = new Map<string, AgentFactory>([
@@ -85,6 +105,8 @@ export class InProcessAgentPool implements AgentPool {
       ["calendar", async () => ({ events: [{ title: "Meeting", time: "10:00" }] })],
       ["browser", async () => ({ loaded: true })],
       ["vision", async () => ({ humans: 1, emotion: "neutral" })],
+      ["discord", async () => ({ messageId: "mock-msg-123" })],
+      ["web", async () => ({ markdown: "Fetched content", url: "https://example.com" })],
       [
         "slow",
         async () => {

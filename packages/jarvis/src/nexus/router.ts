@@ -16,6 +16,9 @@ export class RuleBasedRouter implements IntentRouter {
       ["check_calendar", this.routeToCalendar],
       ["browse", this.routeToBrowser],
       ["vision_query", this.routeToVision],
+      ["send_discord", this.routeToDiscord],
+      ["read_discord", this.routeToDiscord],
+      ["fetch_url", this.routeToWeb],
     ]);
   }
 
@@ -82,6 +85,22 @@ export class RuleBasedRouter implements IntentRouter {
         { agentId: "calendar", confidence: 0.9, required: false },
       ],
       sequential: [],
+    };
+  }
+
+  private routeToDiscord(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "discord", confidence: intent.confidence, required: true },
+    };
+  }
+
+  private routeToWeb(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "web", confidence: intent.confidence, required: false },
     };
   }
 }
