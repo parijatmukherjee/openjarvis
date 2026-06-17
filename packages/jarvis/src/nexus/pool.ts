@@ -96,6 +96,16 @@ export class InProcessAgentPool implements AgentPool {
           active: true,
         },
       ],
+      [
+        "email",
+        {
+          id: "email",
+          name: "Email Agent",
+          role: "communication",
+          capabilities: ["email:read", "email:send"],
+          active: true,
+        },
+      ],
     ]);
 
     this.factories = new Map<string, AgentFactory>([
@@ -107,6 +117,7 @@ export class InProcessAgentPool implements AgentPool {
       ["vision", async () => ({ humans: 1, emotion: "neutral" })],
       ["discord", async () => ({ messageId: "mock-msg-123" })],
       ["web", async () => ({ markdown: "Fetched content", url: "https://example.com" })],
+      ["email", async () => ({ messageId: "mock-email-123" })],
       [
         "slow",
         async () => {

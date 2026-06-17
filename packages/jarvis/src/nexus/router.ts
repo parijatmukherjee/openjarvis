@@ -19,6 +19,10 @@ export class RuleBasedRouter implements IntentRouter {
       ["send_discord", this.routeToDiscord],
       ["read_discord", this.routeToDiscord],
       ["fetch_url", this.routeToWeb],
+      ["search_email", this.routeToEmail],
+      ["read_email", this.routeToEmail],
+      ["draft_email", this.routeToEmail],
+      ["send_email", this.routeToEmail],
     ]);
   }
 
@@ -101,6 +105,14 @@ export class RuleBasedRouter implements IntentRouter {
       parallel: [],
       sequential: [],
       primary: { agentId: "web", confidence: intent.confidence, required: false },
+    };
+  }
+
+  private routeToEmail(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "email", confidence: intent.confidence, required: true },
     };
   }
 }
