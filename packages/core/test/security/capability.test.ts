@@ -52,3 +52,32 @@ describe("playbook:override capability", () => {
     expect(grantSatisfies(empty, { name: "playbook:override" })).toBe(false);
   });
 });
+
+describe("new capabilities (discord, web)", () => {
+  it("grants discord:message capability", () => {
+    const granted = { agentId: "discord-bot", capabilities: [{ name: "discord:message" as const }] };
+    expect(grantSatisfies(granted, { name: "discord:message" })).toBe(true);
+    const empty = { agentId: "discord-bot", capabilities: [] };
+    expect(grantSatisfies(empty, { name: "discord:message" })).toBe(false);
+  });
+
+  it("grants discord:read capability", () => {
+    const granted = { agentId: "discord-bot", capabilities: [{ name: "discord:read" as const }] };
+    expect(grantSatisfies(granted, { name: "discord:read" })).toBe(true);
+  });
+
+  it("grants web:fetch capability", () => {
+    const granted = { agentId: "web-agent", capabilities: [{ name: "web:fetch" as const }] };
+    expect(grantSatisfies(granted, { name: "web:fetch" })).toBe(true);
+  });
+
+  it("grants web:browse capability", () => {
+    const granted = { agentId: "web-agent", capabilities: [{ name: "web:browse" as const }] };
+    expect(grantSatisfies(granted, { name: "web:browse" })).toBe(true);
+  });
+
+  it("denies discord:message without grant", () => {
+    const granted = { agentId: "web-agent", capabilities: [{ name: "web:fetch" as const }] };
+    expect(grantSatisfies(granted, { name: "discord:message" })).toBe(false);
+  });
+});

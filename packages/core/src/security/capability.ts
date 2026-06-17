@@ -7,7 +7,11 @@ export type CapabilityName =
   | "host:info"
   | "model-call"
   | "playbook:override"
-  | "document:convert";
+  | "document:convert"
+  | "discord:message"
+  | "discord:read"
+  | "web:fetch"
+  | "web:browse";
 
 export interface Capability {
   name: CapabilityName;
