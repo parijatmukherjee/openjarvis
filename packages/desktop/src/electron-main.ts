@@ -13,10 +13,9 @@ const MIN_WIDTH = 900;
 const MIN_HEIGHT = 600;
 
 let mainWindow: BrowserWindow | null = null;
-let store: DesktopStore | null = null;
 
 function isDev(): boolean {
-  return process.env.NODE_ENV === "development" || process.env.OPENJARVIS_DEV === "1";
+  return !app.isPackaged || process.env.OPENJARVIS_DEV === "1";
 }
 
 export function createMainWindow(): BrowserWindow {
@@ -40,6 +39,10 @@ export function createMainWindow(): BrowserWindow {
     win.show();
   });
 
+  win.on("closed", () => {
+    mainWindow = null;
+  });
+
   return win;
 }
 
@@ -58,10 +61,7 @@ async function loadRenderer(win: BrowserWindow): Promise<void> {
 }
 
 function initializeStore(): DesktopStore {
-  if (!store) {
-    store = new DesktopStore();
-  }
-  return store;
+  return new DesktopStore();
 }
 
 export async function bootstrap(): Promise<void> {
@@ -91,7 +91,9 @@ function handleWindowAllClosed(): void {
 function handleActivate(): void {
   if (mainWindow === null) {
     mainWindow = createMainWindow();
-    void loadRenderer(mainWindow);
+    loadRenderer(mainWindow).catch((err) => {
+      console.error("Failed to load renderer:", err);
+    });
   }
 }
 
@@ -109,7 +111,10 @@ export function main(): void {
   }
 
   registerAppLifecycle();
-  void bootstrap();
+  bootstrap().catch((err) => {
+    console.error("Failed to bootstrap:", err);
+    app.quit();
+  });
 }
 
 if (import.meta.url.startsWith("file:")) {
