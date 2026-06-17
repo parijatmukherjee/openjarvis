@@ -117,12 +117,17 @@ export class GraphEmailClient {
     const data = (await this.graphGet("/me/mailFolders")) as {
       value: Array<Record<string, unknown>>;
     };
-    return data.value.map((f) => ({
-      name: f.displayName as string,
-      path: f.id as string,
-      delimiter: "/",
-      unreadCount: f.unreadItemCount as number | undefined,
-    }));
+    return data.value.map((f) => {
+      const folder: EmailFolder = {
+        name: f.displayName as string,
+        path: f.id as string,
+        delimiter: "/",
+      };
+      if (f.unreadItemCount !== undefined) {
+        folder.unreadCount = f.unreadItemCount as number;
+      }
+      return folder;
+    });
   }
 
   async listMessages(folder: string, opts?: ListOptions): Promise<EmailMessage[]> {

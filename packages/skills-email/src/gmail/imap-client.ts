@@ -1,4 +1,5 @@
 import { ImapFlow } from "imapflow";
+import type { FetchMessageObject } from "imapflow";
 import type {
   EmailFolder,
   EmailMessage,
@@ -121,7 +122,7 @@ export class GmailImapClient {
   }
 
   private mapMessage(
-    msg: Record<string, unknown>,
+    msg: FetchMessageObject,
     folder: string,
   ): EmailMessage {
     const envelope = (msg.envelope ?? {}) as Record<string, unknown>;
@@ -157,7 +158,6 @@ export class GmailImapClient {
       })),
       subject: String(envelope.subject ?? ""),
       body: "",
-      htmlBody: undefined,
       date: dateStr,
       attachments: [],
       folder,

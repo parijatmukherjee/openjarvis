@@ -1,4 +1,11 @@
-export type { EmailClient, EmailFolder, EmailMessage, EmailAttachment, EmailDraft, ListOptions, EmailConfig, EmailToolClients, DeviceCodeInfo, AuthResult } from "./types.js";
+export type { EmailFolder, EmailMessage, EmailAttachment, EmailDraft, ListOptions, EmailConfig, EmailToolClients, DeviceCodeInfo, AuthResult } from "./types.js";
+export type { GmailImapConfig } from "./gmail/imap-client.js";
+export type { GmailSmtpConfig } from "./gmail/smtp-sender.js";
+export { GmailImapClient } from "./gmail/imap-client.js";
+export { GmailSmtpSender } from "./gmail/smtp-sender.js";
 export { GmailEmailClient } from "./gmail/client.js";
+export { GraphOAuth } from "./graph/oauth.js";
+export type { GraphOAuthConfig } from "./graph/oauth.js";
 export { GraphEmailClient } from "./graph/graph-client.js";
-export { registerEmailTools } from "./tools.js";
+export { createEmailSearchTool, createEmailReadTool, createEmailDraftTool, createEmailSendTool, registerEmailTools } from "./tools.js";
+export { EmailFolderSchema, EmailAttachmentSchema, EmailMessageSchema, EmailDraftSchema, ListOptionsSchema } from "./types.js";
