@@ -31,43 +31,51 @@ describe("DiscordGateway", () => {
     mockOff.mockClear();
   });
 
-  it("creates gateway with config", async () => {
+  async function createGateway() {
     const { DiscordGateway } = await import("../../src/discord/gateway.js");
-    const gw = new DiscordGateway({ token: "tok", guilds: ["g1"] });
+    return new DiscordGateway({ token: "tok", guilds: ["g1"] });
+  }
+
+  it("creates gateway with config", async () => {
+    const gw = await createGateway();
     expect(gw).toBeDefined();
   });
 
   it("start() calls client.login", async () => {
-    const { DiscordGateway } = await import("../../src/discord/gateway.js");
-    const gw = new DiscordGateway({ token: "tok", guilds: ["g1"] });
+    const gw = await createGateway();
     await gw.start();
     expect(mockLogin).toHaveBeenCalledWith("tok");
   });
 
   it("stop() calls client.destroy", async () => {
-    const { DiscordGateway } = await import("../../src/discord/gateway.js");
-    const gw = new DiscordGateway({ token: "tok", guilds: ["g1"] });
+    const gw = await createGateway();
     await gw.start();
     gw.stop();
     expect(mockDestroy).toHaveBeenCalled();
   });
 
   it("onMessage registers handler and returns unsubscribe", async () => {
-    const { DiscordGateway } = await import("../../src/discord/gateway.js");
-    const gw = new DiscordGateway({ token: "tok", guilds: ["g1"] });
+    const gw = await createGateway();
     const handler = vi.fn();
     const unsub = gw.onMessage(handler);
     expect(mockOn).toHaveBeenCalledWith("messageCreate", expect.any(Function));
     expect(typeof unsub).toBe("function");
   });
 
+  it("unsubscribe calls client.off", async () => {
+    const gw = await createGateway();
+    const handler = vi.fn();
+    const unsub = gw.onMessage(handler);
+    unsub();
+    expect(mockOff).toHaveBeenCalledWith("messageCreate", expect.any(Function));
+  });
+
   it("bot messages are ignored", async () => {
-    const { DiscordGateway } = await import("../../src/discord/gateway.js");
     let capturedListener: ((raw: unknown) => void) | undefined;
     mockOn.mockImplementation((_event: string, listener: (raw: unknown) => void) => {
       capturedListener = listener;
     });
-    const gw = new DiscordGateway({ token: "tok", guilds: ["g1"] });
+    const gw = await createGateway();
     const handler = vi.fn();
     gw.onMessage(handler);
 
@@ -87,12 +95,11 @@ describe("DiscordGateway", () => {
   });
 
   it("non-bot messages are forwarded", async () => {
-    const { DiscordGateway } = await import("../../src/discord/gateway.js");
     let capturedListener: ((raw: unknown) => void) | undefined;
     mockOn.mockImplementation((_event: string, listener: (raw: unknown) => void) => {
       capturedListener = listener;
     });
-    const gw = new DiscordGateway({ token: "tok", guilds: ["g1"] });
+    const gw = await createGateway();
     const handler = vi.fn();
     gw.onMessage(handler);
 
@@ -111,5 +118,67 @@ describe("DiscordGateway", () => {
     expect(capturedListener).toBeDefined();
     capturedListener!(userMsg);
     expect(handler).toHaveBeenCalled();
+  });
+
+  it("maps message fields correctly", async () => {
+    let capturedListener: ((raw: unknown) => void) | undefined;
+    mockOn.mockImplementation((_event: string, listener: (raw: unknown) => void) => {
+      capturedListener = listener;
+    });
+    const gw = await createGateway();
+    const handler = vi.fn();
+    gw.onMessage(handler);
+
+    const userMsg = {
+      id: "msg1",
+      channelId: "chan1",
+      guildId: "guild1",
+      author: { id: "uid1", username: "bob", bot: false },
+      content: "hi there",
+      createdTimestamp: 1700000000000,
+      editedTimestamp: 1700000001000,
+      attachments: {
+        map: (fn: (a: unknown) => unknown) =>
+          [
+            { id: "att1", url: "https://example.com/file.png", name: "file.png", contentType: "image/png", size: 1234 },
+          ].map(fn as (a: never) => unknown),
+      },
+    };
+    capturedListener!(userMsg);
+    const mapped = handler.mock.calls[0][0];
+    expect(mapped.id).toBe("msg1");
+    expect(mapped.channelId).toBe("chan1");
+    expect(mapped.guildId).toBe("guild1");
+    expect(mapped.authorId).toBe("uid1");
+    expect(mapped.authorUsername).toBe("bob");
+    expect(mapped.content).toBe("hi there");
+    expect(mapped.timestamp).toBe(1700000000000);
+    expect(mapped.editedTimestamp).toBe(1700000001000);
+    expect(mapped.attachments).toEqual([
+      { id: "att1", url: "https://example.com/file.png", filename: "file.png", contentType: "image/png", size: 1234 },
+    ]);
+  });
+
+  it("maps null guildId", async () => {
+    let capturedListener: ((raw: unknown) => void) | undefined;
+    mockOn.mockImplementation((_event: string, listener: (raw: unknown) => void) => {
+      capturedListener = listener;
+    });
+    const gw = await createGateway();
+    const handler = vi.fn();
+    gw.onMessage(handler);
+
+    const dmMsg = {
+      id: "dm1",
+      channelId: "dmchan1",
+      guildId: null,
+      author: { id: "u1", username: "carol", bot: false },
+      content: "private msg",
+      createdTimestamp: Date.now(),
+      editedTimestamp: null,
+      attachments: { map: (_fn: (a: unknown) => unknown) => [] },
+    };
+    capturedListener!(dmMsg);
+    expect(handler.mock.calls[0][0].guildId).toBeNull();
   });
 });

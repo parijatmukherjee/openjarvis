@@ -102,4 +102,63 @@ describe("web_fetch", () => {
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/Network error/);
   });
+
+  it("throws when response exceeds maxBytes", async () => {
+    const bigBody = "x".repeat(200);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "text/html" }),
+      arrayBuffer: () => new TextEncoder().encode(bigBody).buffer,
+    });
+    const tool = createWebFetchTool({ fetch: fetchMock, maxBytes: 100 });
+    const res = tool.handler({ url: "https://example.com", format: "markdown" }, ctx);
+    await expect(res).rejects.toThrow(/response exceeds max size/);
+  });
+
+  it("falls back to raw text when markdownify fails", async () => {
+    mockMarkdownify.mockRejectedValue(new Error("unsupported format"));
+    const fetchMock = mockFetch("plain text content");
+    const tool = createWebFetchTool({ fetch: fetchMock });
+    const result = await tool.handler({ url: "https://example.com", format: "text" }, ctx);
+    expect(result.markdown).toBe("plain text content");
+    expect(result.format).toBe("text");
+    expect(result.title).toBeUndefined();
+  });
+
+  it("passes content-type mime to markdownify", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "text/html; charset=utf-8" }),
+      arrayBuffer: () => new TextEncoder().encode("<html></html>").buffer,
+    });
+    const tool = createWebFetchTool({ fetch: fetchMock });
+    await tool.handler({ url: "https://example.com", format: "markdown" }, ctx);
+    expect(mockMarkdownify).toHaveBeenCalledWith(
+      expect.objectContaining({ mime: "text/html" }),
+    );
+  });
+
+  it("omits mime when content-type header is absent", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      arrayBuffer: () => new TextEncoder().encode("data").buffer,
+    });
+    const tool = createWebFetchTool({ fetch: fetchMock });
+    await tool.handler({ url: "https://example.com", format: "markdown" }, ctx);
+    const callArg = mockMarkdownify.mock.calls[0][0];
+    expect(callArg).not.toHaveProperty("mime");
+  });
+
+  it("uses globalThis.fetch when no fetch provided in config", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mockFetch("<html>global</html>");
+    const tool = createWebFetchTool();
+    const result = await tool.handler({ url: "https://example.com", format: "markdown" }, ctx);
+    expect(result.markdown).toBe("Hello World");
+    globalThis.fetch = originalFetch;
+  });
 });
