@@ -2,7 +2,7 @@
   "name": "@openjarvis/desktop",
   "version": "0.0.0",
   "type": "module",
-  "main": "./dist/main.js",
+  "main": "./dist/electron-main.js",
   "types": "./dist/main.d.ts",
   "exports": {
     ".": {
@@ -11,7 +11,11 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "build:renderer": "vite build --config vite.renderer.config.ts",
+    "dev": "electron .",
+    "start": "electron .",
+    "pack": "npm run build && npm run build:renderer && electron-builder"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
