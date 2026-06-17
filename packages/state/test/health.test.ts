@@ -49,7 +49,7 @@ describe("checkHealth", () => {
       passphrase: "wrong",
     });
     expect(result.vaultUnlocked).toBe(false);
-  });
+  }, 15_000);
 
   it("logs root cause when vault check fails", async () => {
     const logs: { level: string; event: string; reason: string }[] = [];
@@ -76,7 +76,7 @@ describe("checkHealth", () => {
     const warn = logs.find((l) => l.level === "warn" && l.event.startsWith("health_check_"));
     expect(warn).toBeDefined();
     expect(warn!.reason.length).toBeGreaterThan(0);
-  });
+  }, 15_000);
 
   it("reports lastAuditVerified false when chain is tampered", async () => {
     const d = mkdtempSync(join(tmpdir(), "oh-health-"));

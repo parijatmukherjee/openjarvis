@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
+import { useSettingsContext } from "../../context/SettingsContext";
 
 export function Header() {
   const greeting = getGreeting();
-  const userName = "Parijat"; // TODO: Load from settings
+  const { profile } = useSettingsContext();
+  const userName = profile.userName;
 
   return (
     <header className="flex items-center justify-between px-6 py-4">
