@@ -5,12 +5,13 @@
 > trackers live under `docs/` and are linked below.
 >
 > **Last updated:** 2026-06-17 · **Default branch:** `main` (protected; required
-> `docker-gate`) · **Tests:** 764 passing / 1 skipped, **99.62% coverage** (gate floor 99%).
+> `docker-gate`) · **Tests:** 797 passing / 1 skipped, **98.16% coverage** (gate floor 99%).
 > **Zero-Flaw Campaign: 24/24 ✅**
 > **S3 Nexus Orchestrator: MERGED ✅**
-> **Desktop App (Electron): IN PROGRESS — Electron main-process wiring on branch `desktop-electron-main-wiring`**
+> **Desktop App (Electron): MERGED ✅**
 > **Track B Multi-Device Sync: MERGED ✅**
 > **Process Enforcement: MERGED ✅**
+> **Feature Parity — Discord + web_fetch: IN PROGRESS on branch `discord-webfetch`**
 
 ---
 
@@ -23,17 +24,19 @@ state, capabilities). Full vision: [`docs/specs/2026-06-05-openjarvis-design.md`
 
 ## 2. Packages that exist today
 
-| Package                   | Status | Role                                                                                                                                                                                                                                                               |
-| ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@openjarvis/core`        | 🟢     | Agent loop, model adapters, tool registry (**the Lab**), **GroundingEngine** grounding, **Audit** audit, **the Vault** vault, **the Gate** taint/approval, redaction, structured logging, the Playbook process engine.                                             |
-| `@openjarvis/state`       | 🟢     | **JarvisStateStore**: durable SQLite (`SqlDriver` + migrations + event store + keyed audit store) and the durable composition root (`buildDurableAgentRun` + `openjarvis-run` CLI).                                                                                |
-| `@openjarvis/memory`      | 🟢     | **JarvisMemoryStore**: decay-aware memory (fragments, recall, pure-JS embeddings + FTS5 fallback). **Wired into the agent path** via `buildAgentRun`/`buildDurableAgentRun`/`buildProbeAgent`.                                                                     |
-| `@openjarvis/markdownify` | 🟢     | Document → Markdown converters (CSV/HTML/JSON/XML/text) behind a never-throws `ConverterRegistry`. **Wired into the agent path** via `createDocumentTool` + `buildDurableAgentRun`/`buildProbeAgent`.                                                              |
-| `@openjarvis/jarvis`      | 🟢     | Vision skill interfaces + E2E automation suite (`MockUser`, 15 scenarios). **S3 Nexus Orchestrator** (IntentRouter, AgentPool, Synthesizer, NexusEngine, TaskBoard, ReplayEngine) with 28 tests.                                                                   |
-| `@openjarvis/agents`      | 🟢     | Built-in agents package with `VisionAgent`/`MockVisionAgent` (agent delegator, pool interfaces).                                                                                                                                                                   |
-| `@openjarvis/desktop`     | 🟢     | Electron desktop app with Iron Man neon dashboard. Dashboard components wired to NexusContext. **Settings + user profile persisted to disk and exposed through typed IPC bridge.** **Real Electron main-process wiring on branch `desktop-electron-main-wiring`.** |
-| `@openjarvis/track-b`     | 🟢     | Multi-device sync: device identity, CRDT sync, Noise protocol, task router, vault sync. 56 tests.                                                                                                                                                                  |
-| `@openjarvis/process`     | 🟢     | Process Enforcement: AGENT.md loop runtime enforcement with ProcessEngine, gate checks, lifecycle hooks, event bus. 57 tests.                                                                                                                                      |
+| Package                   | Status | Role                                                                                                                                                                                                                   |
+| ------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@openjarvis/core`        | 🟢     | Agent loop, model adapters, tool registry (**the Lab**), **GroundingEngine** grounding, **Audit** audit, **the Vault** vault, **the Gate** taint/approval, redaction, structured logging, the Playbook process engine. |
+| `@openjarvis/state`       | 🟢     | **JarvisStateStore**: durable SQLite (`SqlDriver` + migrations + event store + keyed audit store) and the durable composition root (`buildDurableAgentRun` + `openjarvis-run` CLI).                                    |
+| `@openjarvis/memory`      | 🟢     | **JarvisMemoryStore**: decay-aware memory (fragments, recall, pure-JS embeddings + FTS5 fallback). **Wired into the agent path** via `buildAgentRun`/`buildDurableAgentRun`/`buildProbeAgent`.                         |
+| `@openjarvis/markdownify` | 🟢     | Document → Markdown converters (CSV/HTML/JSON/XML/text) behind a never-throws `ConverterRegistry`. **Wired into the agent path** via `createDocumentTool` + `buildDurableAgentRun`/`buildProbeAgent`.                  |
+| `@openjarvis/jarvis`      | 🟢     | Vision skill interfaces + E2E automation suite (`MockUser`, 15 scenarios). **S3 Nexus Orchestrator** (IntentRouter, AgentPool, Synthesizer, NexusEngine, TaskBoard, ReplayEngine) with 28 tests.                       |
+| `@openjarvis/agents`      | 🟢     | Built-in agents package with `VisionAgent`/`MockVisionAgent` (agent delegator, pool interfaces).                                                                                                                       |
+| `@openjarvis/desktop`     | 🟢     | Electron desktop app with Iron Man neon dashboard. Settings + user profile persisted via typed IPC bridge. **Electron main-process wiring merged.** **Voice pipeline design complete.**                                |
+| `@openjarvis/track-b`     | 🟢     | Multi-device sync: device identity, CRDT sync, Noise protocol, task router, vault sync. 56 tests.                                                                                                                      |
+| `@openjarvis/process`     | 🟢     | Process Enforcement: AGENT.md loop runtime enforcement with ProcessEngine, gate checks, lifecycle hooks, event bus. 57 tests.                                                                                          |
+| `@openjarvis/channels`    | 🔧     | Discord channel integration: gateway, REST, session mapper, tools. 23 tests. On `discord-webfetch` branch.                                                                                                             |
+| `@openjarvis/skills-web`  | 🔧     | Web fetch tool: URL → Markdown via markdownify. 5 tests. On `discord-webfetch` branch.                                                                                                                                 |
 
 ## 3. What's built and proven (done)
 
@@ -91,22 +94,18 @@ integration); `ask`/`run` CLIs + eval harness. Specs: `docs/specs/2026-06-05-S1-
 
 ## 4. In flight
 
-**PR #41 — Desktop Electron Main-Process Wiring** (`desktop-electron-main-wiring` branch)
+**Feature Parity — Discord + web_fetch** (`discord-webfetch` branch)
 
-- Real `electron-main.ts` entry point: BrowserWindow creation, frameless chrome, dev/prod renderer loading
-- `DesktopStore` instantiation and IPC handler registration in `bootstrap()`
-- Electron lifecycle: single-instance lock, window-all-closed, activate (macOS), closed handler
-- Dev detection via `app.isPackaged` + `OPENJARVIS_DEV` env var
-- Unhandled promise rejection catching on `bootstrap()` and `handleActivate`
-- 13 unit tests with full Electron API mocking
-- Renderer HTML updated with `<div id="root">` React mount point
-- Package scripts: `dev`, `start`, `build:renderer`, `pack`
-- `tailwindcss@3` + `autoprefixer` added as dev deps
-- **Status:** All gates pass — ready for PR
+- `@openjarvis/channels`: Discord gateway (discord.js), REST client, session mapper, discord_send/discord_read tool definitions with capability gates
+- `@openjarvis/skills-web`: web_fetch tool (fetch URL → markdownify → Markdown) with web:fetch capability gate
+- `@openjarvis/core`: CapabilityName extended with `discord:message`, `discord:read`, `web:fetch`, `web:browse`
+- `@openjarvis/jarvis`: Nexus router updated with `send_discord`, `read_discord`, `fetch_url` routes; Agent pool updated with `discord` and `web` agents
+- 28 new tests across all packages
+- **Status:** Typecheck, lint, format pass. 797 tests pass. Coverage 98.16% (below 99% gate due to new packages)
 
 ## 5. What's next
 
-1. **Merge PR #41** for Electron main-process wiring
+1. **Bring coverage back above 99%** for the gate to pass (add more tests to channels/skills-web)
 2. **Real audio analysis (Web Audio API)** for `VoiceWaveform`
 3. **Plugin SDK / registry**
 4. **Gateway (network API)**
