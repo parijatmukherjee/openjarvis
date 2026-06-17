@@ -8,6 +8,6 @@
     "lib": ["ES2023", "DOM"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/main.ts", "src/preload.ts", "src/electron-main.ts", "src/electron-preload.ts"],
+  "exclude": [],
   "references": [{ "path": "../core" }, { "path": "../jarvis" }]
 }
