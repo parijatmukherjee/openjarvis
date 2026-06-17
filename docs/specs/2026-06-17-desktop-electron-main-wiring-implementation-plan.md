@@ -12,21 +12,22 @@
 
 ## File Structure
 
-| File | Responsibility |
-|------|---------------|
-| `packages/desktop/src/electron-main.ts` | Electron main process entry point: window creation, lifecycle, IPC wiring, dev/prod loading. |
-| `packages/desktop/src/preload.ts` | Existing lazy-load preload API; no functional change, verify it still works. |
-| `packages/desktop/src/renderer/index.html` | Mount point for the React app (`<div id="root"></div>`). |
-| `packages/desktop/package.json` | Add `dev`, `build:renderer`, `build:main`, `start`, `pack` scripts. |
-| `packages/desktop/electron-builder.json` | Ensure `dist/renderer` is included in packaged builds. |
-| `packages/desktop/tsconfig.json` | Include `src/electron-main.ts` in build (currently excluded). |
-| `packages/desktop/test/electron-main.test.ts` | Unit tests for main-process helpers with mocked Electron. |
+| File                                          | Responsibility                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `packages/desktop/src/electron-main.ts`       | Electron main process entry point: window creation, lifecycle, IPC wiring, dev/prod loading. |
+| `packages/desktop/src/preload.ts`             | Existing lazy-load preload API; no functional change, verify it still works.                 |
+| `packages/desktop/src/renderer/index.html`    | Mount point for the React app (`<div id="root"></div>`).                                     |
+| `packages/desktop/package.json`               | Add `dev`, `build:renderer`, `build:main`, `start`, `pack` scripts.                          |
+| `packages/desktop/electron-builder.json`      | Ensure `dist/renderer` is included in packaged builds.                                       |
+| `packages/desktop/tsconfig.json`              | Include `src/electron-main.ts` in build (currently excluded).                                |
+| `packages/desktop/test/electron-main.test.ts` | Unit tests for main-process helpers with mocked Electron.                                    |
 
 ---
 
 ## Task 1: Update renderer HTML mount point
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/index.html`
 
 - [ ] **Step 1: Write the failing test**
@@ -67,6 +68,7 @@ git commit -m "feat(desktop): update renderer HTML with React mount point"
 ## Task 2: Create electron-main.ts
 
 **Files:**
+
 - Create: `packages/desktop/src/electron-main.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -261,6 +263,7 @@ git commit -m "feat(desktop): add electron main-process entry point"
 ## Task 3: Add comprehensive electron-main tests
 
 **Files:**
+
 - Modify: `packages/desktop/test/electron-main.test.ts`
 
 - [ ] **Step 1: Write the expanded test**
@@ -424,6 +427,7 @@ git commit -m "test(desktop): add electron-main unit tests with mocked Electron"
 ## Task 4: Add desktop package scripts
 
 **Files:**
+
 - Modify: `packages/desktop/package.json`
 - Modify: `packages/desktop/electron-builder.json`
 
@@ -486,6 +490,7 @@ git commit -m "chore(desktop): add dev, build, and pack scripts"
 ## Task 5: Build renderer and main process and verify Electron launches
 
 **Files:**
+
 - No new files; verification only.
 
 - [ ] **Step 1: Build renderer**
@@ -558,18 +563,18 @@ gh pr create --title "feat(desktop): real Electron main-process wiring" --body "
 
 ## Spec Coverage Checklist
 
-| Spec Requirement | Plan Task |
-|---|---|
-| BrowserWindow with frameless chrome | Task 2 |
-| Load renderer from Vite dev server or dist | Task 2 |
-| Instantiate DesktopStore | Task 2 |
-| Register IPC/window handlers | Task 2 |
-| Electron lifecycle (ready, second-instance, window-all-closed, activate) | Task 2 |
-| Renderer HTML mount point | Task 1 |
-| Package scripts for dev/build/pack | Task 4 |
-| electron-builder packaging | Task 4 |
-| Tests with mocked Electron | Task 3 |
-| Full gate + CHECKPOINT | Task 6 |
+| Spec Requirement                                                         | Plan Task |
+| ------------------------------------------------------------------------ | --------- |
+| BrowserWindow with frameless chrome                                      | Task 2    |
+| Load renderer from Vite dev server or dist                               | Task 2    |
+| Instantiate DesktopStore                                                 | Task 2    |
+| Register IPC/window handlers                                             | Task 2    |
+| Electron lifecycle (ready, second-instance, window-all-closed, activate) | Task 2    |
+| Renderer HTML mount point                                                | Task 1    |
+| Package scripts for dev/build/pack                                       | Task 4    |
+| electron-builder packaging                                               | Task 4    |
+| Tests with mocked Electron                                               | Task 3    |
+| Full gate + CHECKPOINT                                                   | Task 6    |
 
 ## Placeholder Scan
 

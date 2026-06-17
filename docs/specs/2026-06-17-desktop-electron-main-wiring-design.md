@@ -153,13 +153,13 @@ registerWindowHandlers(ipcMain, () => BrowserWindow.getFocusedWindow() ?? null);
 
 ## Risks & Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| Electron runtime unavailable in unit tests | Mock `electron` module; keep pure logic separate from Electron API calls. |
-| Renderer build output path mismatch between Vite and main process | Centralize path constants and verify in tests. |
-| Preload path wrong in packaged app | Use `__dirname` relative to emitted `dist/main.js`. |
-| macOS app lifecycle different from Windows/Linux | Add platform-aware `window-all-closed` handling. |
-| Typecheck fails because `electron-main.ts` imports electron | Add `@types/node` and `electron` dev deps (already done in PR #40). |
+| Risk                                                              | Mitigation                                                                |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Electron runtime unavailable in unit tests                        | Mock `electron` module; keep pure logic separate from Electron API calls. |
+| Renderer build output path mismatch between Vite and main process | Centralize path constants and verify in tests.                            |
+| Preload path wrong in packaged app                                | Use `__dirname` relative to emitted `dist/main.js`.                       |
+| macOS app lifecycle different from Windows/Linux                  | Add platform-aware `window-all-closed` handling.                          |
+| Typecheck fails because `electron-main.ts` imports electron       | Add `@types/node` and `electron` dev deps (already done in PR #40).       |
 
 ## Acceptance Criteria
 
@@ -175,4 +175,3 @@ registerWindowHandlers(ipcMain, () => BrowserWindow.getFocusedWindow() ?? null);
 1. **Voice loop PR** — add Web Audio API microphone input and wake-word detection.
 2. **Onboarding completion persistence** — store `onboardingComplete` in `AppSettings` once onboarding ends.
 3. **Real Nexus bridge** — connect the renderer to a running `NexusEngine` instead of the mock bridge.
-

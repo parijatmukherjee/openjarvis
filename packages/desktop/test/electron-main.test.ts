@@ -28,12 +28,13 @@ const MockBrowserWindow = vi.fn(() => {
   };
   return winInstance;
 });
-MockBrowserWindow.getFocusedWindow = vi.fn().mockReturnValue(null);
+(MockBrowserWindow as unknown as Record<string, unknown>).getFocusedWindow = vi
+  .fn()
+  .mockReturnValue(null);
 
 const mockWhenReady = vi.fn().mockResolvedValue(undefined);
 const mockRequestSingleInstanceLock = vi.fn().mockReturnValue(true);
 const mockQuit = vi.fn();
-const mockIsPackaged = vi.fn().mockReturnValue(true);
 
 const mockAppOn = vi.fn();
 const mockApp = {
@@ -41,7 +42,7 @@ const mockApp = {
   requestSingleInstanceLock: mockRequestSingleInstanceLock,
   quit: mockQuit,
   on: mockAppOn,
-  isPackaged: true,
+  isPackaged: true as boolean,
 };
 
 const mockIpcMainHandle = vi.fn();
@@ -61,6 +62,10 @@ vi.mock("../src/main/ipc.js", () => ({
   registerIpcHandlers: vi.fn(),
   registerWindowHandlers: vi.fn(),
 }));
+
+function findCallArg(calls: unknown[][], eventName: string): unknown | undefined {
+  return calls.find((c) => Array.isArray(c) && c[0] === eventName)?.[1];
+}
 
 describe("electron-main", () => {
   let createMainWindow: typeof import("../src/electron-main.js").createMainWindow;
@@ -109,9 +114,7 @@ describe("electron-main", () => {
 
     it("registers ready-to-show handler that calls win.show()", () => {
       createMainWindow();
-      const readyCb = mockOnce.mock.calls.find(
-        (c: [string, ...unknown[]]) => c[0] === "ready-to-show",
-      )?.[1] as (() => void) | undefined;
+      const readyCb = findCallArg(mockOnce.mock.calls, "ready-to-show") as (() => void) | undefined;
       expect(readyCb).toBeDefined();
       mockShow.mockClear();
       readyCb!();
@@ -120,9 +123,7 @@ describe("electron-main", () => {
 
     it("registers closed handler that sets mainWindow to null", () => {
       createMainWindow();
-      const closedCb = mockOn.mock.calls.find(
-        (c: [string, ...unknown[]]) => c[0] === "closed",
-      )?.[1] as (() => void) | undefined;
+      const closedCb = findCallArg(mockOn.mock.calls, "closed") as (() => void) | undefined;
       expect(closedCb).toBeDefined();
       closedCb!();
       expect(getMainWindow()).toBeNull();
@@ -132,9 +133,7 @@ describe("electron-main", () => {
   describe("getMainWindow", () => {
     it("returns null after closed handler fires", () => {
       createMainWindow();
-      const closedCb = mockOn.mock.calls.find(
-        (c: [string, ...unknown[]]) => c[0] === "closed",
-      )?.[1] as (() => void) | undefined;
+      const closedCb = findCallArg(mockOn.mock.calls, "closed") as (() => void) | undefined;
       closedCb!();
       expect(getMainWindow()).toBeNull();
     });
@@ -148,7 +147,7 @@ describe("electron-main", () => {
   describe("registerAppLifecycle", () => {
     it("registers second-instance, window-all-closed, and activate handlers", () => {
       registerAppLifecycle();
-      const channels = mockAppOn.mock.calls.map((c: [string, ...unknown[]]) => c[0]);
+      const channels = mockAppOn.mock.calls.map((c) => c[0] as string);
       expect(channels).toContain("second-instance");
       expect(channels).toContain("window-all-closed");
       expect(channels).toContain("activate");
@@ -203,26 +202,23 @@ describe("electron-main", () => {
       mockApp.isPackaged = true;
       delete process.env.OPENJARVIS_DEV;
       await bootstrap();
-      expect(mockLoadFile).toHaveBeenCalledWith(
-        expect.stringContaining("index.html"),
-      );
+      expect(mockLoadFile).toHaveBeenCalledWith(expect.stringContaining("index.html"));
     });
   });
 
   describe("handleActivate on macOS", () => {
     it("creates new window when mainWindow is null", async () => {
       registerAppLifecycle();
-      const activateCb = mockAppOn.mock.calls.find(
-        (c: [string, ...unknown[]]) => c[0] === "activate",
-      )?.[1] as (() => void) | undefined;
+      const activateCb = findCallArg(mockAppOn.mock.calls, "activate") as (() => void) | undefined;
       expect(activateCb).toBeDefined();
-      const closedCb = mockOn.mock.calls.find(
-        (c: [string, ...unknown[]]) => c[0] === "closed",
-      )?.[1] as (() => void) | undefined;
+      const closedCb = findCallArg(mockOn.mock.calls, "closed") as (() => void) | undefined;
       closedCb!();
-      const prevCallCount = MockBrowserWindow.mock.calls.length;
+      const prevCallCount = (MockBrowserWindow as unknown as { mock: { calls: unknown[] } }).mock
+        .calls.length;
       activateCb!();
-      expect(MockBrowserWindow.mock.calls.length).toBeGreaterThan(prevCallCount);
+      const newCallCount = (MockBrowserWindow as unknown as { mock: { calls: unknown[] } }).mock
+        .calls.length;
+      expect(newCallCount).toBeGreaterThan(prevCallCount);
     });
   });
 
@@ -230,9 +226,9 @@ describe("electron-main", () => {
     it("restores and focuses existing window", async () => {
       await bootstrap();
       registerAppLifecycle();
-      const secondInstanceCb = mockAppOn.mock.calls.find(
-        (c: [string, ...unknown[]]) => c[0] === "second-instance",
-      )?.[1] as (() => void) | undefined;
+      const secondInstanceCb = findCallArg(mockAppOn.mock.calls, "second-instance") as
+        | (() => void)
+        | undefined;
       expect(secondInstanceCb).toBeDefined();
       mockIsMinimized.mockReturnValue(true);
       secondInstanceCb!();
