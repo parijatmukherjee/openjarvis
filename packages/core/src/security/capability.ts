@@ -11,7 +11,9 @@ export type CapabilityName =
   | "discord:message"
   | "discord:read"
   | "web:fetch"
-  | "web:browse";
+  | "web:browse"
+  | "email:read"
+  | "email:send";
 
 export interface Capability {
   name: CapabilityName;
