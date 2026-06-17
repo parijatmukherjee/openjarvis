@@ -7,7 +7,9 @@ export interface DiscordToolClients {
   getChannel(channelId: string): Promise<DiscordChannelInfo>;
 }
 
-export function createDiscordSendTool(clients: DiscordToolClients): ToolDefinition<{ channelId: string; content: string }, { messageId: string }> {
+export function createDiscordSendTool(
+  clients: DiscordToolClients,
+): ToolDefinition<{ channelId: string; content: string }, { messageId: string }> {
   return {
     name: "discord_send",
     description: "Send a message to a Discord channel",
@@ -23,7 +25,9 @@ export function createDiscordSendTool(clients: DiscordToolClients): ToolDefiniti
   };
 }
 
-export function createDiscordReadTool(clients: DiscordToolClients): ToolDefinition<{ channelId: string }, DiscordChannelInfo> {
+export function createDiscordReadTool(
+  clients: DiscordToolClients,
+): ToolDefinition<{ channelId: string }, DiscordChannelInfo> {
   return {
     name: "discord_read",
     description: "Read information about a Discord channel",
@@ -43,8 +47,11 @@ export function createDiscordReadTool(clients: DiscordToolClients): ToolDefiniti
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyToolDefinition = ToolDefinition<any, any>;
+
 export function registerDiscordTools(
-  registry: { register(tool: ToolDefinition<any, any>): void },
+  registry: { register(tool: AnyToolDefinition): void },
   clients: DiscordToolClients,
 ): void {
   registry.register(createDiscordSendTool(clients));

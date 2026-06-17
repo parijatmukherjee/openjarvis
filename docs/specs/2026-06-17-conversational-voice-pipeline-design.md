@@ -23,9 +23,9 @@ Make the desktop app conversational:
 
 ### 3.1 Package responsibilities
 
-| Package | Responsibility |
-|---|---|
-| `@openjarvis/jarvis` | `OllamaSttEngine` (implements `SttEngine`) — pure Node, HTTP to Ollama |
+| Package               | Responsibility                                                                                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@openjarvis/jarvis`  | `OllamaSttEngine` (implements `SttEngine`) — pure Node, HTTP to Ollama                                                                                                                                                                                        |
 | `@openjarvis/desktop` | `AudioRecorder` (Web Audio mic capture + buffering), `AmplitudeWakeWordEngine` (implements `WakeWordEngine`), `useVoicePipeline` hook (orchestrates mic → VAD → STT), `VoiceWaveform` visual states, `NexusBridge` voice methods, IPC channel for voice state |
 
 ### 3.2 Data flow
@@ -57,12 +57,12 @@ IDLE ──(speech detected)──→ LISTENING ──(transcript received)─�
 
 States map to `JarvisHub.currentState` plus a new `VoiceState` in the desktop renderer:
 
-| VoiceState | JarvisHub state | Visual |
-|---|---|---|
-| `idle` | `idle` | Dim rings, no glow |
-| `listening` | `listening` | Bright pulsing rings, mic icon |
-| `thinking` | `thinking` | Subtle pulse, thinking indicator |
-| `responding` | `responding` | Steady glow, response text |
+| VoiceState   | JarvisHub state | Visual                           |
+| ------------ | --------------- | -------------------------------- |
+| `idle`       | `idle`          | Dim rings, no glow               |
+| `listening`  | `listening`     | Bright pulsing rings, mic icon   |
+| `thinking`   | `thinking`      | Subtle pulse, thinking indicator |
+| `responding` | `responding`    | Steady glow, response text       |
 
 ## 4. Components
 
@@ -216,31 +216,31 @@ Add an IPC channel `voice:state` so the main process can track voice state for s
 
 ## 5. Error handling
 
-| Scenario | Behavior |
-|---|---|
-| Mic permission denied | Fall back to amplitude-only mode (random low amplitude). Show toast asking for mic permission. |
-| Ollama unavailable | Fall back to text-only mode. Show toast "Ollama not running — voice input disabled." |
-| Transcription fails | Show toast with error. Stay in listening state so user can retry. |
-| No speech detected after 5s | Auto-transition back to idle. Don't send empty transcript. |
+| Scenario                    | Behavior                                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------------------------- |
+| Mic permission denied       | Fall back to amplitude-only mode (random low amplitude). Show toast asking for mic permission. |
+| Ollama unavailable          | Fall back to text-only mode. Show toast "Ollama not running — voice input disabled."           |
+| Transcription fails         | Show toast with error. Stay in listening state so user can retry.                              |
+| No speech detected after 5s | Auto-transition back to idle. Don't send empty transcript.                                     |
 
 ## 6. Testing strategy
 
-| Component | Test approach |
-|---|---|
-| `OllamaSttEngine` | Mock `fetch` to Ollama API. Test WAV conversion, error codes, retry. |
-| `AmplitudeWakeWordEngine` | Mock `AudioRecorder.getAmplitude()`. Test threshold crossing, sustained detection, barge-in callback. |
-| `AudioRecorder` | Mock Web Audio API (`AudioContext`, `AnalyserNode`, `MediaStream`). Test open/close, amplitude reading, buffer collection. |
-| `useVoicePipeline` | Hook test with mock `NexusBridge`. Test state transitions, end-of-speech detection, interrupt, error fallback. |
-| `VoiceWaveform` | Component test with mock `useVoicePipeline`. Test visual states. |
-| Integration | Mock Ollama + real `JarvisHub` config. Test full lifecycle: wake → listen → transcribe → think → respond → idle. |
+| Component                 | Test approach                                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `OllamaSttEngine`         | Mock `fetch` to Ollama API. Test WAV conversion, error codes, retry.                                                       |
+| `AmplitudeWakeWordEngine` | Mock `AudioRecorder.getAmplitude()`. Test threshold crossing, sustained detection, barge-in callback.                      |
+| `AudioRecorder`           | Mock Web Audio API (`AudioContext`, `AnalyserNode`, `MediaStream`). Test open/close, amplitude reading, buffer collection. |
+| `useVoicePipeline`        | Hook test with mock `NexusBridge`. Test state transitions, end-of-speech detection, interrupt, error fallback.             |
+| `VoiceWaveform`           | Component test with mock `useVoicePipeline`. Test visual states.                                                           |
+| Integration               | Mock Ollama + real `JarvisHub` config. Test full lifecycle: wake → listen → transcribe → think → respond → idle.           |
 
 ## 7. Dependencies
 
-| Dependency | Purpose | Package |
-|---|---|---|
-| Ollama server | Whisper STT inference | External (user runs locally) |
-| `@openjarvis/jarvis` | SttEngine, WakeWordEngine, AudioRecorder | Already in monorepo |
-| `@openjarvis/desktop` | useVoicePipeline, VoiceWaveform, NexusBridge | Already in monorepo |
+| Dependency            | Purpose                                      | Package                      |
+| --------------------- | -------------------------------------------- | ---------------------------- |
+| Ollama server         | Whisper STT inference                        | External (user runs locally) |
+| `@openjarvis/jarvis`  | SttEngine, WakeWordEngine, AudioRecorder     | Already in monorepo          |
+| `@openjarvis/desktop` | useVoicePipeline, VoiceWaveform, NexusBridge | Already in monorepo          |
 
 No new npm dependencies required. Ollama is an external service the user runs locally.
 

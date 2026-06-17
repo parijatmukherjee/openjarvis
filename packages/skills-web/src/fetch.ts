@@ -27,7 +27,9 @@ const WebFetchResult = z.object({
 export type WebFetchArgs = z.infer<typeof WebFetchArgs>;
 export type WebFetchResult = z.infer<typeof WebFetchResult>;
 
-export function createWebFetchTool(config: WebFetchConfig = {}): ToolDefinition<WebFetchArgs, WebFetchResult> {
+export function createWebFetchTool(
+  config: WebFetchConfig = {},
+): ToolDefinition<WebFetchArgs, WebFetchResult> {
   const doFetch = config.fetch ?? globalThis.fetch;
   const maxBytes = config.maxBytes ?? DEFAULT_MAX_BYTES;
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -37,10 +39,7 @@ export function createWebFetchTool(config: WebFetchConfig = {}): ToolDefinition<
     description: "Fetch a URL and convert the response to clean Markdown text",
     args: WebFetchArgs,
     result: WebFetchResult,
-    capabilities: [
-      { name: "web:fetch" as const },
-      { name: "document:convert" as const },
-    ],
+    capabilities: [{ name: "web:fetch" as const }, { name: "document:convert" as const }],
     handler: async (args: WebFetchArgs, _ctx: ToolContext): Promise<WebFetchResult> => {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -63,11 +62,14 @@ export function createWebFetchTool(config: WebFetchConfig = {}): ToolDefinition<
         if (mime) input.mime = mime;
         try {
           const result = await markdownify(input);
-          return { markdown: result.markdown, title: result.title, url: args.url, format: result.format };
+          return {
+            markdown: result.markdown,
+            title: result.title,
+            url: args.url,
+            format: result.format,
+          };
         } catch {
-          const text = typeof data === "object"
-            ? new TextDecoder().decode(data)
-            : String(data);
+          const text = typeof data === "object" ? new TextDecoder().decode(data) : String(data);
           return { markdown: text, title: undefined, url: args.url, format: "text" };
         }
       } finally {

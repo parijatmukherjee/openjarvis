@@ -1,8 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { z } from "zod";
 import { ToolRegistry } from "@openjarvis/core";
 import type { AgentGrant } from "@openjarvis/core";
-import { createDiscordSendTool, createDiscordReadTool, registerDiscordTools, type DiscordToolClients } from "../../src/discord/tools.js";
+import {
+  createDiscordSendTool,
+  createDiscordReadTool,
+  registerDiscordTools,
+  type DiscordToolClients,
+} from "../../src/discord/tools.js";
 
 function makeClients(): DiscordToolClients {
   return {
@@ -30,7 +34,10 @@ describe("createDiscordSendTool", () => {
     const tool = createDiscordSendTool(clients);
     const reg = new ToolRegistry();
     reg.register(tool);
-    const grant: AgentGrant = { agentId: "test-agent", capabilities: [{ name: "discord:message" }] };
+    const grant: AgentGrant = {
+      agentId: "test-agent",
+      capabilities: [{ name: "discord:message" }],
+    };
     const result = await reg.invoke(
       { id: "c1", tool: "discord_send", args: { channelId: "chan1", content: "hello" } },
       grant,
@@ -79,7 +86,12 @@ describe("createDiscordReadTool", () => {
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data).toEqual({ id: "chan1", name: "general", guildId: "guild1", type: "text" });
+      expect(result.data).toEqual({
+        id: "chan1",
+        name: "general",
+        guildId: "guild1",
+        type: "text",
+      });
     }
     expect(clients.getChannel).toHaveBeenCalledWith("chan1");
   });

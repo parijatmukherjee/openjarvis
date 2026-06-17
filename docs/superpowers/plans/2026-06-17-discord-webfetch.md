@@ -12,33 +12,34 @@
 
 ## File Structure
 
-| File | Responsibility |
-|------|---------------|
-| `packages/core/src/security/capability.ts` | Extend `CapabilityName` with new capabilities |
-| `packages/channels/package.json` | New package: @openjarvis/channels |
-| `packages/channels/tsconfig.json` | TypeScript config |
-| `packages/channels/src/index.ts` | Barrel export |
-| `packages/channels/src/discord/gateway.ts` | Discord WebSocket connection lifecycle |
-| `packages/channels/src/discord/rest.ts` | Discord REST API wrapper |
-| `packages/channels/src/discord/session-mapper.ts` | Map Discord guild/channel/DM → OpenJarvis session |
-| `packages/channels/src/discord/types.ts` | Discord-specific types |
-| `packages/channels/src/discord/tools.ts` | discord_send, discord_read ToolDefinitions |
-| `packages/channels/test/discord/gateway.test.ts` | Gateway tests |
-| `packages/channels/test/discord/session-mapper.test.ts` | Session mapper tests |
-| `packages/channels/test/discord/tools.test.ts` | Tool tests |
-| `packages/skills-web/package.json` | New package: @openjarvis/skills-web |
-| `packages/skills-web/tsconfig.json` | TypeScript config |
-| `packages/skills-web/src/index.ts` | Barrel export + registerTools |
-| `packages/skills-web/src/fetch.ts` | web_fetch ToolDefinition |
-| `packages/skills-web/src/fetch.test.ts` | web_fetch tests |
-| `packages/jarvis/src/nexus/router.ts` | Add Discord intent routes |
-| `packages/jarvis/src/nexus/pool.ts` | Add Discord agent to pool |
+| File                                                    | Responsibility                                    |
+| ------------------------------------------------------- | ------------------------------------------------- |
+| `packages/core/src/security/capability.ts`              | Extend `CapabilityName` with new capabilities     |
+| `packages/channels/package.json`                        | New package: @openjarvis/channels                 |
+| `packages/channels/tsconfig.json`                       | TypeScript config                                 |
+| `packages/channels/src/index.ts`                        | Barrel export                                     |
+| `packages/channels/src/discord/gateway.ts`              | Discord WebSocket connection lifecycle            |
+| `packages/channels/src/discord/rest.ts`                 | Discord REST API wrapper                          |
+| `packages/channels/src/discord/session-mapper.ts`       | Map Discord guild/channel/DM → OpenJarvis session |
+| `packages/channels/src/discord/types.ts`                | Discord-specific types                            |
+| `packages/channels/src/discord/tools.ts`                | discord_send, discord_read ToolDefinitions        |
+| `packages/channels/test/discord/gateway.test.ts`        | Gateway tests                                     |
+| `packages/channels/test/discord/session-mapper.test.ts` | Session mapper tests                              |
+| `packages/channels/test/discord/tools.test.ts`          | Tool tests                                        |
+| `packages/skills-web/package.json`                      | New package: @openjarvis/skills-web               |
+| `packages/skills-web/tsconfig.json`                     | TypeScript config                                 |
+| `packages/skills-web/src/index.ts`                      | Barrel export + registerTools                     |
+| `packages/skills-web/src/fetch.ts`                      | web_fetch ToolDefinition                          |
+| `packages/skills-web/src/fetch.test.ts`                 | web_fetch tests                                   |
+| `packages/jarvis/src/nexus/router.ts`                   | Add Discord intent routes                         |
+| `packages/jarvis/src/nexus/pool.ts`                     | Add Discord agent to pool                         |
 
 ---
 
 ### Task 1: Extend CapabilityName with new capabilities
 
 **Files:**
+
 - Modify: `packages/core/src/security/capability.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -117,6 +118,7 @@ git commit -m "feat(core): add discord and web capabilities to CapabilityName"
 ### Task 2: Scaffold @openjarvis/channels package
 
 **Files:**
+
 - Create: `packages/channels/package.json`
 - Create: `packages/channels/tsconfig.json`
 - Create: `packages/channels/src/index.ts`
@@ -206,6 +208,7 @@ git commit -m "chore(channels): scaffold @openjarvis/channels package"
 ### Task 3: Discord session mapper
 
 **Files:**
+
 - Create: `packages/channels/src/discord/types.ts`
 - Create: `packages/channels/src/discord/session-mapper.ts`
 - Create: `packages/channels/test/discord/session-mapper.test.ts`
@@ -346,6 +349,7 @@ git commit -m "feat(channels): add Discord session mapper and types"
 ### Task 4: Discord gateway
 
 **Files:**
+
 - Create: `packages/channels/src/discord/gateway.ts`
 - Create: `packages/channels/src/discord/rest.ts`
 - Create: `packages/channels/test/discord/gateway.test.ts`
@@ -423,12 +427,7 @@ Expected: FAIL — module not found.
 Create `packages/channels/src/discord/gateway.ts`:
 
 ```ts
-import {
-  Client,
-  GatewayIntentBits,
-  type Message,
-  type ClientEvents,
-} from "discord.js";
+import { Client, GatewayIntentBits, type Message, type ClientEvents } from "discord.js";
 import type { DiscordMessage, DiscordAttachment } from "./types.js";
 
 export interface DiscordGatewayConfig {
@@ -494,13 +493,15 @@ export class DiscordGateway {
       content: msg.content,
       timestamp: msg.createdTimestamp,
       editedTimestamp: msg.editedTimestamp,
-      attachments: msg.attachments.map((a): DiscordAttachment => ({
-        id: a.id,
-        url: a.url,
-        filename: a.name ?? "unknown",
-        contentType: a.contentType,
-        size: a.size,
-      })),
+      attachments: msg.attachments.map(
+        (a): DiscordAttachment => ({
+          id: a.id,
+          url: a.url,
+          filename: a.name ?? "unknown",
+          contentType: a.contentType,
+          size: a.size,
+        }),
+      ),
     };
   }
 }
@@ -588,6 +589,7 @@ git commit -m "feat(channels): add Discord gateway and REST client"
 ### Task 5: Discord tool definitions
 
 **Files:**
+
 - Create: `packages/channels/src/discord/tools.ts`
 - Create: `packages/channels/test/discord/tools.test.ts`
 
@@ -617,7 +619,9 @@ describe("Discord tools", () => {
 
   it("registers discord_read tool with correct capabilities", () => {
     const readTool = createDiscordReadTool({
-      getChannel: vi.fn().mockResolvedValue({ id: "ch-1", name: "general", guildId: "g-1", type: "text" as const }),
+      getChannel: vi
+        .fn()
+        .mockResolvedValue({ id: "ch-1", name: "general", guildId: "g-1", type: "text" as const }),
     });
     registry.register(readTool);
     expect(registry.has("discord_read")).toBe(true);
@@ -671,7 +675,9 @@ import type { DiscordRest } from "./rest.js";
 
 export interface DiscordToolClients {
   sendMessage: (channelId: string, content: string) => Promise<string>;
-  getChannel: (channelId: string) => Promise<{ id: string; name: string; guildId: string | null; type: string }>;
+  getChannel: (
+    channelId: string,
+  ) => Promise<{ id: string; name: string; guildId: string | null; type: string }>;
 }
 
 export function createDiscordSendTool(clients: DiscordToolClients) {
@@ -737,6 +743,7 @@ git commit -m "feat(channels): add Discord tool definitions with capability gate
 ### Task 6: Scaffold @openjarvis/skills-web package and web_fetch tool
 
 **Files:**
+
 - Create: `packages/skills-web/package.json`
 - Create: `packages/skills-web/tsconfig.json`
 - Create: `packages/skills-web/src/index.ts`
@@ -846,9 +853,7 @@ describe("web_fetch tool", () => {
   });
 
   it("returns error for non-2xx responses", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      new Response("Not Found", { status: 404 }),
-    );
+    const mockFetch = vi.fn().mockResolvedValue(new Response("Not Found", { status: 404 }));
     const tool = createWebFetchTool({ fetch: mockFetch as unknown as typeof globalThis.fetch });
     registry.register(tool);
 
@@ -938,7 +943,10 @@ export function createWebFetchTool(config: WebFetchConfig) {
   };
 }
 
-export function registerWebFetchTools(registry: import("@openjarvis/core").ToolRegistry, config: WebFetchConfig): void {
+export function registerWebFetchTools(
+  registry: import("@openjarvis/core").ToolRegistry,
+  config: WebFetchConfig,
+): void {
   registry.register(createWebFetchTool(config));
 }
 ```
@@ -968,6 +976,7 @@ git commit -m "feat(skills-web): add web_fetch tool with markdown conversion"
 ### Task 7: Update Nexus router and agent pool
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/router.ts`
 - Modify: `packages/jarvis/src/nexus/pool.ts`
 
@@ -976,6 +985,7 @@ git commit -m "feat(skills-web): add web_fetch tool with markdown conversion"
 Read `packages/jarvis/src/nexus/router.ts`. Add routes for Discord and web intents:
 
 Add to the `route()` method's switch/map:
+
 - `"send_discord"` → `{ primary: { agentId: "discord", ... } }`
 - `"read_discord"` → `{ primary: { agentId: "discord", ... } }`
 - `"fetch_url"` → `{ primary: { agentId: "web", ... } }`
@@ -1043,20 +1053,20 @@ gh pr create --title "feat: Discord channel integration + web_fetch tool" --body
 
 ## Spec Coverage Checklist
 
-| Spec Requirement | Plan Task |
-|---|---|
-| Discord gateway connection | Task 4 |
-| Discord REST API wrapper | Task 4 |
-| Discord session mapping | Task 3 |
-| Discord tool definitions (send, read) | Task 5 |
-| Discord capability gates | Tasks 1, 5 |
-| web_fetch tool | Task 6 |
-| web_fetch uses markdownify | Task 6 |
-| Nexus router updates | Task 7 |
-| Agent pool updates | Task 7 |
+| Spec Requirement                           | Plan Task  |
+| ------------------------------------------ | ---------- |
+| Discord gateway connection                 | Task 4     |
+| Discord REST API wrapper                   | Task 4     |
+| Discord session mapping                    | Task 3     |
+| Discord tool definitions (send, read)      | Task 5     |
+| Discord capability gates                   | Tasks 1, 5 |
+| web_fetch tool                             | Task 6     |
+| web_fetch uses markdownify                 | Task 6     |
+| Nexus router updates                       | Task 7     |
+| Agent pool updates                         | Task 7     |
 | Package scaffolding (channels, skills-web) | Tasks 2, 6 |
-| CapabilityName extensions | Task 1 |
-| Full gate | Task 8 |
+| CapabilityName extensions                  | Task 1     |
+| Full gate                                  | Task 8     |
 
 ## Placeholder Scan
 

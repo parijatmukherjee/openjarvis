@@ -49,10 +49,7 @@ describe("web_fetch", () => {
     const tool = registry.get("web_fetch");
     expect(tool).toBeDefined();
     expect(tool!.name).toBe("web_fetch");
-    expect(tool!.capabilities).toEqual([
-      { name: "web:fetch" },
-      { name: "document:convert" },
-    ]);
+    expect(tool!.capabilities).toEqual([{ name: "web:fetch" }, { name: "document:convert" }]);
   });
 
   it("fetches a URL and returns markdown content", async () => {

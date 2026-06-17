@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { DiscordMessage } from "../../src/discord/types.js";
+import type {} from "../../src/discord/types.js";
 
 const mockLogin = vi.fn().mockResolvedValue(undefined);
 const mockDestroy = vi.fn();
@@ -79,7 +79,7 @@ describe("DiscordGateway", () => {
       content: "beep",
       createdTimestamp: Date.now(),
       editedTimestamp: null,
-      attachments: { map: (fn: (a: unknown) => unknown) => [] },
+      attachments: { map: (_fn: (a: unknown) => unknown) => [] },
     };
     expect(capturedListener).toBeDefined();
     capturedListener!(botMsg);
@@ -105,7 +105,7 @@ describe("DiscordGateway", () => {
       createdTimestamp: Date.now(),
       editedTimestamp: null,
       attachments: {
-        map: (fn: (a: unknown) => unknown) => [] as unknown[],
+        map: (_fn: (a: unknown) => unknown) => [] as unknown[],
       },
     };
     expect(capturedListener).toBeDefined();

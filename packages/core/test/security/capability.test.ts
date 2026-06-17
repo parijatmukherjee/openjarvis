@@ -55,7 +55,10 @@ describe("playbook:override capability", () => {
 
 describe("new capabilities (discord, web)", () => {
   it("grants discord:message capability", () => {
-    const granted = { agentId: "discord-bot", capabilities: [{ name: "discord:message" as const }] };
+    const granted = {
+      agentId: "discord-bot",
+      capabilities: [{ name: "discord:message" as const }],
+    };
     expect(grantSatisfies(granted, { name: "discord:message" })).toBe(true);
     const empty = { agentId: "discord-bot", capabilities: [] };
     expect(grantSatisfies(empty, { name: "discord:message" })).toBe(false);

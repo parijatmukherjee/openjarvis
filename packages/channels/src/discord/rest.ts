@@ -28,8 +28,14 @@ export class DiscordRest {
     if (!res.ok) {
       throw new Error(`Discord REST getChannel failed: ${res.status} ${await res.text()}`);
     }
-    const data = (await res.json()) as { id: string; name: string; guild_id: string | null; type: number };
-    const type: DiscordChannelInfo["type"] = data.type === 1 ? "dm" : data.type === 11 ? "thread" : "text";
+    const data = (await res.json()) as {
+      id: string;
+      name: string;
+      guild_id: string | null;
+      type: number;
+    };
+    const type: DiscordChannelInfo["type"] =
+      data.type === 1 ? "dm" : data.type === 11 ? "thread" : "text";
     return {
       id: data.id,
       name: data.name,
