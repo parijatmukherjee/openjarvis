@@ -41,6 +41,7 @@ export function createDiscordSendTool(
     }),
     result: z.object({ messageId: z.string() }),
     capabilities: [{ name: "discord:message" as const }],
+    approvalRequired: true,
     handler: async (args) => {
       return clients.sendMessage(args.channelId, args.content);
     },

@@ -220,6 +220,7 @@ export function createCalendarDeleteTool(
     args: CalendarDeleteArgsSchema as unknown as z.ZodType<CalendarDeleteArgs>,
     result: CalendarDeleteResultSchema as unknown as z.ZodType<{ deleted: boolean }>,
     capabilities: [{ name: "calendar:write" as const }],
+    approvalRequired: true,
     handler: async (args) => {
       const deleted = await client.deleteEvent(args.eventId);
       return { deleted };
