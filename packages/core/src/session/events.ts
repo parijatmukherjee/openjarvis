@@ -1,11 +1,11 @@
 import type { PhaseEvent } from "../playbook/events.js";
 
 export type DomainEvent =
-  | { type: "SessionStarted"; sessionId: string; agentId: string; at: number }
-  | { type: "TurnStarted"; sessionId: string; turnId: string; input: string; at: number }
-  | { type: "TurnEnded"; sessionId: string; turnId: string; final: string; at: number }
-  | { type: "TurnFailed"; sessionId: string; turnId: string; error: string; at: number }
-  | PhaseEvent;
+  | { type: "SessionStarted"; sessionId: string; agentId: string; at: number; seq?: number }
+  | { type: "TurnStarted"; sessionId: string; turnId: string; input: string; at: number; seq?: number }
+  | { type: "TurnEnded"; sessionId: string; turnId: string; final: string; at: number; seq?: number }
+  | { type: "TurnFailed"; sessionId: string; turnId: string; error: string; at: number; seq?: number }
+  | (PhaseEvent & { seq?: number });
 
 export interface EventStore {
   append(event: DomainEvent): Promise<void>;
@@ -13,25 +13,25 @@ export interface EventStore {
 }
 
 export class InMemoryEventStore implements EventStore {
-  private readonly log: DomainEvent[] = [];
+  private readonly log: (DomainEvent & { seq: number })[] = [];
+  private nextSeq = 1;
 
   async append(event: DomainEvent): Promise<void> {
-    this.log.push(event);
+    const stored = { ...event, seq: this.nextSeq++ };
+    this.log.push(stored as DomainEvent & { seq: number });
   }
 
   async read(
     sessionId: string,
     opts?: { limit?: number; afterSeq?: number },
   ): Promise<DomainEvent[]> {
-    const events = this.log.filter((e) => e.sessionId === sessionId);
-    let start = 0;
+    let events = this.log.filter((e) => e.sessionId === sessionId);
     if (opts?.afterSeq !== undefined) {
-      start = opts.afterSeq; // afterSeq is the count of events already consumed
+      events = events.filter((e) => e.seq > opts.afterSeq!);
     }
-    let end = events.length;
     if (opts?.limit !== undefined) {
-      end = Math.min(start + opts.limit, events.length);
+      events = events.slice(0, opts.limit);
     }
-    return events.slice(start, end);
+    return events;
   }
 }

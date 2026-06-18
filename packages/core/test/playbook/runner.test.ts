@@ -43,7 +43,7 @@ describe("PlaybookRun.start", () => {
 
     const events = (await d.store.read("s1")).filter(isPhaseEvent);
     expect(events).toEqual([
-      { type: "PhaseEntered", sessionId: "s1", runId: "r1", phase: "Research", at: 1000 },
+      { type: "PhaseEntered", sessionId: "s1", runId: "r1", phase: "Research", at: 1000, seq: 1 },
     ]);
 
     const audit = await d.audit.entries();

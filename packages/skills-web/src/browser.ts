@@ -66,10 +66,28 @@ export class PlaywrightBrowserAutomation implements BrowserAutomation {
   }
 
   async navigate(url: string, tabId?: string): Promise<{ title: string; url: string }> {
+    const resolvedTabId = tabId ?? this.activeTabId;
     const page = await this.ensureBrowser(tabId);
-    const response = await page.goto(url);
-    if (!response) {
-      throw new Error(`failed to navigate to ${url}`);
+    try {
+      const response = await page.goto(url, { waitUntil: "domcontentloaded" });
+      if (!response) {
+        if (resolvedTabId === undefined) {
+          this.pages.delete(this.activeTabId!);
+          await page.close().catch(() => {});
+          this.activeTabId = undefined;
+        }
+        throw new Error(`failed to navigate to ${url}`);
+      }
+    } catch (err) {
+      const currentTabId = resolvedTabId ?? this.activeTabId;
+      if (currentTabId !== undefined && this.pages.get(currentTabId) === page) {
+        this.pages.delete(currentTabId);
+        await page.close().catch(() => {});
+        if (this.activeTabId === currentTabId) {
+          this.activeTabId = undefined;
+        }
+      }
+      throw err;
     }
     const title = await page.title();
     return { title, url: page.url() };

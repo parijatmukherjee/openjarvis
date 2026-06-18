@@ -49,7 +49,9 @@ export class TelegramBot {
 
   async start(): Promise<void> {
     this.polling = true;
-    this.pollLoop();
+    this.pollLoop().catch((err: unknown) => {
+      console.error("Telegram bot poll loop failed:", err);
+    });
   }
 
   async stop(): Promise<void> {
@@ -83,21 +85,23 @@ export class TelegramBot {
     };
   }
 
-  private async getUpdates(): Promise<TelegramUpdate[]> {
+  private async getUpdates(signal?: AbortSignal): Promise<TelegramUpdate[]> {
     const res = await this.callApi("getUpdates", {
       offset: this.offset,
       timeout: 30,
-    });
+    }, signal);
     return res as TelegramUpdate[];
   }
 
-  private async callApi(method: string, params: Record<string, unknown>): Promise<unknown> {
+  private async callApi(method: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
     const url = `${this.baseUrl}/${method}`;
-    const res = await this.fetchFn(url, {
+    const init: RequestInit = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
-    });
+    };
+    if (signal) init.signal = signal;
+    const res = await this.fetchFn(url, init);
     if (!res.ok) {
       throw new Error(`Telegram API ${method} failed: ${res.status} ${await res.text()}`);
     }
@@ -112,7 +116,7 @@ export class TelegramBot {
     while (this.polling) {
       try {
         this.pollAbort = new AbortController();
-        const updates = await this.getUpdates();
+        const updates = await this.getUpdates(this.pollAbort.signal);
         this.backoffMs = 1000;
         for (const update of updates) {
           this.offset = update.update_id + 1;

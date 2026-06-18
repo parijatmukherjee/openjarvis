@@ -108,7 +108,12 @@ export class JarvisHub {
     } catch (err) {
       await this.speak("Something went wrong. Please try again.");
       await this.transitionTo("idle");
-      throw err;
+      this.cfg.eventBus.publish({
+        topic: "jarvis.error",
+        payload: { error: err instanceof Error ? err.message : String(err), sessionId: this.sessionId },
+        timestamp: Date.now(),
+        source: "jarvis",
+      });
     }
   }
 

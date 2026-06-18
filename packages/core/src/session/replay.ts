@@ -27,11 +27,9 @@ export async function rebuildStateStreaming(
     const chunk = await store.read(sessionId, opts);
     if (chunk.length === 0) break;
     state = foldEvents(chunk, state);
-    // Derive the next afterSeq from the chunk: events are ordered by seq, so the
-    // last event's position relative to the full log gives us the next cursor.
-    // For InMemoryEventStore, seq is the array index; for SqliteEventStore, seq is
-    // the SQLite auto-increment. We approximate by counting events seen so far.
-    afterSeq = (afterSeq ?? 0) + chunk.length;
+    const lastSeq = chunk[chunk.length - 1].seq;
+    if (lastSeq === undefined) break;
+    afterSeq = lastSeq;
     if (chunk.length < chunkSize) break;
   }
   return state;

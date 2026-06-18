@@ -14,11 +14,17 @@ export interface Task {
 
 export class TaskBoard {
   private tasks: Map<string, Task> = new Map();
+  private readonly maxTasks: number;
 
-  constructor(eventBus: EventBus) {
+  constructor(eventBus: EventBus, options?: { maxTasks?: number }) {
+    this.maxTasks = options?.maxTasks ?? 1000;
     eventBus.subscribe("nexus", (event) => {
       const payload = event.payload as { type: string; [key: string]: unknown };
       if (payload.type === "task_started") {
+        while (this.tasks.size >= this.maxTasks) {
+          const oldest = this.tasks.keys().next().value;
+          if (oldest !== undefined) this.tasks.delete(oldest);
+        }
         this.tasks.set(payload.taskId as string, {
           id: payload.taskId as string,
           agentId: payload.agentId as string,

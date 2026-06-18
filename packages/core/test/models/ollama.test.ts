@@ -84,7 +84,7 @@ describe("OllamaAdapter", () => {
     const { http } = stubHttp({ error: "model not found" }, 404);
     const adapter = new OllamaAdapter({ model: "nope", http });
     await expect(adapter.generate({ messages: [] })).rejects.toThrow(
-      /ollama request failed \(404\)/,
+      /ollama POST \/api\/chat failed: 404/,
     );
   });
 
@@ -110,7 +110,7 @@ describe("OllamaAdapter", () => {
     });
     const adapter = new OllamaAdapter({ model: "llama3.1", http });
     await expect(adapter.generate({ messages: [] })).rejects.toThrow(
-      /ollama returned non-JSON \(502\)/,
+      /ollama POST \/api\/chat failed: 502/,
     );
   });
 });
