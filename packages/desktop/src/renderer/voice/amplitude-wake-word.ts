@@ -58,7 +58,9 @@ export class AmplitudeWakeWordEngine {
           }
           this.sustainedSince = null;
           this.cooldown = true;
-          this.cooldownTimer = setTimeout(() => { this.cooldown = false; }, 1000);
+          this.cooldownTimer = setTimeout(() => {
+            this.cooldown = false;
+          }, 1000);
         }
       } else {
         this.sustainedSince = null;

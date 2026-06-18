@@ -55,7 +55,9 @@ export class GraphEmailClient {
 
       if (res.status >= 500 && res.status < 600) {
         if (attempt >= maxRetries) {
-          throw new Error(`Graph API ${init.method ?? "GET"} ${url}: ${res.status} server error after ${maxRetries} retries`);
+          throw new Error(
+            `Graph API ${init.method ?? "GET"} ${url}: ${res.status} server error after ${maxRetries} retries`,
+          );
         }
         await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
         continue;
