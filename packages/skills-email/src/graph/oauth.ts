@@ -11,6 +11,7 @@ export class GraphOAuth {
   private vault: Vault;
   private fetch: typeof globalThis.fetch;
   private scopes = "Mail.Read Mail.ReadWrite Mail.Send offline_access";
+  private refreshPromise: Promise<{ accessToken: string; expiresAt: number }> | null = null;
 
   constructor(config: GraphOAuthConfig, vault: Vault, fetchImpl?: typeof globalThis.fetch) {
     this.config = config;
@@ -37,6 +38,17 @@ export class GraphOAuth {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body.toString(),
     });
+
+    if (!res.ok) {
+      let message = `Device code auth failed: ${res.status}`;
+      try {
+        const err = (await res.json()) as Record<string, unknown>;
+        message = (err.error_description ?? err.error ?? message) as string;
+      } catch {
+        void 0;
+      }
+      throw new Error(message);
+    }
 
     const json = (await res.json()) as Record<string, unknown>;
     return {
@@ -72,7 +84,12 @@ export class GraphOAuth {
       return { success: false, error: message };
     }
 
-    const json = (await res.json()) as Record<string, unknown>;
+    let json: Record<string, unknown>;
+    try {
+      json = (await res.json()) as Record<string, unknown>;
+    } catch {
+      return { success: false, error: "Invalid response from auth server" };
+    }
 
     const accessToken = json.access_token as string;
     const refreshToken = json.refresh_token as string;
@@ -140,11 +157,18 @@ export class GraphOAuth {
       }
     }
 
-    const result = await this.refreshToken();
-    if (!result.success) {
-      throw new Error(result.error ?? "Failed to refresh token");
+    if (!this.refreshPromise) {
+      this.refreshPromise = (async () => {
+        const result = await this.refreshToken();
+        if (!result.success) {
+          throw new Error(result.error ?? "Failed to refresh token");
+        }
+        const accessToken = (await this.vault.get("graph:access-token")) as string;
+        const expiresAt = Number(await this.vault.get("graph:token-expires"));
+        return { accessToken, expiresAt };
+      })().finally(() => { this.refreshPromise = null; });
     }
-
-    return (await this.vault.get("graph:access-token")) as string;
+    const result = await this.refreshPromise;
+    return result.accessToken;
   }
 }
