@@ -1,6 +1,8 @@
 // Local type definitions mirroring @openjarvis/jarvis/nexus types.
 // Kept local to avoid deep-import resolution issues with tsc -b in Docker.
 
+import type { CapabilityName } from "@openjarvis/core";
+
 export interface Task {
   id: string;
   agentId: string;
@@ -18,7 +20,7 @@ export interface AgentView {
   role: string;
   status: "active" | "busy" | "failed" | "idle";
   description: string;
-  capabilities: string[];
+  capabilities: CapabilityName[];
   lastActivity: string;
   tasksCompleted: number;
 }

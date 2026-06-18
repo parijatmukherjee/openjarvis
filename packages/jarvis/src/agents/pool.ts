@@ -1,5 +1,5 @@
 import type { ChildProcess } from "node:child_process";
-import type { AgentGrant } from "@openjarvis/core";
+import type { AgentGrant, CapabilityName } from "@openjarvis/core";
 
 export interface AgentPool {
   getAvailableAgents(): Promise<AgentInfo[]>;
@@ -17,6 +17,8 @@ export interface AgentInfo {
   id: string;
   name: string;
   role: string;
+  capabilities: CapabilityName[];
+  active: boolean;
 }
 
 export interface AgentConfig {

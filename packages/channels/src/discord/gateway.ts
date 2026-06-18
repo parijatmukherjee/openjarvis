@@ -288,7 +288,6 @@ export class DiscordGateway {
     this.reconnectTimer = setTimeout(() => {
       if (!this.stopped) {
         this.reconnectSync();
-        this.reconnecting = false;
       } else {
         this.reconnecting = false;
       }

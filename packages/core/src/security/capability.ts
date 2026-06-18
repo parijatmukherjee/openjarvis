@@ -20,8 +20,6 @@ export type CapabilityName =
   | "notion:read"
   | "notion:write"
   | "secrets:read"
-  | "secrets:write"
-  | "secrets:delete"
   | "cron:read"
   | "cron:manage"
   | "telegram:message"

@@ -167,6 +167,7 @@ export class DiscordRest {
     if (bucket.remaining <= 0 && Date.now() < bucket.resetAt) {
       await this.sleep(bucket.resetAt - Date.now());
     }
+    bucket.remaining = Math.max(0, bucket.remaining - 1);
   }
 
   private sleep(ms: number): Promise<void> {

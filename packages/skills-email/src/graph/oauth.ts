@@ -61,13 +61,18 @@ export class GraphOAuth {
       body: body.toString(),
     });
 
-    const json = (await res.json()) as Record<string, unknown>;
-
     if (!res.ok) {
-      const error = json.error as string;
-      const desc = json.error_description as string;
-      return { success: false, error: `${error}: ${desc}` };
+      let message = res.statusText;
+      try {
+        const json = (await res.json()) as Record<string, unknown>;
+        message = (json.error_description ?? json.error ?? res.statusText) as string;
+      } catch {
+        void 0;
+      }
+      return { success: false, error: message };
     }
+
+    const json = (await res.json()) as Record<string, unknown>;
 
     const accessToken = json.access_token as string;
     const refreshToken = json.refresh_token as string;
@@ -99,13 +104,18 @@ export class GraphOAuth {
       body: body.toString(),
     });
 
-    const json = (await res.json()) as Record<string, unknown>;
-
     if (!res.ok) {
-      const error = json.error as string;
-      const desc = json.error_description as string;
-      return { success: false, error: `${error}: ${desc}` };
+      let message = res.statusText;
+      try {
+        const json = (await res.json()) as Record<string, unknown>;
+        message = (json.error_description ?? json.error ?? res.statusText) as string;
+      } catch {
+        void 0;
+      }
+      return { success: false, error: message };
     }
+
+    const json = (await res.json()) as Record<string, unknown>;
 
     const accessToken = json.access_token as string;
     const newRefreshToken = json.refresh_token as string;

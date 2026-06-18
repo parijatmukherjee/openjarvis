@@ -16,6 +16,7 @@ export class AudioRecorder {
   private amplitudeCallbacks: Set<(amplitude: number, isSpeaking: boolean) => void> = new Set();
   private animationFrameId: number | null = null;
   private pcmChunks: Uint8Array[] = [];
+  private scriptProcessor: ScriptProcessorNode | null = null;
 
   constructor(config?: AudioRecorderConfig) {
     this.sampleRate = config?.sampleRate ?? 16000;
@@ -38,6 +39,21 @@ export class AudioRecorder {
     this.source = this.audioContext.createMediaStreamSource(this.mediaStream);
     this.source.connect(this.analyser);
 
+    this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
+    this.scriptProcessor.onaudioprocess = (e: AudioProcessingEvent) => {
+      if (!this._isRecording) return;
+      const inputData = e.inputBuffer.getChannelData(0);
+      const pcm = new Uint8Array(inputData.length * 2);
+      const view = new DataView(pcm.buffer);
+      for (let i = 0; i < inputData.length; i++) {
+        const s = Math.max(-1, Math.min(1, inputData[i]));
+        view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      }
+      this.pcmChunks.push(pcm);
+    };
+    this.source.connect(this.scriptProcessor);
+    this.scriptProcessor.connect(this.audioContext.destination);
+
     this._isRecording = true;
     this.startAmplitudeLoop();
   }
@@ -51,6 +67,12 @@ export class AudioRecorder {
     }
 
     this.amplitudeCallbacks.clear();
+
+    if (this.scriptProcessor) {
+      this.scriptProcessor.disconnect();
+      this.scriptProcessor.onaudioprocess = null;
+      this.scriptProcessor = null;
+    }
 
     if (this.source) {
       this.source.disconnect();

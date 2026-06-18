@@ -1,5 +1,6 @@
 import type { NexusEngine, TaskBoard, AgentPool } from "@openjarvis/jarvis/nexus";
 import type { EventBus } from "@openjarvis/jarvis";
+import type { CapabilityName } from "@openjarvis/core";
 import type { AgentView, MessageView } from "./nexus-types.js";
 
 export type { AgentView, MessageView };
@@ -28,7 +29,7 @@ export function createNexusBridge(
           role: "Research",
           status: "active" as const,
           description: "Web search and information gathering",
-          capabilities: ["search", "browse", "summarize"],
+          capabilities: ["web_search", "summarize"] as CapabilityName[],
           lastActivity: "2m ago",
           tasksCompleted: 142,
         },
@@ -38,7 +39,7 @@ export function createNexusBridge(
           role: "System",
           status: "busy" as const,
           description: "System operations and file management",
-          capabilities: ["shell", "fs:read", "fs:write"],
+          capabilities: ["shell", "fs:read", "fs:write"] as CapabilityName[],
           lastActivity: "now",
           tasksCompleted: 89,
         },
@@ -48,7 +49,7 @@ export function createNexusBridge(
           role: "Data",
           status: "active" as const,
           description: "Weather data retrieval and forecasts",
-          capabilities: ["weather:fetch", "location"],
+          capabilities: ["weather:read"] as CapabilityName[],
           lastActivity: "5m ago",
           tasksCompleted: 256,
         },
@@ -58,7 +59,7 @@ export function createNexusBridge(
           role: "Data",
           status: "idle" as const,
           description: "Calendar events and scheduling",
-          capabilities: ["calendar:read", "calendar:write", "reminder"],
+          capabilities: ["calendar:read", "calendar:write"] as CapabilityName[],
           lastActivity: "1h ago",
           tasksCompleted: 67,
         },
@@ -68,7 +69,7 @@ export function createNexusBridge(
           role: "Browser",
           status: "failed" as const,
           description: "Web browser automation",
-          capabilities: ["browse", "click", "screenshot"],
+          capabilities: ["web:browse"] as CapabilityName[],
           lastActivity: "3h ago",
           tasksCompleted: 34,
         },
@@ -78,7 +79,7 @@ export function createNexusBridge(
           role: "Vision",
           status: "active" as const,
           description: "Visual recognition and screen analysis",
-          capabilities: ["detect", "ocr", "classify"],
+          capabilities: ["detect_humans", "detect_emotion"] as CapabilityName[],
           lastActivity: "1m ago",
           tasksCompleted: 198,
         },
