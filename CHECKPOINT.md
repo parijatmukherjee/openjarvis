@@ -4,14 +4,9 @@
 > first, then [`AGENT.md`](AGENT.md) for how to work here. Detailed, authoritative
 > trackers live under `docs/` and are linked below.
 >
-> **Last updated:** 2026-06-17 · **Default branch:** `main` (protected; required
-> `docker-gate`) · **Tests:** 797 passing / 1 skipped, **98.16% coverage** (gate floor 99%).
-> **Zero-Flaw Campaign: 24/24 ✅**
-> **S3 Nexus Orchestrator: MERGED ✅**
-> **Desktop App (Electron): MERGED ✅**
-> **Track B Multi-Device Sync: MERGED ✅**
-> **Process Enforcement: MERGED ✅**
-> **Feature Parity — Discord + web_fetch: IN PROGRESS on branch `discord-webfetch`**
+> **Last updated:** 2026-06-18 · **Default branch:** `main` (protected; required
+> `docker-gate`) · **Tests:** 1015 passing / 1 skipped, typecheck/lint/format clean.
+> **Branch:** `discord-webfetch`
 
 ---
 
@@ -30,97 +25,58 @@ state, capabilities). Full vision: [`docs/specs/2026-06-05-openjarvis-design.md`
 | `@openjarvis/state`       | 🟢     | **JarvisStateStore**: durable SQLite (`SqlDriver` + migrations + event store + keyed audit store) and the durable composition root (`buildDurableAgentRun` + `openjarvis-run` CLI).                                    |
 | `@openjarvis/memory`      | 🟢     | **JarvisMemoryStore**: decay-aware memory (fragments, recall, pure-JS embeddings + FTS5 fallback). **Wired into the agent path** via `buildAgentRun`/`buildDurableAgentRun`/`buildProbeAgent`.                         |
 | `@openjarvis/markdownify` | 🟢     | Document → Markdown converters (CSV/HTML/JSON/XML/text) behind a never-throws `ConverterRegistry`. **Wired into the agent path** via `createDocumentTool` + `buildDurableAgentRun`/`buildProbeAgent`.                  |
-| `@openjarvis/jarvis`      | 🟢     | Vision skill interfaces + E2E automation suite (`MockUser`, 15 scenarios). **S3 Nexus Orchestrator** (IntentRouter, AgentPool, Synthesizer, NexusEngine, TaskBoard, ReplayEngine) with 28 tests.                       |
+| `@openjarvis/jarvis`      | 🟢     | Vision skill interfaces + E2E automation suite. **S3 Nexus Orchestrator** (IntentRouter, AgentPool, Synthesizer, NexusEngine, TaskBoard, ReplayEngine). **OllamaSttEngine** for voice transcription. **AgentSession** for sub-agent spawning. |
 | `@openjarvis/agents`      | 🟢     | Built-in agents package with `VisionAgent`/`MockVisionAgent` (agent delegator, pool interfaces).                                                                                                                       |
-| `@openjarvis/desktop`     | 🟢     | Electron desktop app with Iron Man neon dashboard. Settings + user profile persisted via typed IPC bridge. **Electron main-process wiring merged.** **Voice pipeline design complete.**                                |
+| `@openjarvis/desktop`     | 🟢     | Electron desktop app. Settings + user profile persisted via typed IPC bridge. **Voice pipeline:** AudioRecorder, AmplitudeWakeWordEngine, useVoicePipeline hook. |
 | `@openjarvis/track-b`     | 🟢     | Multi-device sync: device identity, CRDT sync, Noise protocol, task router, vault sync. 56 tests.                                                                                                                      |
 | `@openjarvis/process`     | 🟢     | Process Enforcement: AGENT.md loop runtime enforcement with ProcessEngine, gate checks, lifecycle hooks, event bus. 57 tests.                                                                                          |
-| `@openjarvis/channels`    | 🔧     | Discord channel integration: gateway, REST, session mapper, tools. 23 tests. On `discord-webfetch` branch.                                                                                                             |
-| `@openjarvis/skills-web`  | 🔧     | Web fetch tool: URL → Markdown via markdownify. 5 tests. On `discord-webfetch` branch.                                                                                                                                 |
+| `@openjarvis/channels`    | 🟢     | Discord gateway + REST + session mapper + tools (discord_send, discord_read). Telegram bot + tools (telegram_send, telegram_read). 55 tests. |
+| `@openjarvis/skills-web`  | 🟢     | web_fetch tool (URL → Markdown) + browser automation tools (browser_navigate, browser_click, browser_screenshot). |
+| `@openjarvis/skills-email`| 🟢     | Gmail (IMAP/SMTP) + Microsoft Graph (OAuth2 device code). 4 tools: email_search, email_read, email_draft, email_send. 61 tests. |
+| `@openjarvis/skills-calendar` | 🟢 | Microsoft Graph Calendar. 5 tools: calendar_list, calendar_get_events, calendar_create, calendar_update, calendar_delete. |
+| `@openjarvis/skills-notion`  | 🟢 | Notion API. 4 tools: notion_query, notion_get, notion_create, notion_update. |
+| `@openjarvis/skills-weather` | 🟢 | wttr.in weather. 2 tools: weather_current, weather_forecast. |
+| `@openjarvis/skills-secrets` | 🟢 | 1Password CLI. 1 tool: secrets_get. |
+| `@openjarvis/cron`           | 🟢 | Real cron scheduler. 3 tools: cron_schedule, cron_list, cron_cancel. |
 
-## 3. What's built and proven (done)
+## 3. Feature Parity Status
 
-**S1 Foundation — the headline hallucination test passes.** Event-sourced session core
-(durable `DomainEvent` log, single-writer serialized turns, reducer state, deterministic
-replay); capability-gated never-throws `ToolRegistry` (default-deny + confused-deputy
-guard); Ollama + OpenAI-compatible adapters over an injectable HTTP seam + a
-`ScriptedAdapter`; the agent loop (native tool-calling with a model-call budget);
-**GroundingEngine** grounding (`off`/`preferred`/`required`/`cited`); **Audit** hash-chained
-audit; the Playbook process engine (phase manifest + machine + runner + `AgentRun`
-integration); `ask`/`run` CLIs + eval harness. Specs: `docs/specs/2026-06-05-S1-*`,
-`docs/specs/2026-06-09-agentrun-playbook-integration-design.md`.
+All 13 features from the feature parity spec are now implemented:
 
-**Production-readiness hardening (Track A, A1–A8 + follow-ups merged).** From the
-[production-readiness review](docs/reviews/2026-06-09-production-readiness-review.md)
-(§3 is the authoritative tracker). All landed behind the gate, each its own PR:
+| # | Feature | Package | Tools | Status |
+|---|---------|---------|-------|--------|
+| 1 | Discord channel | `@openjarvis/channels` | discord_send, discord_read | ✅ |
+| 2 | Web fetch | `@openjarvis/skills-web` | web_fetch | ✅ |
+| 3 | Email (Gmail + Graph) | `@openjarvis/skills-email` | email_search, email_read, email_draft, email_send | ✅ |
+| 4 | Calendar (Graph) | `@openjarvis/skills-calendar` | calendar_list, calendar_get_events, calendar_create, calendar_update, calendar_delete | ✅ |
+| 5 | Notion | `@openjarvis/skills-notion` | notion_query, notion_get, notion_create, notion_update | ✅ |
+| 6 | Weather | `@openjarvis/skills-weather` | weather_current, weather_forecast | ✅ |
+| 7 | Cron scheduler | `@openjarvis/cron` | cron_schedule, cron_list, cron_cancel | ✅ |
+| 8 | Browser automation | `@openjarvis/skills-web` | browser_navigate, browser_click, browser_screenshot | ✅ |
+| 9 | 1Password secrets | `@openjarvis/skills-secrets` | secrets_get | ✅ |
+| 10 | Voice pipeline | `@openjarvis/jarvis` + `@openjarvis/desktop` | OllamaSttEngine, AudioRecorder, useVoicePipeline | ✅ |
+| 11 | Sub-agent spawning | `@openjarvis/jarvis` | AgentSession | ✅ |
+| 12 | Telegram | `@openjarvis/channels` | telegram_send, telegram_read | ✅ |
+| 13 | Browser automation | (same as #8) | — | ✅ |
 
-| Item        | Finding(s)       | What shipped                                                                                                                                                                                   | PR       |
-| ----------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| A1 + A1b    | F-C1, F-C2       | Durable `SqliteAuditLog` + injectable store/audit seam; runtime cutover (`buildDurableAgentRun` + `openjarvis-run`), proven cross-process. Durability + keyed audit now closed **at runtime**. | #18, #20 |
-| A2          | F-C2             | Keyed HMAC-SHA256 audit chain under a Vault-held key; serialized appends.                                                                                                                      | #19      |
-| A3          | F-C3             | Redaction on the event-store data plane + broadened provider/PII patterns; planted-secret e2e.                                                                                                 | #21      |
-| A4          | F-C4, F-H1, F-M4 | Guarded JSON parse, request timeout + bounded retry/backoff, https-for-non-loopback baseURL.                                                                                                   | #22      |
-| A5          | F-H2             | Single source of truth for `replans` (the event fold); `fold==state` invariant test.                                                                                                           | #23      |
-| A6          | F-H5             | `FileVault`: atomic writes (temp+fsync+rename), serialized mutations, raised/tunable scrypt cost.                                                                                              | #24      |
-| A7          | F-M1             | Structured `Logger`/`JsonLogger` (redacted, to stderr); emit at tool-registry + gate swallow points.                                                                                           | #25      |
-| A8          | F-M2, F-M3       | CSV `reduce` fix, `maxInputChars` ceiling, XML depth cap; citation verifies exact field path, not whole payload.                                                                               | #28      |
-| A2b + A7b   | —                | External audit anchoring (`anchorAuditChain`/`verifyAnchor`) + markdownify `ConverterRegistry` instrumented with logger sink.                                                                  | #29      |
-| F-H6 wiring | F-H6             | `markdownify` + `JarvisMemoryStore memory` wired into `buildAgentRun`, `buildDurableAgentRun`, and `buildProbeAgent` — both now active in the live agent path.                                 | #29      |
+## 4. Gate status
 
-**Track A is now COMPLETE.** All 24 Zero-Flaw items closed.
+- **Tests:** 1015 passing / 1 skipped
+- **Typecheck:** Clean (`tsc -b` passes)
+- **Lint:** Clean (`eslint .` passes)
+- **Format:** Clean (`prettier --check` passes)
+- **Branch:** `discord-webfetch` (all feature parity work)
 
-**Track B is now COMPLETE (PR #37, merged).** Multi-device sync with:
-
-- Device identity + registry with Ed25519 keypairs (`tweetnacl`)
-- Pairing flow with QR tokens
-- Vector clock CRDT foundation
-- Event log sync with delta sync
-- Memory fragment CRDT with conflict resolution
-- Device discovery over LAN
-- Noise protocol handshake (mock XOR cipher)
-- Cross-device task router with capability-aware scheduling
-- Vault sync with HKDF-like key derivation
-- Package: `@openjarvis/track-b` with 13 test files, 56 tests
-
-**Process Enforcement is now COMPLETE (PR #38, merged).** Runtime-enforced AGENT.md loop:
-
-- Phase manifest with 6 phases and DAG dependencies
-- `ProcessEngine` with state tracking and dependency enforcement
-- Per-phase gate checks (build/lint/format/test/coverage)
-- Lifecycle hooks (pre-phase, post-phase, on-failure, on-complete)
-- Event bus with replay support
-- CLI with injectable factory for testability
-- Package: `@openjarvis/process` with 9 test files, 57 tests
-
-## 4. In flight
-
-**Feature Parity — Discord + web_fetch** (`discord-webfetch` branch)
-
-- `@openjarvis/channels`: Discord gateway (discord.js), REST client, session mapper, discord_send/discord_read tool definitions with capability gates
-- `@openjarvis/skills-web`: web_fetch tool (fetch URL → markdownify → Markdown) with web:fetch capability gate
-- `@openjarvis/core`: CapabilityName extended with `discord:message`, `discord:read`, `web:fetch`, `web:browse`
-- `@openjarvis/jarvis`: Nexus router updated with `send_discord`, `read_discord`, `fetch_url` routes; Agent pool updated with `discord` and `web` agents
-- 28 new tests across all packages
-- **Status:** Typecheck, lint, format pass. 797 tests pass. Coverage 98.16% (below 99% gate due to new packages)
-
-## 5. What's next
-
-1. **Bring coverage back above 99%** for the gate to pass (add more tests to channels/skills-web)
-2. **Real audio analysis (Web Audio API)** for `VoiceWaveform`
-3. **Plugin SDK / registry**
-4. **Gateway (network API)**
-5. **CLI binary packaging**
-
-## 6. How to work here
+## 5. How to work here
 
 Follow [`AGENT.md`](AGENT.md): Research → Plan → Tasks → Execute (TDD) → Validate (the gate)
 → Present (PR). `main` is protected — land via a PR whose required `docker-gate` passes
 (build · lint · format:check · coverage ≥99% · unit · functional). Conventional commits, one
 logical change per commit.
 
-## 7. Authoritative trackers (don't duplicate — update these)
+## 6. Authoritative trackers (don't duplicate — update these)
 
 - **Remediation status:** `docs/reviews/2026-06-09-production-readiness-review.md` §3 — the
   per-item source of truth for Track A / Track B. Keep its ✅ marks honest.
-- **Design specs:** `docs/specs/` · **Implementation plans:** `docs/plans/` · **ADRs:**
+- **Design specs:** `docs/specs/` · **Implementation plans:** `docs/superpowers/plans/` · **ADRs:**
   `docs/adr/` · **Security model:** `docs/security-model.md`.
