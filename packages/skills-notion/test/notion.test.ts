@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { ToolRegistry } from "@openjarvis/core";
 import type { AgentGrant } from "@openjarvis/core";
+import { NotionClient } from "../src/notion-client.js";
 import {
   createNotionQueryTool,
   createNotionGetTool,
@@ -123,6 +124,22 @@ describe("notion_query", () => {
     expect(result.hasMore).toBe(true);
     expect(result.nextCursor).toBe("cursor-abc");
   });
+
+  it("handles has_more false without next_cursor", async () => {
+    const { fetch } = mockNotionFetch([
+      {
+        status: 200,
+        body: {
+          results: [],
+          has_more: false,
+        },
+      },
+    ]);
+    const tool = createNotionQueryTool({ fetch, token: "test-token" });
+    const result = await tool.handler({ databaseId: "db-1" }, ctx);
+    expect(result.hasMore).toBe(false);
+    expect(result.nextCursor).toBeUndefined();
+  });
 });
 
 describe("notion_get", () => {
@@ -163,6 +180,24 @@ describe("notion_create", () => {
     expect(calls[0].url).toBe("https://api.notion.com/v1/pages");
     const body = calls[0].body as Record<string, unknown>;
     expect(body.parent).toEqual({ database_id: "db-1" });
+  });
+
+  it("sends optional properties when provided", async () => {
+    const { fetch, calls } = mockNotionFetch([
+      { status: 200, body: makePage({ id: "new-page-2" }) },
+    ]);
+    const tool = createNotionCreateTool({ fetch, token: "test-token" });
+    await tool.handler(
+      {
+        databaseId: "db-1",
+        title: "With Props",
+        properties: { Status: { select: { name: "Done" } } },
+      },
+      ctx,
+    );
+    const body = calls[0].body as Record<string, unknown>;
+    const props = body.properties as Record<string, unknown>;
+    expect(props.Status).toEqual({ select: { name: "Done" } });
   });
 });
 
@@ -282,5 +317,264 @@ describe("error handling", () => {
     );
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/not found/);
+  });
+
+  it("handles 429 rate limiting", async () => {
+    const { fetch } = mockNotionFetch([{ status: 429, body: { message: "rate limited" } }]);
+    const registry = new ToolRegistry();
+    registerNotionTools(registry, { fetch, token: "test-token" });
+    const result = await registry.invoke(
+      { id: "e3", tool: "notion_get", args: { pageId: "p1" } },
+      notionAllGrant,
+      ctx,
+    );
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/rate limited/);
+  });
+
+  it("handles generic HTTP error with response text", async () => {
+    const { fetch } = mockNotionFetch([{ status: 500, body: { message: "server error" } }]);
+    const registry = new ToolRegistry();
+    registerNotionTools(registry, { fetch, token: "test-token" });
+    const result = await registry.invoke(
+      { id: "e4", tool: "notion_get", args: { pageId: "p1" } },
+      notionAllGrant,
+      ctx,
+    );
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/HTTP 500/);
+  });
+});
+
+describe("NotionClient direct", () => {
+  it("creates a page with children", async () => {
+    const { fetch } = mockNotionFetch([{ status: 200, body: makePage() }]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    await client.createPage({
+      databaseId: "db-1",
+      title: "With Children",
+      children: [{ object: "block", type: "paragraph" }],
+    });
+    const call = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(call[1].body as string);
+    expect(body.children).toEqual([{ object: "block", type: "paragraph" }]);
+  });
+
+  it("updatePage sends archived flag", async () => {
+    const { fetch } = mockNotionFetch([{ status: 200, body: makePage() }]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    await client.updatePage({
+      pageId: "page-1",
+      properties: { Status: { select: { name: "Done" } } },
+      archived: true,
+    });
+    const call = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(call[1].body as string);
+    expect(body.archived).toBe(true);
+  });
+
+  it("queryDatabase sends empty body when no filter/sorts/limit", async () => {
+    const { fetch } = mockNotionFetch([{ status: 200, body: { results: [], has_more: false } }]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    await client.queryDatabase("db-1");
+    const call = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(call[1].body as string);
+    expect(Object.keys(body)).toHaveLength(0);
+  });
+
+  it("uses default token from NOTION_TOKEN env var", () => {
+    const original = process.env.NOTION_TOKEN;
+    process.env.NOTION_TOKEN = "env-token";
+    const client = new NotionClient({ fetch: vi.fn() });
+    process.env.NOTION_TOKEN = original;
+    expect(client).toBeDefined();
+  });
+
+  it("uses custom timeout", async () => {
+    const { fetch } = mockNotionFetch([
+      { status: 200, body: { results: [], has_more: false } },
+    ]);
+    const client = new NotionClient({ fetch, token: "test-token", timeoutMs: 5000 });
+    const result = await client.queryDatabase("db-1");
+    expect(result.results).toEqual([]);
+  });
+
+  it("handles page with null title property gracefully", async () => {
+    const { fetch } = mockNotionFetch([
+      {
+        status: 200,
+        body: {
+          results: [
+            {
+              id: "p1",
+              url: "https://notion.so/p1",
+              created_time: "2026-01-01T00:00:00Z",
+              last_edited_time: "2026-01-02T00:00:00Z",
+              properties: {},
+            },
+          ],
+          has_more: false,
+        },
+      },
+    ]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    const result = await client.queryDatabase("db-1");
+    expect(result.results[0].title).toBe("");
+  });
+
+  it("handles page with Name property as null", async () => {
+    const { fetch } = mockNotionFetch([
+      {
+        status: 200,
+        body: {
+          results: [
+            {
+              id: "p2",
+              url: "https://notion.so/p2",
+              created_time: "2026-01-01T00:00:00Z",
+              last_edited_time: "2026-01-02T00:00:00Z",
+              properties: { Name: null },
+            },
+          ],
+          has_more: false,
+        },
+      },
+    ]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    const result = await client.queryDatabase("db-1");
+    expect(result.results[0].title).toBe("");
+  });
+
+  it("handles has_more false without next_cursor", async () => {
+    const { fetch } = mockNotionFetch([
+      {
+        status: 200,
+        body: {
+          results: [],
+          has_more: false,
+        },
+      },
+    ]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    const result = await client.queryDatabase("db-1");
+    expect(result.hasMore).toBe(false);
+    expect(result.nextCursor).toBeUndefined();
+  });
+
+  it("handles has_more true with null next_cursor", async () => {
+    const { fetch } = mockNotionFetch([
+      {
+        status: 200,
+        body: {
+          results: [makePage()],
+          has_more: true,
+          next_cursor: null,
+        },
+      },
+    ]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    const result = await client.queryDatabase("db-1");
+    expect(result.hasMore).toBe(true);
+    expect(result.nextCursor).toBeUndefined();
+  });
+
+  it("handles page with title property containing text", async () => {
+    const { fetch } = mockNotionFetch([{ status: 200, body: makePage() }]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    const result = await client.getPage("page-1");
+    expect(result.title).toBe("Test Page");
+  });
+
+  it("handles page with name property (lowercase) instead of Name", async () => {
+    const { fetch } = mockNotionFetch([
+      {
+        status: 200,
+        body: {
+          results: [
+            {
+              id: "p3",
+              url: "https://notion.so/p3",
+              created_time: "2026-01-01T00:00:00Z",
+              last_edited_time: "2026-01-02T00:00:00Z",
+              properties: { name: { title: [{ plain_text: "Lowercase Name" }] } },
+            },
+          ],
+          has_more: false,
+        },
+      },
+    ]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    const result = await client.queryDatabase("db-1");
+    expect(result.results[0].title).toBe("Lowercase Name");
+  });
+
+  it("handles page with title property instead of Name", async () => {
+    const { fetch } = mockNotionFetch([
+      {
+        status: 200,
+        body: {
+          results: [
+            {
+              id: "p4",
+              url: "https://notion.so/p4",
+              created_time: "2026-01-01T00:00:00Z",
+              last_edited_time: "2026-01-02T00:00:00Z",
+              properties: { title: { title: [{ plain_text: "Title Prop" }] } },
+            },
+          ],
+          has_more: false,
+        },
+      },
+    ]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    const result = await client.queryDatabase("db-1");
+    expect(result.results[0].title).toBe("Title Prop");
+  });
+
+  it("handles query result with non-array results", async () => {
+    const { fetch } = mockNotionFetch([
+      {
+        status: 200,
+        body: {
+          results: null,
+          has_more: false,
+        },
+      },
+    ]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    const result = await client.queryDatabase("db-1");
+    expect(result.results).toEqual([]);
+    expect(result.hasMore).toBe(false);
+  });
+
+  it("handles 401 unauthorized error", async () => {
+    const { fetch } = mockNotionFetch([{ status: 401, body: { message: "unauthorized" } }]);
+    const client = new NotionClient({ fetch, token: "bad-token" });
+    await expect(client.getPage("p1")).rejects.toThrow("unauthorized");
+  });
+
+  it("handles 404 not found error", async () => {
+    const { fetch } = mockNotionFetch([{ status: 404, body: { message: "not found" } }]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    await expect(client.getPage("missing")).rejects.toThrow("not found");
+  });
+
+  it("handles 429 rate limited error", async () => {
+    const { fetch } = mockNotionFetch([{ status: 429, body: { message: "rate limited" } }]);
+    const client = new NotionClient({ fetch, token: "test-token" });
+    await expect(client.getPage("p1")).rejects.toThrow("rate limited");
+  });
+
+  it("handles generic HTTP error with fallback text", async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: "Internal Server Error",
+      headers: new Headers({ "content-type": "application/json" }),
+      json: async () => ({}),
+      text: async () => "Internal Server Error",
+    });
+    const client = new NotionClient({ fetch, token: "test-token" });
+    await expect(client.getPage("p1")).rejects.toThrow("HTTP 500");
   });
 });

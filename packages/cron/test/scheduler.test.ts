@@ -115,6 +115,29 @@ describe("CronScheduler", () => {
     expect(job.params).toEqual({ key: "value" });
   });
 
+  it("schedules disabled job without starting it", async () => {
+    const job = await scheduler.schedule({
+      name: "Disabled job",
+      cron: "0 0 * * *",
+      intent: "x",
+      enabled: false,
+    });
+    expect(job.enabled).toBe(false);
+    const tasks = await scheduler.list();
+    expect(tasks).toHaveLength(1);
+  });
+
+  it("does not schedule task for disabled job", async () => {
+    const job = await scheduler.schedule({
+      name: "Disabled job",
+      cron: "0 0 * * *",
+      intent: "x",
+      enabled: false,
+    });
+    const cancelled = await scheduler.cancel(job.id);
+    expect(cancelled).toBe(true);
+  });
+
   it("calls onTick callback when job fires", async () => {
     const onTick = vi.fn().mockResolvedValue(undefined);
     const sched = new CronScheduler(onTick);
@@ -246,5 +269,22 @@ describe("cron tools", () => {
     );
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/invalid cron expression/);
+  });
+
+  it("creates job with params via tool", async () => {
+    const registry = new ToolRegistry();
+    registerCronTools(registry, scheduler);
+    const res = await registry.invoke(
+      {
+        id: "t1",
+        tool: "cron_schedule",
+        args: { name: "With params", cron: "0 9 * * *", intent: "test", params: { key: "val" } },
+      },
+      fullGrant,
+      ctx,
+    );
+    expect(res.ok).toBe(true);
+    const data = res.data as { job: { params?: Record<string, unknown> } };
+    expect(data.job.params).toEqual({ key: "val" });
   });
 });

@@ -126,6 +126,32 @@ describe("GraphOAuth", () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain("No refresh token");
     });
+
+    it("returns error when refresh request fails", async () => {
+      await vault.set("graph:refresh-token", "rt-existing");
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error: "invalid_grant",
+          error_description: "Token expired or revoked",
+        }),
+      });
+
+      const oauth = new GraphOAuth(config, vault, mockFetch);
+      const result = await oauth.refreshToken();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("invalid_grant");
+    });
+  });
+
+  describe("constructor", () => {
+    it("uses default fetch when not provided", () => {
+      const oauth = new GraphOAuth(config, vault);
+      expect(oauth).toBeDefined();
+    });
   });
 
   describe("getAccessToken", () => {
@@ -160,6 +186,40 @@ describe("GraphOAuth", () => {
 
       expect(token).toBe("at-refreshed");
       expect(mockFetch).toHaveBeenCalled();
+    });
+
+    it("throws when no token and refresh fails", async () => {
+      const oauth = new GraphOAuth(config, vault, mockFetch);
+      await expect(oauth.getAccessToken()).rejects.toThrow("No refresh token");
+    });
+
+    it("throws when refresh returns error", async () => {
+      await vault.set("graph:refresh-token", "rt-bad");
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error: "invalid_grant",
+          error_description: "Token expired",
+        }),
+      });
+
+      const oauth = new GraphOAuth(config, vault, mockFetch);
+      await expect(oauth.getAccessToken()).rejects.toThrow("invalid_grant");
+    });
+
+    it("throws error message from refresh failure in getAccessToken", async () => {
+      await vault.set("graph:refresh-token", "rt-bad");
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: "server_error", error_description: "try again" }),
+      });
+
+      const oauth = new GraphOAuth(config, vault, mockFetch);
+      await expect(oauth.getAccessToken()).rejects.toThrow("server_error: try again");
     });
   });
 });

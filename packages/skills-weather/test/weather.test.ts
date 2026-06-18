@@ -158,6 +158,24 @@ describe("weather_current", () => {
     const result = await tool.handler({ location: "Berlin" }, ctx);
     expect(result.location).toBe("Berlin");
   });
+
+  it("throws when current_condition is missing", async () => {
+    const data = mockWttrResponse({ current_condition: undefined });
+    const fetchMock = mockFetch(data);
+    const tool = createWeatherCurrentTool({ fetch: fetchMock });
+    await expect(tool.handler({ location: "London" }, ctx)).rejects.toThrow(
+      "no current condition data",
+    );
+  });
+
+  it("throws when current_condition is empty array", async () => {
+    const data = mockWttrResponse({ current_condition: [] });
+    const fetchMock = mockFetch(data);
+    const tool = createWeatherCurrentTool({ fetch: fetchMock });
+    await expect(tool.handler({ location: "London" }, ctx)).rejects.toThrow(
+      "no current condition data",
+    );
+  });
 });
 
 describe("weather_forecast", () => {
@@ -234,6 +252,68 @@ describe("weather_forecast", () => {
     );
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/Network error/);
+  });
+
+  it("returns empty forecasts when weather data is missing", async () => {
+    const data = mockWttrResponse({ weather: undefined });
+    const fetchMock = mockFetch(data);
+    const tool = createWeatherForecastTool({ fetch: fetchMock });
+    const result = await tool.handler({ location: "London" }, ctx);
+    expect(result.forecasts).toEqual([]);
+  });
+
+  it("handles forecast days without midday hourly data", async () => {
+    const data = {
+      current_condition: [
+        {
+          temp_C: "22",
+          FeelsLikeC: "20",
+          humidity: "65",
+          weatherDesc: [{ value: "Clear" }],
+          winddir16Point: "N",
+          windspeedKmph: "10",
+          visibility: "10",
+          pressure: "1013",
+        },
+      ],
+      weather: [
+        {
+          date: "2026-06-18",
+          maxtempC: "25",
+          mintempC: "18",
+          hourly: [],
+        },
+      ],
+      nearest_area: [{ areaName: [{ value: "London" }] }],
+    };
+    const fetchMock = mockFetch(data);
+    const tool = createWeatherForecastTool({ fetch: fetchMock });
+    const result = await tool.handler({ location: "London" }, ctx);
+    expect(result.forecasts).toHaveLength(1);
+    expect(result.forecasts[0].description).toBe("");
+    expect(result.forecasts[0].chanceOfRain).toBe(0);
+  });
+
+  it("handles current condition without weatherDesc", async () => {
+    const data = {
+      current_condition: [
+        {
+          temp_C: "22",
+          FeelsLikeC: "20",
+          humidity: "65",
+          weatherDesc: [],
+          winddir16Point: "N",
+          windspeedKmph: "10",
+          visibility: "10",
+          pressure: "1013",
+        },
+      ],
+      nearest_area: [{ areaName: [{ value: "London" }] }],
+    };
+    const fetchMock = mockFetch(data);
+    const tool = createWeatherCurrentTool({ fetch: fetchMock });
+    const result = await tool.handler({ location: "London" }, ctx);
+    expect(result.description).toBe("");
   });
 });
 

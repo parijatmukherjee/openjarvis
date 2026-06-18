@@ -202,4 +202,173 @@ describe("registerEmailTools", () => {
     );
     expect(result.ok).toBe(true);
   });
+
+  it("throws when gmail provider not configured", async () => {
+    const clients: EmailToolClients = { gmail: undefined, graph: makeClients().graph };
+    const tool = createEmailSearchTool(clients);
+    await expect(tool.handler({ provider: "gmail", query: "test" }, ctx)).rejects.toThrow(
+      "gmail provider not configured",
+    );
+  });
+
+  it("throws when graph provider not configured", async () => {
+    const clients: EmailToolClients = { gmail: makeClients().gmail, graph: undefined };
+    const tool = createEmailSearchTool(clients);
+    await expect(tool.handler({ provider: "graph", query: "test" }, ctx)).rejects.toThrow(
+      "graph provider not configured",
+    );
+  });
+
+  it("throws when gmail provider not configured in email_read", async () => {
+    const clients: EmailToolClients = { gmail: undefined, graph: makeClients().graph };
+    const tool = createEmailReadTool(clients);
+    await expect(tool.handler({ provider: "gmail" }, ctx)).rejects.toThrow(
+      "gmail provider not configured",
+    );
+  });
+
+  it("throws when graph provider not configured in email_read", async () => {
+    const clients: EmailToolClients = { gmail: makeClients().gmail, graph: undefined };
+    const tool = createEmailReadTool(clients);
+    await expect(tool.handler({ provider: "graph", messageId: "1" }, ctx)).rejects.toThrow(
+      "graph provider not configured",
+    );
+  });
+
+  it("throws when gmail provider not configured in email_send", async () => {
+    const clients: EmailToolClients = { gmail: undefined, graph: makeClients().graph };
+    const tool = createEmailSendTool(clients);
+    await expect(
+      tool.handler(
+        { provider: "gmail", to: [{ address: "x@y.com" }], subject: "Hi", body: "yo" },
+        ctx,
+      ),
+    ).rejects.toThrow("gmail provider not configured");
+  });
+
+  it("throws when graph provider not configured in email_send", async () => {
+    const clients: EmailToolClients = { gmail: makeClients().gmail, graph: undefined };
+    const tool = createEmailSendTool(clients);
+    await expect(
+      tool.handler(
+        { provider: "graph", to: [{ address: "x@y.com" }], subject: "Hi", body: "yo" },
+        ctx,
+      ),
+    ).rejects.toThrow("graph provider not configured");
+  });
+});
+
+describe("createEmailSendTool branches", () => {
+  it("sends with cc and htmlBody", async () => {
+    const clients = makeClients();
+    const tool = createEmailSendTool(clients);
+    await tool.handler(
+      {
+        provider: "gmail",
+        to: [{ name: "Bob", address: "bob@example.com" }],
+        cc: [{ name: "Carol", address: "carol@example.com" }],
+        subject: "Hello",
+        body: "Hi",
+        htmlBody: "<p>Hi</p>",
+      },
+      ctx,
+    );
+    expect(clients.gmail!.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cc: [{ name: "Carol", address: "carol@example.com" }],
+        htmlBody: "<p>Hi</p>",
+      }),
+    );
+  });
+
+  it("sends without name in to address", async () => {
+    const clients = makeClients();
+    const tool = createEmailSendTool(clients);
+    await tool.handler(
+      {
+        provider: "gmail",
+        to: [{ address: "bob@example.com" }],
+        subject: "Hello",
+        body: "Hi",
+      },
+      ctx,
+    );
+    expect(clients.gmail!.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: [{ address: "bob@example.com" }],
+      }),
+    );
+  });
+
+  it("calls graph send when provider is graph", async () => {
+    const clients = makeClients();
+    const tool = createEmailSendTool(clients);
+    await tool.handler(
+      {
+        provider: "graph",
+        to: [{ address: "bob@example.com" }],
+        subject: "Hello",
+        body: "Hi",
+      },
+      ctx,
+    );
+    expect(clients.graph!.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: [{ address: "bob@example.com" }],
+        subject: "Hello",
+        body: "Hi",
+      }),
+    );
+  });
+
+  it("sends with attachments", async () => {
+    const clients = makeClients();
+    const tool = createEmailSendTool(clients);
+    const attachment = new Uint8Array([1, 2, 3]);
+    await tool.handler(
+      {
+        provider: "gmail",
+        to: [{ name: "Bob", address: "bob@example.com" }],
+        subject: "File attached",
+        body: "See attached",
+        attachments: [{ filename: "test.txt", contentType: "text/plain", content: attachment }],
+      },
+      ctx,
+    );
+    expect(clients.gmail!.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachments: [{ filename: "test.txt", contentType: "text/plain", content: attachment }],
+      }),
+    );
+  });
+});
+
+describe("createEmailReadTool branches", () => {
+  it("reads message by id using graph provider", async () => {
+    const clients = makeClients();
+    const tool = createEmailReadTool(clients);
+    await tool.handler({ provider: "graph", messageId: "g1" }, ctx);
+    expect(clients.graph!.getMessage).toHaveBeenCalledWith("g1");
+  });
+
+  it("reads message by id using gmail provider", async () => {
+    const clients = makeClients();
+    const tool = createEmailReadTool(clients);
+    await tool.handler({ provider: "gmail", messageId: "1" }, ctx);
+    expect(clients.gmail!.getMessage).toHaveBeenCalledWith("1");
+  });
+
+  it("lists messages with custom limit", async () => {
+    const clients = makeClients();
+    const tool = createEmailReadTool(clients);
+    await tool.handler({ provider: "gmail", folder: "INBOX", limit: 5 }, ctx);
+    expect(clients.gmail!.listMessages).toHaveBeenCalledWith("INBOX", { limit: 5 });
+  });
+
+  it("lists messages with default options when no limit", async () => {
+    const clients = makeClients();
+    const tool = createEmailReadTool(clients);
+    await tool.handler({ provider: "gmail", folder: "INBOX" }, ctx);
+    expect(clients.gmail!.listMessages).toHaveBeenCalledWith("INBOX", {});
+  });
 });

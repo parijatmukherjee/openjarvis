@@ -198,5 +198,135 @@ describe("GmailImapClient", () => {
       const results = await client.search("from:test");
       expect(results).toEqual([]);
     });
+
+    it("returns empty array on listMessages error", async () => {
+      const mock = createMockClient();
+      mock.getMailboxLock.mockRejectedValue(new Error("Lock failed"));
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      const results = await client.listMessages("INBOX");
+      expect(results).toEqual([]);
+    });
+
+    it("maps message with cc recipients and non-Set flags", async () => {
+      const mock = createMockClient();
+      const lock = { path: "INBOX", release: vi.fn() };
+      mock.getMailboxLock.mockResolvedValue(lock);
+      mock.search.mockResolvedValue([1]);
+      mock.fetchAll.mockResolvedValue([
+        {
+          uid: 1,
+          seq: 1,
+          envelope: {
+            date: new Date("2026-06-17T00:00:00.000Z"),
+            subject: "With CC",
+            from: [{ name: "Alice", address: "alice@example.com" }],
+            to: [{ name: "Bob", address: "bob@example.com" }],
+            cc: [{ name: "Carol", address: "carol@example.com" }],
+          },
+          flags: new Set(["\\Seen", "\\Flagged"]),
+        },
+      ]);
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      const msgs = await client.listMessages("INBOX");
+      expect(msgs[0].cc).toEqual([{ name: "Carol", address: "carol@example.com" }]);
+      expect(msgs[0].flags).toEqual(["\\Seen", "\\Flagged"]);
+    });
+
+    it("maps message with missing from address", async () => {
+      const mock = createMockClient();
+      const lock = { path: "INBOX", release: vi.fn() };
+      mock.getMailboxLock.mockResolvedValue(lock);
+      mock.search.mockResolvedValue([1]);
+      mock.fetchAll.mockResolvedValue([
+        {
+          uid: 1,
+          seq: 1,
+          envelope: {
+            date: "2026-06-17",
+            subject: undefined,
+            from: [],
+            to: [{ address: "bob@example.com" }],
+            cc: [{ address: "carol@example.com" }],
+          },
+          flags: ["\\Seen"],
+        },
+      ]);
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      const msgs = await client.listMessages("INBOX");
+      expect(msgs[0].from).toEqual({ name: "", address: "" });
+      expect(msgs[0].to[0]).toEqual({ name: "", address: "bob@example.com" });
+      expect(msgs[0].cc[0]).toEqual({ name: "", address: "carol@example.com" });
+      expect(msgs[0].subject).toBe("");
+    });
+
+    it("search with plain text token (no colon)", async () => {
+      const mock = createMockClient();
+      const lock = { path: "INBOX", release: vi.fn() };
+      mock.getMailboxLock.mockResolvedValue(lock);
+      mock.search.mockResolvedValue([]);
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      await client.search("hello world");
+      expect(mock.search).toHaveBeenCalledWith({ text: "world" });
+    });
+
+    it("search with body: prefix", async () => {
+      const mock = createMockClient();
+      const lock = { path: "INBOX", release: vi.fn() };
+      mock.getMailboxLock.mockResolvedValue(lock);
+      mock.search.mockResolvedValue([]);
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      await client.search("body:hello");
+      expect(mock.search).toHaveBeenCalledWith({ body: "hello" });
+    });
+
+    it("search with cc: prefix", async () => {
+      const mock = createMockClient();
+      const lock = { path: "INBOX", release: vi.fn() };
+      mock.getMailboxLock.mockResolvedValue(lock);
+      mock.search.mockResolvedValue([]);
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      await client.search("cc:carol@example.com");
+      expect(mock.search).toHaveBeenCalledWith({ cc: "carol@example.com" });
+    });
+
+    it("search with to: prefix", async () => {
+      const mock = createMockClient();
+      const lock = { path: "INBOX", release: vi.fn() };
+      mock.getMailboxLock.mockResolvedValue(lock);
+      mock.search.mockResolvedValue([]);
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      await client.search("to:bob@example.com");
+      expect(mock.search).toHaveBeenCalledWith({ to: "bob@example.com" });
+    });
+
+    it("search with subject: prefix", async () => {
+      const mock = createMockClient();
+      const lock = { path: "INBOX", release: vi.fn() };
+      mock.getMailboxLock.mockResolvedValue(lock);
+      mock.search.mockResolvedValue([]);
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      await client.search("subject:urgent");
+      expect(mock.search).toHaveBeenCalledWith({ subject: "urgent" });
+    });
+
+    it("search with from: prefix", async () => {
+      const mock = createMockClient();
+      const lock = { path: "INBOX", release: vi.fn() };
+      mock.getMailboxLock.mockResolvedValue(lock);
+      mock.search.mockResolvedValue([]);
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      await client.search("from:alice@example.com");
+      expect(mock.search).toHaveBeenCalledWith({ from: "alice@example.com" });
+    });
+
+    it("search with unknown prefix uses default", async () => {
+      const mock = createMockClient();
+      const lock = { path: "INBOX", release: vi.fn() };
+      mock.getMailboxLock.mockResolvedValue(lock);
+      mock.search.mockResolvedValue([]);
+      const client = new GmailImapClient(makeConfig(), mock as any);
+      await client.search("priority:high");
+      expect(mock.search).toHaveBeenCalledWith({ priority: "high" });
+    });
   });
 });

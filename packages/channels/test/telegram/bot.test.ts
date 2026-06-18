@@ -153,5 +153,182 @@ describe("TelegramBot", () => {
         "api.telegram.org/bottest-token/getUpdates",
       );
     });
+
+    it("receives and dispatches messages via polling", async () => {
+      let callCount = 0;
+      const handler = vi.fn();
+      const fetchFn = vi.fn(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                ok: true,
+                result: [
+                  {
+                    update_id: 1,
+                    message: {
+                      message_id: 42,
+                      chat: { id: 123, type: "private", username: "testuser" },
+                      from: { id: 456, username: "testuser" },
+                      text: "Hello bot",
+                      date: 1700000000,
+                    },
+                  },
+                ],
+              }),
+          };
+        }
+        await new Promise(() => {});
+      });
+
+      const bot = new TelegramBot(
+        { token: "test-token" },
+        fetchFn as unknown as typeof globalThis.fetch,
+      );
+      bot.onMessage(handler);
+
+      bot.start();
+      await new Promise((r) => setTimeout(r, 150));
+      await bot.stop();
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 42,
+          chatId: 123,
+          text: "Hello bot",
+        }),
+      );
+    });
+
+    it("handles messages without from or text", async () => {
+      let callCount = 0;
+      const handler = vi.fn();
+      const fetchFn = vi.fn(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                ok: true,
+                result: [
+                  {
+                    update_id: 2,
+                    message: {
+                      message_id: 43,
+                      chat: { id: 456, type: "group", title: "Test Group" },
+                      date: 1700000001,
+                    },
+                  },
+                ],
+              }),
+          };
+        }
+        await new Promise(() => {});
+      });
+
+      const bot = new TelegramBot(
+        { token: "test-token" },
+        fetchFn as unknown as typeof globalThis.fetch,
+      );
+      bot.onMessage(handler);
+
+      bot.start();
+      await new Promise((r) => setTimeout(r, 150));
+      await bot.stop();
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 43,
+          fromId: 0,
+          fromUsername: "",
+          text: "",
+        }),
+      );
+    });
+
+    it("skips updates without message", async () => {
+      let callCount = 0;
+      const handler = vi.fn();
+      const fetchFn = vi.fn(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                ok: true,
+                result: [{ update_id: 3 }],
+              }),
+          };
+        }
+        await new Promise(() => {});
+      });
+
+      const bot = new TelegramBot(
+        { token: "test-token" },
+        fetchFn as unknown as typeof globalThis.fetch,
+      );
+      bot.onMessage(handler);
+
+      bot.start();
+      await new Promise((r) => setTimeout(r, 150));
+      await bot.stop();
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("retries on API error during polling", async () => {
+      let callCount = 0;
+      const handler = vi.fn();
+      const fetchFn = vi.fn(async () => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error("Network error");
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve({ ok: true, result: [] }),
+        };
+      });
+
+      const bot = new TelegramBot(
+        { token: "test-token" },
+        fetchFn as unknown as typeof globalThis.fetch,
+      );
+      bot.onMessage(handler);
+
+      bot.start();
+      await new Promise((r) => setTimeout(r, 250));
+      await bot.stop();
+
+      expect(fetchFn.mock.calls.length).toBeGreaterThanOrEqual(1);
+      expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getChat", () => {
+    it("returns chat info without title and username", async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            ok: true,
+            result: { id: 123, type: "private" },
+          }),
+      });
+
+      const bot = new TelegramBot({ token: "test-token" });
+      const result = await bot.getChat(123);
+      expect(result).toEqual({
+        id: 123,
+        type: "private",
+        title: null,
+        username: null,
+      });
+    });
   });
 });
