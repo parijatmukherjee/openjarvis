@@ -137,7 +137,7 @@ export class GraphCalendarClient {
   }
 
   async listCalendars(): Promise<CalendarInfo[]> {
-    const data = (await this.graphRequest("/me/calendars")) as {
+    const data = (await this.graphRequest("/me/calendars", "GET")) as {
       value: Array<Record<string, unknown>>;
     };
     return data.value.map((c) => this.mapCalendar(c));
@@ -159,7 +159,9 @@ export class GraphCalendarClient {
     }
     const qs = params.toString();
     const path = `/me/calendars/${calendarId}/events${qs ? `?${qs}` : ""}`;
-    const data = (await this.graphRequest(path)) as { value: Array<Record<string, unknown>> };
+    const data = (await this.graphRequest(path, "GET")) as {
+      value: Array<Record<string, unknown>>;
+    };
     return data.value.map((e) => this.mapEvent(e));
   }
 

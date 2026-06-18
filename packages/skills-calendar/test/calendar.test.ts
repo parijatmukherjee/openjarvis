@@ -342,9 +342,7 @@ describe("GraphCalendarClient", () => {
         start: { dateTime: "2026-06-18T09:00:00", timeZone: "UTC" },
         end: { dateTime: "2026-06-18T09:30:00", timeZone: "UTC" },
         location: { displayName: "Zoom" },
-        attendees: [
-          { emailAddress: { name: "Alice", address: "a@b.com" }, type: "optional" },
-        ],
+        attendees: [{ emailAddress: { name: "Alice", address: "a@b.com" }, type: "optional" }],
         isAllDay: false,
         recurrence: { pattern: { type: "weekly" } },
       };
@@ -754,10 +752,7 @@ describe("calendar_get_events tool branches", () => {
     vi.spyOn(client, "getEvents").mockResolvedValueOnce([]);
 
     const tool = createCalendarGetEventsTool(client);
-    const result = await tool.handler(
-      { provider: "graph", calendarId: "cal-1" },
-      ctx,
-    );
+    const result = await tool.handler({ provider: "graph", calendarId: "cal-1" }, ctx);
     expect(result).toEqual({ events: [] });
     expect(client.getEvents).toHaveBeenCalledWith("cal-1", {});
   });

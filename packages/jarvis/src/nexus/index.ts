@@ -7,3 +7,4 @@ export * from "./synthesizer.js";
 export * from "./engine.js";
 export * from "./task-board.js";
 export * from "./replay.js";
+export * from "./tool-composition.js";

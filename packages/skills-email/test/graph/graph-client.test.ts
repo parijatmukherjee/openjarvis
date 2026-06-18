@@ -362,9 +362,7 @@ describe("GraphEmailClient", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          value: [
-            { id: "inbox", displayName: "Inbox" },
-          ],
+          value: [{ id: "inbox", displayName: "Inbox" }],
         }),
       });
 

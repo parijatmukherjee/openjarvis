@@ -391,9 +391,7 @@ describe("NotionClient direct", () => {
   });
 
   it("uses custom timeout", async () => {
-    const { fetch } = mockNotionFetch([
-      { status: 200, body: { results: [], has_more: false } },
-    ]);
+    const { fetch } = mockNotionFetch([{ status: 200, body: { results: [], has_more: false } }]);
     const client = new NotionClient({ fetch, token: "test-token", timeoutMs: 5000 });
     const result = await client.queryDatabase("db-1");
     expect(result.results).toEqual([]);
