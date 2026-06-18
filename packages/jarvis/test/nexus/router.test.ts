@@ -44,7 +44,12 @@ describe("RuleBasedRouter", () => {
   });
 
   it("routes 'cron_schedule' intent to cron agent", () => {
-    const intent: Intent = { action: "cron_schedule", params: {}, confidence: 0.85, ambiguous: false };
+    const intent: Intent = {
+      action: "cron_schedule",
+      params: {},
+      confidence: 0.85,
+      ambiguous: false,
+    };
     const plan = router.route(intent, context);
     expect(plan.primary?.agentId).toBe("cron");
     expect(plan.primary?.required).toBe(false);
@@ -57,20 +62,35 @@ describe("RuleBasedRouter", () => {
   });
 
   it("routes 'cron_cancel' intent to cron agent", () => {
-    const intent: Intent = { action: "cron_cancel", params: { jobId: "abc" }, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "cron_cancel",
+      params: { jobId: "abc" },
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const plan = router.route(intent, context);
     expect(plan.primary?.agentId).toBe("cron");
   });
 
   it("routes 'secret_get' intent to secrets agent as required", () => {
-    const intent: Intent = { action: "secret_get", params: { key: "API_KEY" }, confidence: 0.95, ambiguous: false };
+    const intent: Intent = {
+      action: "secret_get",
+      params: { key: "API_KEY" },
+      confidence: 0.95,
+      ambiguous: false,
+    };
     const plan = router.route(intent, context);
     expect(plan.primary?.agentId).toBe("secrets");
     expect(plan.primary?.required).toBe(true);
   });
 
   it("routes 'secret_set' intent to secrets agent as required", () => {
-    const intent: Intent = { action: "secret_set", params: { key: "API_KEY", value: "xxx" }, confidence: 0.95, ambiguous: false };
+    const intent: Intent = {
+      action: "secret_set",
+      params: { key: "API_KEY", value: "xxx" },
+      confidence: 0.95,
+      ambiguous: false,
+    };
     const plan = router.route(intent, context);
     expect(plan.primary?.agentId).toBe("secrets");
     expect(plan.primary?.required).toBe(true);

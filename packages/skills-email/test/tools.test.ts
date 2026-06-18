@@ -79,7 +79,10 @@ describe("createEmailSearchTool", () => {
   it("calls graph search when provider is graph", async () => {
     const clients = makeClients();
     const tool = createEmailSearchTool(clients);
-    await tool.handler({ provider: "graph", query: "project update", folder: "INBOX", limit: 10 }, ctx);
+    await tool.handler(
+      { provider: "graph", query: "project update", folder: "INBOX", limit: 10 },
+      ctx,
+    );
     expect(clients.graph!.search).toHaveBeenCalledWith("project update");
   });
 });
@@ -206,33 +209,33 @@ describe("registerEmailTools", () => {
   it("throws when gmail provider not configured", async () => {
     const clients: EmailToolClients = { gmail: undefined, graph: makeClients().graph };
     const tool = createEmailSearchTool(clients);
-    await expect(tool.handler({ provider: "gmail", query: "test", folder: "INBOX", limit: 10 }, ctx)).rejects.toThrow(
-      "gmail provider not configured",
-    );
+    await expect(
+      tool.handler({ provider: "gmail", query: "test", folder: "INBOX", limit: 10 }, ctx),
+    ).rejects.toThrow("gmail provider not configured");
   });
 
   it("throws when graph provider not configured", async () => {
     const clients: EmailToolClients = { gmail: makeClients().gmail, graph: undefined };
     const tool = createEmailSearchTool(clients);
-    await expect(tool.handler({ provider: "graph", query: "test", folder: "INBOX", limit: 10 }, ctx)).rejects.toThrow(
-      "graph provider not configured",
-    );
+    await expect(
+      tool.handler({ provider: "graph", query: "test", folder: "INBOX", limit: 10 }, ctx),
+    ).rejects.toThrow("graph provider not configured");
   });
 
   it("throws when gmail provider not configured in email_read", async () => {
     const clients: EmailToolClients = { gmail: undefined, graph: makeClients().graph };
     const tool = createEmailReadTool(clients);
-    await expect(tool.handler({ provider: "gmail", folder: "INBOX", limit: 20 }, ctx)).rejects.toThrow(
-      "gmail provider not configured",
-    );
+    await expect(
+      tool.handler({ provider: "gmail", folder: "INBOX", limit: 20 }, ctx),
+    ).rejects.toThrow("gmail provider not configured");
   });
 
   it("throws when graph provider not configured in email_read", async () => {
     const clients: EmailToolClients = { gmail: makeClients().gmail, graph: undefined };
     const tool = createEmailReadTool(clients);
-    await expect(tool.handler({ provider: "graph", messageId: "1", folder: "INBOX", limit: 20 }, ctx)).rejects.toThrow(
-      "graph provider not configured",
-    );
+    await expect(
+      tool.handler({ provider: "graph", messageId: "1", folder: "INBOX", limit: 20 }, ctx),
+    ).rejects.toThrow("graph provider not configured");
   });
 
   it("throws when gmail provider not configured in email_send", async () => {

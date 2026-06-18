@@ -102,9 +102,7 @@ export class PlaywrightBrowserAutomation implements BrowserAutomation {
   private parseAriaSnapshot(snapshot: string): AccessibilityNode {
     const lines = snapshot.split("\n");
     const root: AccessibilityNode = { role: "page", children: [] };
-    const stack: { node: AccessibilityNode; indent: number }[] = [
-      { node: root, indent: -1 },
-    ];
+    const stack: { node: AccessibilityNode; indent: number }[] = [{ node: root, indent: -1 }];
 
     for (const line of lines) {
       const indent = line.search(/\S/);

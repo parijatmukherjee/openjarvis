@@ -210,7 +210,7 @@ describe("cron tools", () => {
       ctx,
     );
     expect(res.ok).toBe(true);
-    const data = res.data as { job: { id: string; name: string; cron: string } };
+    const data = res.data as { job: { id: string; name: string; cron: string; intent: string } };
     expect(data.job.name).toBe("Test");
     expect(data.job.cron).toBe("0 9 * * 1-5");
     expect(data.job.intent).toBe("test-intent");
