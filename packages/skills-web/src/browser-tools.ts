@@ -1,6 +1,16 @@
 import { z } from "zod";
 import type { ToolDefinition, ToolContext, ToolRegistry } from "@openjarvis/core";
-import type { BrowserAutomation, TabInfo } from "./browser.js";
+import type { BrowserAutomation, AccessibilityNode, TabInfo } from "./browser.js";
+
+function mapAccessibilityNode(node: AccessibilityNode): BrowserAccessibilityResult {
+  return {
+    role: node.role,
+    name: node.name,
+    value: node.value,
+    description: node.description,
+    children: node.children?.map(mapAccessibilityNode),
+  };
+}
 
 const BrowserNavigateArgs = z.object({
   url: z.string().url(),
@@ -185,7 +195,8 @@ export function createBrowserAccessibilityTool(
       _args: BrowserAccessibilityArgs,
       _ctx: ToolContext,
     ): Promise<BrowserAccessibilityResult> => {
-      return browserAutomation.accessibility() as unknown as Promise<BrowserAccessibilityResult>;
+      const node = await browserAutomation.accessibility();
+      return mapAccessibilityNode(node);
     },
   };
 }

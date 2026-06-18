@@ -206,6 +206,9 @@ export class PlaywrightBrowserAutomation implements BrowserAutomation {
     if (this.activeTabId === tabId) {
       const remaining = [...this.pages.keys()];
       this.activeTabId = remaining[0];
+      if (this.activeTabId && this.pages.has(this.activeTabId)) {
+        await this.pages.get(this.activeTabId)!.bringToFront();
+      }
     }
   }
 
