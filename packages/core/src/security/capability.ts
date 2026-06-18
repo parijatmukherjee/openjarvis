@@ -13,7 +13,8 @@ export type CapabilityName =
   | "web:fetch"
   | "web:browse"
   | "email:read"
-  | "email:send";
+  | "email:send"
+  | "weather:read";
 
 export interface Capability {
   name: CapabilityName;
