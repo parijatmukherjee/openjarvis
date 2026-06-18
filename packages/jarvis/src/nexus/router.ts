@@ -18,6 +18,8 @@ export class RuleBasedRouter implements IntentRouter {
       ["vision_query", this.routeToVision],
       ["send_discord", this.routeToDiscord],
       ["read_discord", this.routeToDiscord],
+      ["send_telegram", this.routeToTelegram],
+      ["read_telegram", this.routeToTelegram],
       ["fetch_url", this.routeToWeb],
       ["search_email", this.routeToEmail],
       ["read_email", this.routeToEmail],
@@ -106,6 +108,14 @@ export class RuleBasedRouter implements IntentRouter {
       parallel: [],
       sequential: [],
       primary: { agentId: "discord", confidence: intent.confidence, required: true },
+    };
+  }
+
+  private routeToTelegram(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "telegram", confidence: intent.confidence, required: true },
     };
   }
 

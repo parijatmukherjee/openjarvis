@@ -98,6 +98,16 @@ export class InProcessAgentPool implements AgentPool {
         },
       ],
       [
+        "telegram",
+        {
+          id: "telegram",
+          name: "Telegram Agent",
+          role: "communication",
+          capabilities: ["telegram:message", "telegram:read"],
+          active: true,
+        },
+      ],
+      [
         "web",
         {
           id: "web",
@@ -157,6 +167,7 @@ export class InProcessAgentPool implements AgentPool {
       ["browser", async () => ({ loaded: true })],
       ["vision", async () => ({ humans: 1, emotion: "neutral" })],
       ["discord", async () => ({ messageId: "mock-msg-123" })],
+      ["telegram", async () => ({ messageId: 42 })],
       ["web", async () => ({ markdown: "Fetched content", url: "https://example.com" })],
       ["email", async () => ({ messageId: "mock-email-123" })],
       ["notion", async () => ({ pages: [] })],
