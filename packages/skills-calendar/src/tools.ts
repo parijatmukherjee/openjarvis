@@ -68,6 +68,15 @@ export function createCalendarGetEventsTool(
   };
 }
 
+const RecurrencePatternToolSchema = z.object({
+  pattern: z.enum(["daily", "weekly", "monthly"]),
+  interval: z.number(),
+  daysOfWeek: z.array(z.number()).optional(),
+  daysOfMonth: z.array(z.number()).optional(),
+  endDate: z.string().optional(),
+  occurrences: z.number().optional(),
+});
+
 const CalendarCreateArgsSchema = z.object({
   provider: z.enum(["graph"]).optional().default("graph"),
   calendarId: z.string(),
@@ -86,6 +95,7 @@ const CalendarCreateArgsSchema = z.object({
     )
     .optional(),
   isAllDay: z.boolean().optional(),
+  recurrence: RecurrencePatternToolSchema.optional(),
 });
 
 type CalendarCreateArgs = z.infer<typeof CalendarCreateArgsSchema>;
@@ -120,6 +130,9 @@ export function createCalendarCreateTool(
       }
       if (args.isAllDay !== undefined) {
         input.isAllDay = args.isAllDay;
+      }
+      if (args.recurrence !== undefined) {
+        input.recurrence = args.recurrence;
       }
       const eventId = await client.createEvent(args.calendarId, input);
       return { eventId };

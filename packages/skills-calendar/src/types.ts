@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export interface RecurrencePattern {
+  pattern: "daily" | "weekly" | "monthly";
+  interval: number;
+  daysOfWeek?: number[] | undefined;
+  daysOfMonth?: number[] | undefined;
+  endDate?: string | undefined;
+  occurrences?: number | undefined;
+}
+
 export interface CalendarEvent {
   id: string;
   subject: string;
@@ -27,11 +36,13 @@ export interface CreateEventInput {
   location?: string;
   attendees?: Array<{ name: string; address: string; type?: "required" | "optional" }>;
   isAllDay?: boolean;
+  recurrence?: RecurrencePattern;
 }
 
 export interface CalendarConfig {
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
+  defaultTimezone?: string;
 }
 
 export const CalendarInfoSchema = z.object({
@@ -55,6 +66,15 @@ export const CalendarEventSchema = z.object({
   recurrence: z.string().optional(),
 });
 
+const RecurrencePatternSchema = z.object({
+  pattern: z.enum(["daily", "weekly", "monthly"]),
+  interval: z.number(),
+  daysOfWeek: z.array(z.number()).optional(),
+  daysOfMonth: z.array(z.number()).optional(),
+  endDate: z.string().optional(),
+  occurrences: z.number().optional(),
+});
+
 export const CreateEventInputSchema = z.object({
   calendarId: z.string(),
   subject: z.string(),
@@ -72,6 +92,7 @@ export const CreateEventInputSchema = z.object({
     )
     .optional(),
   isAllDay: z.boolean().optional(),
+  recurrence: RecurrencePatternSchema.optional(),
 });
 
 export const CalendarListResultSchema = z.object({
