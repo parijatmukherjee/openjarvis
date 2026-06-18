@@ -92,3 +92,74 @@ export interface DiscordGatewayEvents {
   dispatch: GatewayDispatchEvent;
   message: DiscordMessage;
 }
+
+export type DiscordEvent =
+  | "message_create"
+  | "message_update"
+  | "message_delete"
+  | "reaction_add"
+  | "interaction_create";
+
+export interface DiscordMessageCreatePayload {
+  id: string;
+  channel_id: string;
+  guild_id?: string | null;
+  author: { id: string; username: string; bot?: boolean };
+  content: string;
+  timestamp: string;
+  edited_timestamp?: string | null;
+  attachments: Array<{
+    id: string;
+    url: string;
+    filename: string;
+    content_type?: string | null;
+    size: number;
+  }>;
+}
+
+export interface DiscordMessageUpdatePayload {
+  id: string;
+  channel_id?: string;
+  guild_id?: string | null;
+  author?: { id: string; username: string; bot?: boolean };
+  content?: string;
+  timestamp?: string;
+  edited_timestamp?: string | null;
+  attachments?: Array<{
+    id: string;
+    url: string;
+    filename: string;
+    content_type?: string | null;
+    size: number;
+  }>;
+}
+
+export interface DiscordMessageDeletePayload {
+  id: string;
+  channel_id: string;
+}
+
+export interface DiscordReactionAddPayload {
+  user_id: string;
+  channel_id: string;
+  message_id: string;
+  emoji: { name?: string; id?: string | null };
+}
+
+export interface DiscordInteractionCreatePayload {
+  id: string;
+  type: number;
+  data?: { name?: string; [key: string]: unknown };
+}
+
+export interface DiscordSearchResult {
+  id: string;
+  channelId: string;
+  guildId: string | null;
+  authorId: string;
+  authorUsername: string;
+  content: string;
+  timestamp: number;
+  editedTimestamp: number | null;
+  attachments: DiscordAttachment[];
+}

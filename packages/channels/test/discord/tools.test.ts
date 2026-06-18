@@ -4,6 +4,7 @@ import type { AgentGrant } from "@openjarvis/core";
 import {
   createDiscordSendTool,
   createDiscordReadTool,
+  createDiscordSearchTool,
   registerDiscordTools,
   type DiscordToolClients,
 } from "../../src/discord/tools.js";
@@ -17,6 +18,19 @@ function makeClients(): DiscordToolClients {
       guildId: "guild1",
       type: "text",
     }),
+    searchMessages: vi.fn().mockResolvedValue([
+      {
+        id: "m1",
+        channelId: "chan1",
+        guildId: "guild1",
+        authorId: "u1",
+        authorUsername: "alice",
+        content: "hello world",
+        timestamp: 1704067200000,
+        editedTimestamp: null,
+        attachments: [],
+      },
+    ]),
   };
 }
 
@@ -112,12 +126,81 @@ describe("createDiscordReadTool", () => {
   });
 });
 
+describe("createDiscordSearchTool", () => {
+  it("registers with correct capabilities", () => {
+    const tool = createDiscordSearchTool(makeClients());
+    expect(tool.name).toBe("discord_search");
+    expect(tool.capabilities).toEqual([{ name: "discord:read" }]);
+  });
+
+  it("invokes searchMessages and returns results", async () => {
+    const clients = makeClients();
+    const tool = createDiscordSearchTool(clients);
+    const reg = new ToolRegistry();
+    reg.register(tool);
+    const grant: AgentGrant = { agentId: "test-agent", capabilities: [{ name: "discord:read" }] };
+    const result = await reg.invoke(
+      { id: "c5", tool: "discord_search", args: { channelId: "chan1", query: "hello" } },
+      grant,
+      ctx,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data).toEqual([
+        {
+          id: "m1",
+          channelId: "chan1",
+          guildId: "guild1",
+          authorId: "u1",
+          authorUsername: "alice",
+          content: "hello world",
+          timestamp: 1704067200000,
+          editedTimestamp: null,
+          attachments: [],
+        },
+      ]);
+    }
+    expect(clients.searchMessages).toHaveBeenCalledWith("chan1", "hello", undefined);
+  });
+
+  it("passes limit parameter to searchMessages", async () => {
+    const clients = makeClients();
+    const tool = createDiscordSearchTool(clients);
+    const reg = new ToolRegistry();
+    reg.register(tool);
+    const grant: AgentGrant = { agentId: "test-agent", capabilities: [{ name: "discord:read" }] };
+    const result = await reg.invoke(
+      { id: "c6", tool: "discord_search", args: { channelId: "chan1", query: "hello", limit: 5 } },
+      grant,
+      ctx,
+    );
+    expect(result.ok).toBe(true);
+    expect(clients.searchMessages).toHaveBeenCalledWith("chan1", "hello", 5);
+  });
+
+  it("is denied without discord:read capability", async () => {
+    const clients = makeClients();
+    const tool = createDiscordSearchTool(clients);
+    const reg = new ToolRegistry();
+    reg.register(tool);
+    const noGrant: AgentGrant = { agentId: "test-agent", capabilities: [] };
+    const result = await reg.invoke(
+      { id: "c7", tool: "discord_search", args: { channelId: "chan1", query: "hello" } },
+      noGrant,
+      ctx,
+    );
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/capability denied/);
+  });
+});
+
 describe("registerDiscordTools", () => {
-  it("registers both tools into the registry", () => {
+  it("registers all three tools into the registry", () => {
     const clients = makeClients();
     const reg = new ToolRegistry();
     registerDiscordTools(reg, clients);
     expect(reg.list().map((t) => t.name)).toContain("discord_send");
     expect(reg.list().map((t) => t.name)).toContain("discord_read");
+    expect(reg.list().map((t) => t.name)).toContain("discord_search");
   });
 });
