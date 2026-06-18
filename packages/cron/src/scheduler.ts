@@ -40,7 +40,7 @@ export class CronScheduler {
         if (!updated) return;
         updated.lastRun = new Date().toISOString();
         if (this.store) {
-          this.store.update(updated);
+          await this.store.update(updated);
         }
         if (this.onTick) {
           try {
@@ -88,7 +88,7 @@ export class CronScheduler {
           if (!updated) return;
           updated.lastRun = new Date().toISOString();
           if (this.store) {
-            this.store.update(updated);
+            await this.store.update(updated);
           }
           if (this.onTick) {
             try {

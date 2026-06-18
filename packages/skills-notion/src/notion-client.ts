@@ -29,10 +29,18 @@ export class NotionClient {
   ): Promise<NotionQueryResult> {
     const body: Record<string, unknown> = {};
     if (filter !== undefined) {
-      body.filter = JSON.parse(filter);
+      try {
+        body.filter = JSON.parse(filter);
+      } catch {
+        throw new Error(`Invalid filter JSON: ${filter}`);
+      }
     }
     if (sorts !== undefined) {
-      body.sorts = JSON.parse(sorts);
+      try {
+        body.sorts = JSON.parse(sorts);
+      } catch {
+        throw new Error(`Invalid sorts JSON: ${sorts}`);
+      }
     }
     if (limit !== undefined) {
       body.page_size = limit;

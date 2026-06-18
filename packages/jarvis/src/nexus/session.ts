@@ -53,10 +53,11 @@ export class AgentSession {
     };
 
     const start = Date.now();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Session timeout exceeded")), this.timeoutMs),
-      );
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("Session timeout exceeded")), this.timeoutMs);
+      });
       return await Promise.race([this.pool.execute(route, context), timeoutPromise]);
     } catch (err) {
       return {
@@ -65,6 +66,8 @@ export class AgentSession {
         error: err instanceof Error ? err.message : String(err),
         durationMs: Date.now() - start,
       };
+    } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
     }
   }
 

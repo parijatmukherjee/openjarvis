@@ -20,10 +20,18 @@ export type CapabilityName =
   | "notion:read"
   | "notion:write"
   | "secrets:read"
+  | "secrets:write"
+  | "secrets:delete"
   | "cron:read"
   | "cron:manage"
   | "telegram:message"
-  | "telegram:read";
+  | "telegram:read"
+  | "detect_humans"
+  | "detect_emotion"
+  | "open_app"
+  | "list_apps"
+  | "web_search"
+  | "summarize";
 
 export interface Capability {
   name: CapabilityName;

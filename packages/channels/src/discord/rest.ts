@@ -74,52 +74,59 @@ export class DiscordRest {
     return data;
   }
 
-  private async request<T>(path: string, method: string, body?: unknown): Promise<T> {
+  private async request<T>(path: string, method: string, body?: unknown, timeoutMs = 30000): Promise<T> {
     const maxAttempts = 4;
     let attempt = 0;
 
     while (true) {
       attempt++;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      await this.waitForBucket(path);
+      try {
+        await this.waitForBucket(path);
 
-      const headers: Record<string, string> = {
-        Authorization: `Bot ${this.token}`,
-      };
-      if (body !== undefined) {
-        headers["Content-Type"] = "application/json";
+        const headers: Record<string, string> = {
+          Authorization: `Bot ${this.token}`,
+        };
+        if (body !== undefined) {
+          headers["Content-Type"] = "application/json";
+        }
+
+        const init: RequestInit = {
+          method,
+          headers,
+          signal: controller.signal,
+        };
+        if (body !== undefined) {
+          init.body = JSON.stringify(body);
+        }
+
+        const res = await this.fetchImpl(`${this.baseUrl}${path}`, init);
+
+        this.updateBucket(path, res);
+
+        if (res.status === 429) {
+          const retryAfter = this.parseRetryAfter(res);
+          await this.sleep(retryAfter);
+          continue;
+        }
+
+        if (res.status >= 500 && attempt < maxAttempts) {
+          const backoff = Math.pow(2, attempt - 1) * 1000;
+          await this.sleep(backoff);
+          continue;
+        }
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Discord REST ${method} ${path} failed: ${res.status} ${text}`);
+        }
+
+        return (await res.json()) as T;
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const init: RequestInit = {
-        method,
-        headers,
-      };
-      if (body !== undefined) {
-        init.body = JSON.stringify(body);
-      }
-
-      const res = await this.fetchImpl(`${this.baseUrl}${path}`, init);
-
-      this.updateBucket(path, res);
-
-      if (res.status === 429) {
-        const retryAfter = this.parseRetryAfter(res);
-        await this.sleep(retryAfter);
-        continue;
-      }
-
-      if (res.status >= 500 && attempt < maxAttempts) {
-        const backoff = Math.pow(2, attempt - 1) * 1000;
-        await this.sleep(backoff);
-        continue;
-      }
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Discord REST ${method} ${path} failed: ${res.status} ${text}`);
-      }
-
-      return (await res.json()) as T;
     }
   }
 

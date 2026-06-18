@@ -49,11 +49,13 @@ export interface Synthesis {
   action?: string | undefined;
 }
 
+import type { CapabilityName } from "@openjarvis/core";
+
 export interface AgentInfo {
   id: string;
   name: string;
   role: string;
-  capabilities: string[];
+  capabilities: CapabilityName[];
   active: boolean;
 }
 
