@@ -52,7 +52,7 @@ export class InProcessAgentPool implements AgentPool {
           id: "calendar",
           name: "Calendar Agent",
           role: "data",
-          capabilities: ["fetch_calendar"],
+          capabilities: ["calendar:read", "calendar:write"],
           active: true,
         },
       ],

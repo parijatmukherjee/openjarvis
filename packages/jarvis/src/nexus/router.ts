@@ -23,6 +23,11 @@ export class RuleBasedRouter implements IntentRouter {
       ["read_email", this.routeToEmail],
       ["draft_email", this.routeToEmail],
       ["send_email", this.routeToEmail],
+      ["calendar_list", this.routeToCalendar],
+      ["calendar_get_events", this.routeToCalendar],
+      ["calendar_create", this.routeToCalendar],
+      ["calendar_update", this.routeToCalendar],
+      ["calendar_delete", this.routeToCalendar],
     ]);
   }
 
