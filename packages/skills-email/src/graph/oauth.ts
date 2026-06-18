@@ -166,7 +166,9 @@ export class GraphOAuth {
         const accessToken = (await this.vault.get("graph:access-token")) as string;
         const expiresAt = Number(await this.vault.get("graph:token-expires"));
         return { accessToken, expiresAt };
-      })().finally(() => { this.refreshPromise = null; });
+      })().finally(() => {
+        this.refreshPromise = null;
+      });
     }
     const result = await this.refreshPromise;
     return result.accessToken;
