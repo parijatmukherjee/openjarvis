@@ -89,7 +89,10 @@ export function createDiscordSearchTool(
   };
 }
 
-export function createDiscordToolClients(token: string, fetchImpl?: typeof globalThis.fetch): DiscordToolClients {
+export function createDiscordToolClients(
+  token: string,
+  fetchImpl?: typeof globalThis.fetch,
+): DiscordToolClients {
   const rest = new DiscordRest(token, fetchImpl);
   return {
     sendMessage: (channelId, content) => rest.sendMessage(channelId, content),

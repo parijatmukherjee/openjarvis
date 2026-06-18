@@ -145,10 +145,8 @@ describe("DiscordGateway", () => {
       return fws.ws;
     });
     const { DiscordGateway } = await import("../../src/discord/gateway.js");
-    const gw = new DiscordGateway(
-      { token: "test-token", guilds: ["g1"] },
-      connectFn,
-      () => Promise.resolve(DEFAULT_URL),
+    const gw = new DiscordGateway({ token: "test-token", guilds: ["g1"] }, connectFn, () =>
+      Promise.resolve(DEFAULT_URL),
     );
 
     await gw.start();
@@ -172,10 +170,8 @@ describe("DiscordGateway", () => {
       return fws.ws;
     });
     const { DiscordGateway } = await import("../../src/discord/gateway.js");
-    const gw = new DiscordGateway(
-      { token: "test-token", guilds: ["g1"] },
-      connectFn,
-      () => Promise.resolve(DEFAULT_URL),
+    const gw = new DiscordGateway({ token: "test-token", guilds: ["g1"] }, connectFn, () =>
+      Promise.resolve(DEFAULT_URL),
     );
 
     await gw.start();
@@ -356,10 +352,8 @@ describe("DiscordGateway", () => {
     });
 
     const { DiscordGateway } = await import("../../src/discord/gateway.js");
-    const gw = new DiscordGateway(
-      { token: "test-token", guilds: ["g1"] },
-      connectFn,
-      () => Promise.resolve(DEFAULT_URL),
+    const gw = new DiscordGateway({ token: "test-token", guilds: ["g1"] }, connectFn, () =>
+      Promise.resolve(DEFAULT_URL),
     );
 
     await gw.start();

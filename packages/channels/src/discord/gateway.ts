@@ -1,5 +1,13 @@
 import WebSocket from "ws";
-import type { DiscordMessage, GatewayPayload, HelloData, IdentifyData, ResumeData, DiscordRawMessage, GatewayDispatchEvent } from "./types.js";
+import type {
+  DiscordMessage,
+  GatewayPayload,
+  HelloData,
+  IdentifyData,
+  ResumeData,
+  DiscordRawMessage,
+  GatewayDispatchEvent,
+} from "./types.js";
 import { GatewayOP } from "./types.js";
 
 export interface DiscordGatewayConfig {

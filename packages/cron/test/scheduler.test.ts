@@ -151,14 +151,19 @@ describe("CronScheduler", () => {
   it("restores jobs from store on restore()", async () => {
     const savedJobs: CronJob[] = [];
     const mockStore: CronPersistence = {
-      save: (job) => { savedJobs.push({ ...job }); },
+      save: (job) => {
+        savedJobs.push({ ...job });
+      },
       update: (job) => {
         const idx = savedJobs.findIndex((j) => j.id === job.id);
         if (idx >= 0) savedJobs[idx] = { ...job };
       },
       remove: (id) => {
         const idx = savedJobs.findIndex((j) => j.id === id);
-        if (idx >= 0) { savedJobs.splice(idx, 1); return true; }
+        if (idx >= 0) {
+          savedJobs.splice(idx, 1);
+          return true;
+        }
         return false;
       },
       loadAll: () => savedJobs.map((j) => ({ ...j })),

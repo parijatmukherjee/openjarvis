@@ -13,6 +13,7 @@
 ## File Structure
 
 ### New files
+
 ```
 packages/core/src/tools/tool.ts                    # MODIFY: add approvalRequired, influencedBy
 packages/core/src/tools/registry.ts                # MODIFY: add approval gate check
@@ -51,6 +52,7 @@ packages/desktop/test/resolve-secrets.test.ts       # NEW: resolve-secrets tests
 ```
 
 ### Modified files
+
 ```
 packages/channels/package.json                      # REMOVE: discord.js dependency
 packages/channels/src/index.ts                      # MODIFY: export new modules
@@ -63,6 +65,7 @@ packages/skills-web/src/index.ts                    # MODIFY: export new types
 ### Task 1: Add `approvalRequired` to ToolDefinition + Gate integration
 
 **Files:**
+
 - Modify: `packages/core/src/tools/tool.ts`
 - Modify: `packages/core/src/tools/registry.ts`
 - Modify: `packages/core/test/tools/registry.test.ts`
@@ -177,14 +180,21 @@ import { requiresApproval } from "../security/taint.js";
 
 // ... in invoke() method, after capability check ...
 
-    // The Gate: approval-required tools blocked when influenced by tainted content.
-    if (tool.approvalRequired && ctx.influencedBy && requiresApproval({
-      sideEffecting: true,
-      influencedBy: ctx.influencedBy,
-    })) {
-      this.logger.log("warn", "approval_required", { tool: call.tool });
-      return fail(call, `approval required: tool "${call.tool}" is side-effecting and influenced by tainted content`);
-    }
+// The Gate: approval-required tools blocked when influenced by tainted content.
+if (
+  tool.approvalRequired &&
+  ctx.influencedBy &&
+  requiresApproval({
+    sideEffecting: true,
+    influencedBy: ctx.influencedBy,
+  })
+) {
+  this.logger.log("warn", "approval_required", { tool: call.tool });
+  return fail(
+    call,
+    `approval required: tool "${call.tool}" is side-effecting and influenced by tainted content`,
+  );
+}
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -204,6 +214,7 @@ git commit -m "feat(core): add approvalRequired gate to ToolDefinition and ToolR
 ### Task 2: Cron SQLite Persistence via JarvisStateStore
 
 **Files:**
+
 - Create: `packages/cron/src/store.ts`
 - Create: `packages/cron/test/store.test.ts`
 - Modify: `packages/cron/src/scheduler.ts`
@@ -547,7 +558,9 @@ In `packages/cron/test/scheduler.test.ts`, add test for `restore()`:
 it("restores persisted jobs from store", async () => {
   const savedJobs: CronJob[] = [];
   const mockStore: CronPersistence = {
-    save: (job) => { savedJobs.push(job); },
+    save: (job) => {
+      savedJobs.push(job);
+    },
     update: () => {},
     remove: () => true,
     loadAll: () => savedJobs,
@@ -581,6 +594,7 @@ git commit -m "feat(cron): add SQLite persistence via SqlCronStore and restore-o
 ### Task 3: Telegram Session Mapper
 
 **Files:**
+
 - Create: `packages/channels/src/telegram/session-mapper.ts`
 - Create: `packages/channels/test/telegram/session-mapper.test.ts`
 - Modify: `packages/channels/src/telegram/bot.ts` (wire session mapper)
@@ -660,8 +674,7 @@ export class TelegramSessionMapper {
     const existing = this.sessions.get(chatId);
     if (existing) return existing;
 
-    const prefix =
-      chatType === "private" || chatType === "channel" ? DM_PREFIX : GROUP_PREFIX;
+    const prefix = chatType === "private" || chatType === "channel" ? DM_PREFIX : GROUP_PREFIX;
     const sessionId = `${prefix}${chatId}`;
     this.sessions.set(chatId, sessionId);
     return sessionId;
@@ -705,6 +718,7 @@ git commit -m "feat(channels): add TelegramSessionMapper for chat-to-session rou
 ### Task 4: Discord Raw WebSocket Gateway with Reconnection
 
 **Files:**
+
 - Rewrite: `packages/channels/src/discord/gateway.ts`
 - Rewrite: `packages/channels/test/discord/gateway.test.ts`
 - Modify: `packages/channels/package.json` (replace `discord.js` with `ws`)
@@ -718,6 +732,7 @@ Replace `"discord.js": "^14.16.0"` with `"ws": "^8.18.0"` and add `"@types/ws": 
 - [ ] **Step 2: Write failing tests for gateway**
 
 In `packages/channels/test/discord/gateway.test.ts`, test:
+
 - Connects and sends IDENTIFY with token
 - Sends HEARTBEAT after HELLO
 - Reconnects with RESUME after disconnect
@@ -729,6 +744,7 @@ All tests use a mock WebSocket server.
 - [ ] **Step 3: Implement `packages/channels/src/discord/gateway.ts`**
 
 Raw WebSocket gateway with:
+
 - OP code handling (0=dispatch, 1=heartbeat, 7=reconnect, 10=hello, 11=heartbeat_ack)
 - Heartbeat at interval from HELLO
 - Exponential backoff reconnection (1s initial, 60s max, ±25% jitter)
@@ -752,12 +768,14 @@ git commit -m "feat(channels): rewrite Discord gateway to raw WebSocket with rec
 ### Task 5: Discord Rate-Limited REST Client
 
 **Files:**
+
 - Rewrite: `packages/channels/src/discord/rest.ts`
 - Rewrite: `packages/channels/test/discord/rest.test.ts`
 
 - [ ] **Step 1: Write failing tests for rate-limited REST**
 
 In `packages/channels/test/discord/rest.test.ts`, test:
+
 - Successful GET/POST requests
 - 429 handling: respects `Retry-After` header
 - Rate limit bucket tracking from response headers
@@ -810,6 +828,7 @@ git commit -m "feat(channels): rewrite Discord REST client with rate limiting an
 ### Task 6: Discord Event Handlers (5 files)
 
 **Files:**
+
 - Create: `packages/channels/src/discord/handlers/message-create.ts`
 - Create: `packages/channels/src/discord/handlers/message-update.ts`
 - Create: `packages/channels/src/discord/handlers/message-delete.ts`
@@ -848,6 +867,7 @@ git commit -m "feat(channels): add Discord event handlers for message, reaction,
 ### Task 7: Discord Slash Commands
 
 **Files:**
+
 - Create: `packages/channels/src/discord/commands.ts`
 - Create: `packages/channels/test/discord/commands.test.ts`
 
@@ -893,6 +913,7 @@ git commit -m "feat(channels): add Discord slash command registration"
 ### Task 8: Discord Search Tool
 
 **Files:**
+
 - Modify: `packages/channels/src/discord/tools.ts`
 - Modify: `packages/channels/src/discord/types.ts`
 - Modify: `packages/channels/test/discord/tools.test.ts`
@@ -924,6 +945,7 @@ git commit -m "feat(channels): add discord_search tool"
 ### Task 9: Browser — `browser_type` Tool
 
 **Files:**
+
 - Modify: `packages/skills-web/src/browser.ts`
 - Modify: `packages/skills-web/src/browser-tools.ts`
 - Modify: `packages/skills-web/test/browser-tools.test.ts`
@@ -953,6 +975,7 @@ git commit -m "feat(skills-web): add browser_type tool for keyboard input"
 ### Task 10: Browser — Accessibility Tree Extraction
 
 **Files:**
+
 - Modify: `packages/skills-web/src/browser.ts`
 - Modify: `packages/skills-web/src/browser-tools.ts`
 - Modify: `packages/skills-web/test/browser-tools.test.ts`
@@ -994,6 +1017,7 @@ git commit -m "feat(skills-web): add browser_accessibility tool for accessibilit
 ### Task 11: Browser — Cookie/Session Management
 
 **Files:**
+
 - Modify: `packages/skills-web/src/browser.ts`
 - Modify: `packages/skills-web/test/browser.test.ts`
 
@@ -1026,6 +1050,7 @@ git commit -m "feat(skills-web): add cookie/session management to BrowserAutomat
 ### Task 12: Browser — Multi-Tab Support
 
 **Files:**
+
 - Modify: `packages/skills-web/src/browser.ts`
 - Modify: `packages/skills-web/src/browser-tools.ts`
 - Modify: `packages/skills-web/test/browser-tools.test.ts`
@@ -1035,6 +1060,7 @@ git commit -m "feat(skills-web): add cookie/session management to BrowserAutomat
 - [ ] **Step 2: Update `PlaywrightBrowserAutomation` to support multiple tabs**
 
 Replace single `page` with `Map<string, Page>`. Add:
+
 - `listTabs(): Promise<TabInfo[]>`
 - `switchTab(tabId: string): Promise<void>`
 - `closeTab(tabId: string): Promise<void>`
@@ -1062,6 +1088,7 @@ git commit -m "feat(skills-web): add multi-tab support and tab management tools"
 ### Task 13: Calendar — Recurring Events + Configurable Default Timezone
 
 **Files:**
+
 - Modify: `packages/skills-calendar/src/types.ts`
 - Modify: `packages/skills-calendar/src/graph-calendar-client.ts`
 - Modify: `packages/skills-calendar/src/tools.ts`
@@ -1111,6 +1138,7 @@ git commit -m "feat(skills-calendar): add recurring event creation and configura
 ### Task 14: Desktop — `op://` Auto-Resolution
 
 **Files:**
+
 - Create: `packages/desktop/src/main/resolve-secrets.ts`
 - Create: `packages/desktop/test/resolve-secrets.test.ts`
 - Modify: `packages/desktop/src/main/schemas.ts` (document op:// support)
@@ -1151,9 +1179,7 @@ describe("resolveSecrets", () => {
 
   it("resolves nested op:// references", async () => {
     const mockClient = {
-      read: vi.fn()
-        .mockResolvedValueOnce("discord-token")
-        .mockResolvedValueOnce("telegram-token"),
+      read: vi.fn().mockResolvedValueOnce("discord-token").mockResolvedValueOnce("telegram-token"),
     };
     const config = {
       channels: {
@@ -1241,6 +1267,7 @@ git commit -m "feat(desktop): add op:// auto-resolution for config secrets"
 ### Task 15: Mark High-Risk Tools with `approvalRequired`
 
 **Files:**
+
 - Modify: `packages/channels/src/discord/tools.ts`
 - Modify: `packages/skills-email/src/tools.ts`
 - Modify: `packages/skills-calendar/src/tools.ts`

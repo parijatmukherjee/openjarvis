@@ -44,19 +44,27 @@ describe("mapReactionAdd", () => {
   });
 
   it("throws on missing user_id", () => {
-    expect(() => mapReactionAdd({ channel_id: "c1", message_id: "m1", emoji: { name: "a" } })).toThrow("Missing user_id");
+    expect(() =>
+      mapReactionAdd({ channel_id: "c1", message_id: "m1", emoji: { name: "a" } }),
+    ).toThrow("Missing user_id");
   });
 
   it("throws on missing channel_id", () => {
-    expect(() => mapReactionAdd({ user_id: "u1", message_id: "m1", emoji: { name: "a" } })).toThrow("Missing channel_id");
+    expect(() => mapReactionAdd({ user_id: "u1", message_id: "m1", emoji: { name: "a" } })).toThrow(
+      "Missing channel_id",
+    );
   });
 
   it("throws on missing message_id", () => {
-    expect(() => mapReactionAdd({ user_id: "u1", channel_id: "c1", emoji: { name: "a" } })).toThrow("Missing message_id");
+    expect(() => mapReactionAdd({ user_id: "u1", channel_id: "c1", emoji: { name: "a" } })).toThrow(
+      "Missing message_id",
+    );
   });
 
   it("throws on missing emoji", () => {
-    expect(() => mapReactionAdd({ user_id: "u1", channel_id: "c1", message_id: "m1" })).toThrow("Missing emoji");
+    expect(() => mapReactionAdd({ user_id: "u1", channel_id: "c1", message_id: "m1" })).toThrow(
+      "Missing emoji",
+    );
   });
 
   it("throws on non-object payload", () => {

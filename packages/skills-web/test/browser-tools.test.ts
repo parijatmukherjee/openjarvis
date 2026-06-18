@@ -28,7 +28,9 @@ function createMockBrowserAutomation(): BrowserAutomation {
     getCookies: vi.fn().mockResolvedValue([]),
     setCookies: vi.fn().mockResolvedValue(undefined),
     clearCookies: vi.fn().mockResolvedValue(undefined),
-    listTabs: vi.fn().mockResolvedValue([{ id: "tab-1", url: "https://example.com", title: "Test Page" }]),
+    listTabs: vi
+      .fn()
+      .mockResolvedValue([{ id: "tab-1", url: "https://example.com", title: "Test Page" }]),
     switchTab: vi.fn().mockResolvedValue(undefined),
     closeTab: vi.fn().mockResolvedValue(undefined),
     close: vi.fn().mockResolvedValue(undefined),

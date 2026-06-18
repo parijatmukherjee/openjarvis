@@ -47,14 +47,15 @@ const BrowserScreenshotResult = z.object({
 export type BrowserScreenshotArgs = z.infer<typeof BrowserScreenshotArgs>;
 export type BrowserScreenshotResult = z.infer<typeof BrowserScreenshotResult>;
 
-const AccessibilityNodeSchema: z.ZodType<Record<string, unknown>> = z.lazy((): z.ZodType<Record<string, unknown>> =>
-  z.object({
-    role: z.string(),
-    name: z.string().optional(),
-    value: z.string().optional(),
-    description: z.string().optional(),
-    children: z.array(AccessibilityNodeSchema).optional(),
-  }),
+const AccessibilityNodeSchema: z.ZodType<Record<string, unknown>> = z.lazy(
+  (): z.ZodType<Record<string, unknown>> =>
+    z.object({
+      role: z.string(),
+      name: z.string().optional(),
+      value: z.string().optional(),
+      description: z.string().optional(),
+      children: z.array(AccessibilityNodeSchema).optional(),
+    }),
 );
 
 const BrowserAccessibilityArgs = z.object({});

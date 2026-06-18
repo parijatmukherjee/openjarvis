@@ -62,12 +62,19 @@ export class ToolRegistry {
       return fail(call, `capability denied: ${missing.map((c) => c.name).join(", ")}`);
     }
 
-    if (tool.approvalRequired && ctx.influencedBy && requiresApproval({
-      sideEffecting: true,
-      influencedBy: ctx.influencedBy,
-    })) {
+    if (
+      tool.approvalRequired &&
+      ctx.influencedBy &&
+      requiresApproval({
+        sideEffecting: true,
+        influencedBy: ctx.influencedBy,
+      })
+    ) {
       this.logger.log("warn", "approval_required", { tool: call.tool });
-      return fail(call, `approval required: tool "${call.tool}" is side-effecting and influenced by tainted content`);
+      return fail(
+        call,
+        `approval required: tool "${call.tool}" is side-effecting and influenced by tainted content`,
+      );
     }
 
     // Everything that can throw lives inside the try so `invoke` never throws:

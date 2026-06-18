@@ -31,7 +31,6 @@ export interface BrowserAutomation {
   close(): Promise<void>;
 }
 
-
 export class PlaywrightBrowserAutomation implements BrowserAutomation {
   private browser: import("playwright").Browser | undefined;
   private context: import("playwright").BrowserContext | undefined;

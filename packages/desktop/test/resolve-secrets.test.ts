@@ -54,7 +54,9 @@ describe("resolveSecrets", () => {
     const client = createOpClient({});
     const config = { apiKey: "op://vault/item/field" };
 
-    await expect(resolveSecrets(config, client)).rejects.toThrow("Failed to resolve secret: op://vault/item/field");
+    await expect(resolveSecrets(config, client)).rejects.toThrow(
+      "Failed to resolve secret: op://vault/item/field",
+    );
   });
 
   it("resolves nested op:// references in deep objects", async () => {
@@ -68,9 +70,7 @@ describe("resolveSecrets", () => {
         host: "localhost",
         password: "op://vault/db-pass/field",
       },
-      services: [
-        { name: "auth", token: "op://vault/api-key/field" },
-      ],
+      services: [{ name: "auth", token: "op://vault/api-key/field" }],
     };
 
     const resolved = await resolveSecrets(config, client);
@@ -79,9 +79,7 @@ describe("resolveSecrets", () => {
         host: "localhost",
         password: "db-secret",
       },
-      services: [
-        { name: "auth", token: "api-secret" },
-      ],
+      services: [{ name: "auth", token: "api-secret" }],
     });
   });
 

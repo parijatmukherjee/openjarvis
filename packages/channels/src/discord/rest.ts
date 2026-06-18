@@ -20,11 +20,9 @@ export class DiscordRest {
   }
 
   async sendMessage(channelId: string, content: string): Promise<{ messageId: string }> {
-    const data = await this.request<{ id: string }>(
-      `/channels/${channelId}/messages`,
-      "POST",
-      { content },
-    );
+    const data = await this.request<{ id: string }>(`/channels/${channelId}/messages`, "POST", {
+      content,
+    });
     return { messageId: data.id };
   }
 

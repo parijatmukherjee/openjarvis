@@ -206,7 +206,7 @@ interface ToolDefinition<TArgs, TResult> {
   args: z.ZodType<TArgs>;
   result: z.ZodType<TResult>;
   capabilities: Capability[];
-  approvalRequired?: boolean;  // NEW: if true, Gate checks before execution
+  approvalRequired?: boolean; // NEW: if true, Gate checks before execution
   handler: (args: TArgs, ctx: ToolContext) => Promise<TResult>;
 }
 ```
@@ -241,11 +241,11 @@ interface CreateEventInput {
   // ... existing fields ...
   recurrence?: {
     pattern: "daily" | "weekly" | "monthly";
-    interval: number;          // e.g., 2 = every 2 weeks
-    daysOfWeek?: number[];     // 0=Sun, 1=Mon, ...
+    interval: number; // e.g., 2 = every 2 weeks
+    daysOfWeek?: number[]; // 0=Sun, 1=Mon, ...
     daysOfMonth?: number[];
-    endDate?: string;          // ISO date
-    occurrences?: number;      // or N occurrences
+    endDate?: string; // ISO date
+    occurrences?: number; // or N occurrences
   };
 }
 ```
@@ -261,7 +261,7 @@ interface CalendarConfig {
   getToken: () => Promise<string>;
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
-  defaultTimezone?: string;  // e.g., "Europe/Berlin", defaults to "UTC"
+  defaultTimezone?: string; // e.g., "Europe/Berlin", defaults to "UTC"
 }
 ```
 
@@ -319,11 +319,13 @@ The current implementation uses `discord:message`, `discord:read`, `telegram:mes
 ## 10. Implementation Order
 
 ### Phase 1: Core Infrastructure
+
 1. `@openjarvis/core` — Add `approvalRequired` to ToolDefinition + Gate integration
 2. `@openjarvis/cron` — SQLite persistence
 3. `@openjarvis/channels` — Telegram session mapper
 
 ### Phase 2: Discord Rewrite
+
 4. `@openjarvis/channels` — Raw WebSocket gateway with reconnection
 5. `@openjarvis/channels` — Rate-limited REST client
 6. `@openjarvis/channels` — Event handlers (5 files)
@@ -331,14 +333,17 @@ The current implementation uses `discord:message`, `discord:read`, `telegram:mes
 8. `@openjarvis/channels` — `discord_search` tool
 
 ### Phase 3: Browser Expansion
+
 9. `@openjarvis/skills-web` — `browser_type` tool
 10. `@openjarvis/skills-web` — Accessibility tree
 11. `@openjarvis/skills-web` — Cookie/session management
 12. `@openjarvis/skills-web` — Multi-tab support
 
 ### Phase 4: Calendar + Config
+
 13. `@openjarvis/skills-calendar` — Recurring events + timezone
 14. `@openjarvis/desktop` — `op://` auto-resolution
 
 ### Phase 5: Mark High-Risk Tools
+
 15. Set `approvalRequired: true` on `discord_send`, `email_send`, `calendar_delete`, `secrets_get`

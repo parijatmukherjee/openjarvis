@@ -2,7 +2,15 @@ import { describe, it, expect, vi } from "vitest";
 import { DiscordRest } from "../../src/discord/rest.js";
 import type { FetchImpl } from "../../src/discord/rest.js";
 
-function createMockFetch(responses: Array<{ ok: boolean; status: number; json?: unknown; headers?: Record<string, string>; text?: string }>): FetchImpl {
+function createMockFetch(
+  responses: Array<{
+    ok: boolean;
+    status: number;
+    json?: unknown;
+    headers?: Record<string, string>;
+    text?: string;
+  }>,
+): FetchImpl {
   let callIndex = 0;
   const mock = vi.fn(async () => {
     const r = responses[callIndex++] ?? responses[responses.length - 1];
@@ -35,9 +43,7 @@ describe("DiscordRest", () => {
 
   describe("sendMessage", () => {
     it("sends a message and returns messageId", async () => {
-      const mockFetch = createMockFetch([
-        { ok: true, status: 200, json: { id: "msg123" } },
-      ]);
+      const mockFetch = createMockFetch([{ ok: true, status: 200, json: { id: "msg123" } }]);
       rest = new DiscordRest("test-token", mockFetch);
 
       const result = await rest.sendMessage("chan1", "hello");
@@ -55,9 +61,7 @@ describe("DiscordRest", () => {
     });
 
     it("includes content in request body", async () => {
-      const mockFetch = createMockFetch([
-        { ok: true, status: 200, json: { id: "msg456" } },
-      ]);
+      const mockFetch = createMockFetch([{ ok: true, status: 200, json: { id: "msg456" } }]);
       rest = new DiscordRest("test-token", mockFetch);
 
       await rest.sendMessage("chan2", "world");
@@ -66,9 +70,7 @@ describe("DiscordRest", () => {
     });
 
     it("throws on non-ok response", async () => {
-      const mockFetch = createMockFetch([
-        { ok: false, status: 403, text: "Forbidden" },
-      ]);
+      const mockFetch = createMockFetch([{ ok: false, status: 403, text: "Forbidden" }]);
       rest = new DiscordRest("test-token", mockFetch);
 
       await expect(rest.sendMessage("chan1", "hello")).rejects.toThrow();
@@ -107,9 +109,7 @@ describe("DiscordRest", () => {
     });
 
     it("throws on non-ok response", async () => {
-      const mockFetch = createMockFetch([
-        { ok: false, status: 404, text: "Not Found" },
-      ]);
+      const mockFetch = createMockFetch([{ ok: false, status: 404, text: "Not Found" }]);
       rest = new DiscordRest("test-token", mockFetch);
 
       await expect(rest.getChannel("c1")).rejects.toThrow();
@@ -123,16 +123,20 @@ describe("DiscordRest", () => {
           ok: true,
           status: 200,
           json: {
-            messages: [[{
-              id: "m1",
-              channel_id: "c1",
-              guild_id: "g1",
-              author: { id: "u1", username: "alice" },
-              content: "hello world",
-              timestamp: "2024-01-01T00:00:00.000Z",
-              edited_timestamp: null,
-              attachments: [],
-            }]],
+            messages: [
+              [
+                {
+                  id: "m1",
+                  channel_id: "c1",
+                  guild_id: "g1",
+                  author: { id: "u1", username: "alice" },
+                  content: "hello world",
+                  timestamp: "2024-01-01T00:00:00.000Z",
+                  edited_timestamp: null,
+                  attachments: [],
+                },
+              ],
+            ],
           },
         },
       ]);
@@ -146,9 +150,7 @@ describe("DiscordRest", () => {
     });
 
     it("searches messages with limit parameter", async () => {
-      const mockFetch = createMockFetch([
-        { ok: true, status: 200, json: { messages: [] } },
-      ]);
+      const mockFetch = createMockFetch([{ ok: true, status: 200, json: { messages: [] } }]);
       rest = new DiscordRest("test-token", mockFetch);
 
       await rest.searchMessages("c1", "hello", 5);
@@ -157,9 +159,7 @@ describe("DiscordRest", () => {
     });
 
     it("returns empty array when messages is missing", async () => {
-      const mockFetch = createMockFetch([
-        { ok: true, status: 200, json: {} },
-      ]);
+      const mockFetch = createMockFetch([{ ok: true, status: 200, json: {} }]);
       rest = new DiscordRest("test-token", mockFetch);
 
       const result = await rest.searchMessages("c1", "hello");
@@ -230,7 +230,11 @@ describe("DiscordRest", () => {
           ok: true,
           status: 200,
           json: { id: "msg1" },
-          headers: { "X-RateLimit-Bucket": "bucket1", "X-RateLimit-Remaining": "4", "X-RateLimit-Reset": "1700000000" },
+          headers: {
+            "X-RateLimit-Bucket": "bucket1",
+            "X-RateLimit-Remaining": "4",
+            "X-RateLimit-Reset": "1700000000",
+          },
         },
       ]);
       rest = new DiscordRest("test-token", mockFetch);
@@ -280,7 +284,9 @@ describe("DiscordRest", () => {
       rest = new DiscordRest("test-token", mockFetch as unknown as FetchImpl);
 
       let error: Error | undefined;
-      rest.sendMessage("c1", "fail").catch((e) => { error = e; });
+      rest.sendMessage("c1", "fail").catch((e) => {
+        error = e;
+      });
       await vi.advanceTimersByTimeAsync(30000);
       await vi.runAllTimersAsync();
       expect(error).toBeInstanceOf(Error);
