@@ -1,0 +1,19 @@
+import { describe, it, expect } from "vitest";
+
+describe("@openjarvis/skills-web exports", () => {
+  it("exports web fetch tools", async () => {
+    const mod = await import("../src/index.js");
+    expect(mod.createWebFetchTool).toBeTypeOf("function");
+    expect(mod.registerWebFetchTools).toBeTypeOf("function");
+    expect(mod.WebFetchConfig).toBeUndefined();
+  });
+
+  it("exports browser automation tools and types", async () => {
+    const mod = await import("../src/index.js");
+    expect(mod.createBrowserNavigateTool).toBeTypeOf("function");
+    expect(mod.createBrowserClickTool).toBeTypeOf("function");
+    expect(mod.createBrowserScreenshotTool).toBeTypeOf("function");
+    expect(mod.registerBrowserTools).toBeTypeOf("function");
+    expect(mod.PlaywrightBrowserAutomation).toBeTypeOf("function");
+  });
+});

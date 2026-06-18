@@ -7,7 +7,23 @@ export type CapabilityName =
   | "host:info"
   | "model-call"
   | "playbook:override"
-  | "document:convert";
+  | "document:convert"
+  | "discord:message"
+  | "discord:read"
+  | "web:fetch"
+  | "web:browse"
+  | "email:read"
+  | "email:send"
+  | "weather:read"
+  | "calendar:read"
+  | "calendar:write"
+  | "notion:read"
+  | "notion:write"
+  | "secrets:read"
+  | "cron:read"
+  | "cron:manage"
+  | "telegram:message"
+  | "telegram:read";
 
 export interface Capability {
   name: CapabilityName;

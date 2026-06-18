@@ -5,5 +5,16 @@
     "noEmit": true,
     "composite": false
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../channels" },
+    { "path": "../skills-email" },
+    { "path": "../skills-calendar" },
+    { "path": "../skills-notion" },
+    { "path": "../skills-web" },
+    { "path": "../skills-weather" },
+    { "path": "../skills-secrets" },
+    { "path": "../cron" }
+  ]
 }

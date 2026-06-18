@@ -16,6 +16,24 @@ export class RuleBasedRouter implements IntentRouter {
       ["check_calendar", this.routeToCalendar],
       ["browse", this.routeToBrowser],
       ["vision_query", this.routeToVision],
+      ["send_discord", this.routeToDiscord],
+      ["read_discord", this.routeToDiscord],
+      ["send_telegram", this.routeToTelegram],
+      ["read_telegram", this.routeToTelegram],
+      ["fetch_url", this.routeToWeb],
+      ["search_email", this.routeToEmail],
+      ["read_email", this.routeToEmail],
+      ["draft_email", this.routeToEmail],
+      ["send_email", this.routeToEmail],
+      ["calendar_list", this.routeToCalendar],
+      ["calendar_get_events", this.routeToCalendar],
+      ["calendar_create", this.routeToCalendar],
+      ["calendar_update", this.routeToCalendar],
+      ["calendar_delete", this.routeToCalendar],
+      ["query_notion", this.routeToNotion],
+      ["get_notion", this.routeToNotion],
+      ["create_notion", this.routeToNotion],
+      ["update_notion", this.routeToNotion],
     ]);
   }
 
@@ -24,7 +42,15 @@ export class RuleBasedRouter implements IntentRouter {
     if (handler) {
       return handler(intent);
     }
-    return { parallel: [], sequential: [] };
+    return this.routeToGeneral(intent);
+  }
+
+  private routeToGeneral(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "general", confidence: intent.confidence, required: false },
+    };
   }
 
   private routeToResearch(intent: Intent): DispatchPlan {
@@ -82,6 +108,46 @@ export class RuleBasedRouter implements IntentRouter {
         { agentId: "calendar", confidence: 0.9, required: false },
       ],
       sequential: [],
+    };
+  }
+
+  private routeToDiscord(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "discord", confidence: intent.confidence, required: true },
+    };
+  }
+
+  private routeToTelegram(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "telegram", confidence: intent.confidence, required: true },
+    };
+  }
+
+  private routeToWeb(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "web", confidence: intent.confidence, required: false },
+    };
+  }
+
+  private routeToEmail(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "email", confidence: intent.confidence, required: true },
+    };
+  }
+
+  private routeToNotion(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "notion", confidence: intent.confidence, required: false },
     };
   }
 }

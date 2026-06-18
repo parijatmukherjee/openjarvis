@@ -1,5 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "rootDir": "src", "outDir": "dist" },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../channels" },
+    { "path": "../skills-email" },
+    { "path": "../skills-calendar" },
+    { "path": "../skills-notion" },
+    { "path": "../skills-web" },
+    { "path": "../skills-weather" },
+    { "path": "../skills-secrets" },
+    { "path": "../cron" }
+  ]
 }

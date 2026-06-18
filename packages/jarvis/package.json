@@ -18,6 +18,14 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@openjarvis/core": "*"
+    "@openjarvis/core": "*",
+    "@openjarvis/channels": "*",
+    "@openjarvis/skills-email": "*",
+    "@openjarvis/skills-calendar": "*",
+    "@openjarvis/skills-notion": "*",
+    "@openjarvis/skills-web": "*",
+    "@openjarvis/skills-weather": "*",
+    "@openjarvis/skills-secrets": "*",
+    "@openjarvis/cron": "*"
   }
 }

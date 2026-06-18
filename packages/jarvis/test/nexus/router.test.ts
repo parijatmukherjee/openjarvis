@@ -43,10 +43,12 @@ describe("RuleBasedRouter", () => {
     expect(plan.primary?.agentId).toBe("system");
   });
 
-  it("returns empty plan for unknown intent", () => {
+  it("routes unknown intent to general agent", () => {
     const intent: Intent = { action: "unknown", params: {}, confidence: 0.3, ambiguous: true };
     const plan = router.route(intent, context);
-    expect(plan.primary).toBeUndefined();
+    expect(plan.primary?.agentId).toBe("general");
+    expect(plan.primary?.confidence).toBe(0.3);
+    expect(plan.primary?.required).toBe(false);
     expect(plan.parallel).toHaveLength(0);
     expect(plan.sequential).toHaveLength(0);
   });
