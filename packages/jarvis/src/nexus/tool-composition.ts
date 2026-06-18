@@ -9,8 +9,8 @@ import { registerCalendarTools } from "@openjarvis/skills-calendar";
 import { GraphCalendarClient } from "@openjarvis/skills-calendar";
 import type { NotionConfig } from "@openjarvis/skills-notion";
 import { registerNotionTools } from "@openjarvis/skills-notion";
-import type { WebFetchConfig } from "@openjarvis/skills-web";
-import { registerWebFetchTools } from "@openjarvis/skills-web";
+import type { WebFetchConfig, BrowserAutomation } from "@openjarvis/skills-web";
+import { registerWebFetchTools, registerBrowserTools } from "@openjarvis/skills-web";
 import type { WeatherConfig } from "@openjarvis/skills-weather";
 import { registerWeatherTools } from "@openjarvis/skills-weather";
 import type { OpClientConfig } from "@openjarvis/skills-secrets";
@@ -27,7 +27,7 @@ export interface ToolCompositionConfig {
     config?: CalendarConfig;
   };
   notion?: { config: NotionConfig };
-  web?: { config?: WebFetchConfig };
+  web?: { config?: WebFetchConfig; browserAutomation?: BrowserAutomation };
   weather?: { config?: WeatherConfig };
   secrets?: { config?: OpClientConfig };
   cron?: { scheduler: CronScheduler };
@@ -61,6 +61,9 @@ export function composeToolRegistry(
 
   if (config.web) {
     registerWebFetchTools(registry, config.web.config ?? {});
+    if (config.web.browserAutomation) {
+      registerBrowserTools(registry, config.web.browserAutomation);
+    }
   }
 
   if (config.weather) {

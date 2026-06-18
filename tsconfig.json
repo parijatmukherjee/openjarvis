@@ -22,6 +22,20 @@
     { "path": "packages/channels" },
     { "path": "packages/channels/tsconfig.test.json" },
     { "path": "packages/process" },
-    { "path": "packages/process/tsconfig.test.json" }
+    { "path": "packages/process/tsconfig.test.json" },
+    { "path": "packages/cron" },
+    { "path": "packages/cron/tsconfig.test.json" },
+    { "path": "packages/skills-email" },
+    { "path": "packages/skills-email/tsconfig.test.json" },
+    { "path": "packages/skills-calendar" },
+    { "path": "packages/skills-calendar/tsconfig.test.json" },
+    { "path": "packages/skills-notion" },
+    { "path": "packages/skills-notion/tsconfig.test.json" },
+    { "path": "packages/skills-weather" },
+    { "path": "packages/skills-weather/tsconfig.test.json" },
+    { "path": "packages/skills-secrets" },
+    { "path": "packages/skills-secrets/tsconfig.test.json" },
+    { "path": "packages/skills-web" },
+    { "path": "packages/skills-web/tsconfig.test.json" }
   ]
 }

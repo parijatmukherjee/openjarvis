@@ -4,6 +4,7 @@ import type { DiscordToolClients } from "@openjarvis/channels";
 import type { TelegramToolClients } from "@openjarvis/channels";
 import type { EmailToolClients } from "@openjarvis/skills-email";
 import { GraphCalendarClient } from "@openjarvis/skills-calendar";
+import type { BrowserAutomation } from "@openjarvis/skills-web";
 import { CronScheduler } from "@openjarvis/cron";
 
 function makeDiscordClients(): DiscordToolClients {
@@ -42,6 +43,23 @@ function makeEmailClients(): EmailToolClients {
     search: async () => [],
   };
   return { gmail: client };
+}
+
+function makeBrowserAutomation(): BrowserAutomation {
+  return {
+    navigate: async () => ({ title: "Test", url: "https://example.com" }),
+    click: async () => ({ clicked: true }),
+    type: async () => ({ typed: true }),
+    screenshot: async () => ({ data: "", mimeType: "image/png" }),
+    accessibility: async () => ({ role: "page", value: "" }),
+    getCookies: async () => [],
+    setCookies: async () => {},
+    clearCookies: async () => {},
+    listTabs: async () => [],
+    switchTab: async () => {},
+    closeTab: async () => {},
+    close: async () => {},
+  };
 }
 
 describe("composeToolRegistry", () => {
@@ -114,6 +132,22 @@ describe("composeToolRegistry", () => {
     expect(names).toContain("web_fetch");
   });
 
+  it("registers browser tools when web.browserAutomation is provided", () => {
+    const registry = composeToolRegistry({
+      web: { browserAutomation: makeBrowserAutomation() },
+    });
+    const names = registry.list().map((t) => t.name);
+    expect(names).toContain("web_fetch");
+    expect(names).toContain("browser_navigate");
+    expect(names).toContain("browser_click");
+    expect(names).toContain("browser_type");
+    expect(names).toContain("browser_screenshot");
+    expect(names).toContain("browser_accessibility");
+    expect(names).toContain("browser_list_tabs");
+    expect(names).toContain("browser_switch_tab");
+    expect(names).toContain("browser_close_tab");
+  });
+
   it("registers weather tools when weather config is provided", () => {
     const registry = composeToolRegistry({
       weather: {},
@@ -167,6 +201,7 @@ describe("composeToolRegistry", () => {
     expect(names).not.toContain("calendar_list");
     expect(names).not.toContain("notion_query");
     expect(names).not.toContain("web_fetch");
+    expect(names).not.toContain("browser_navigate");
     expect(names).not.toContain("secrets_get");
     expect(names).not.toContain("cron_schedule");
   });
