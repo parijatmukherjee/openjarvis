@@ -13,7 +13,5 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {
-    "@openjarvis/core": "*"
-  }
+  "dependencies": {}
 }

@@ -187,10 +187,11 @@ export class DiscordGateway {
 
     if (type === "MESSAGE_CREATE") {
       const raw = payload.d as DiscordRawMessage;
-      if (raw.author?.bot) return;
-      const msg = this.mapMessage(raw);
-      for (const handler of this.messageHandlers) {
-        handler(msg);
+      if (!raw.author?.bot) {
+        const msg = this.mapMessage(raw);
+        for (const handler of this.messageHandlers) {
+          handler(msg);
+        }
       }
     }
 
