@@ -138,6 +138,16 @@ export class InProcessAgentPool implements AgentPool {
         },
       ],
       [
+        "general",
+        {
+          id: "general",
+          name: "General Agent",
+          role: "general",
+          capabilities: ["model-call"],
+          active: true,
+        },
+      ],
+      [
         "cron",
         {
           id: "cron",
@@ -173,6 +183,7 @@ export class InProcessAgentPool implements AgentPool {
       ["notion", async () => ({ pages: [] })],
       ["cron", async () => ({ scheduled: true, jobId: "mock-cron-123" })],
       ["secrets", async () => ({ secretKey: "mock-secret", stored: true })],
+      ["general", async () => ({ response: "general-acknowledgment" })],
       [
         "slow",
         async () => {

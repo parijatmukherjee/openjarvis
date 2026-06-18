@@ -42,7 +42,15 @@ export class RuleBasedRouter implements IntentRouter {
     if (handler) {
       return handler(intent);
     }
-    return { parallel: [], sequential: [] };
+    return this.routeToGeneral(intent);
+  }
+
+  private routeToGeneral(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "general", confidence: intent.confidence, required: false },
+    };
   }
 
   private routeToResearch(intent: Intent): DispatchPlan {
