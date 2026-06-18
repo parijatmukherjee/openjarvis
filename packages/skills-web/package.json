@@ -16,9 +16,11 @@
   },
   "dependencies": {
     "@openjarvis/core": "*",
-    "@openjarvis/markdownify": "*"
+    "@openjarvis/markdownify": "*",
+    "playwright": "^1.48.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.0",
     "@types/node": "^22.0.0"
   }
 }
