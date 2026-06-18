@@ -38,6 +38,8 @@ export class TelegramBot {
   private pollAbort: AbortController | null = null;
   private readonly fetchFn: FetchLike;
   private sessionMapper: TelegramSessionMapper;
+  private backoffMs = 1000;
+  private static readonly MAX_BACKOFF_MS = 60000;
 
   constructor(config: TelegramBotConfig, fetchFn?: FetchLike) {
     this.baseUrl = `https://api.telegram.org/bot${config.token}`;
@@ -111,6 +113,7 @@ export class TelegramBot {
       try {
         this.pollAbort = new AbortController();
         const updates = await this.getUpdates();
+        this.backoffMs = 1000;
         for (const update of updates) {
           this.offset = update.update_id + 1;
           if (update.message) {
@@ -120,9 +123,17 @@ export class TelegramBot {
             }
           }
         }
-      } catch {
+      } catch (err: unknown) {
         if (!this.polling) return;
-        await new Promise((r) => setTimeout(r, 1000));
+        if (err instanceof Error && err.message?.includes("401")) {
+          console.error("Telegram bot: unauthorized, stopping poll loop");
+          this.polling = false;
+          return;
+        }
+        console.error("Telegram bot poll error:", err);
+        const delay = Math.min(this.backoffMs, TelegramBot.MAX_BACKOFF_MS);
+        this.backoffMs = Math.min(this.backoffMs * 2, TelegramBot.MAX_BACKOFF_MS);
+        await new Promise((r) => setTimeout(r, delay));
       }
     }
   }

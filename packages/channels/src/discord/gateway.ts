@@ -116,8 +116,12 @@ export class DiscordGateway {
     });
 
     this.ws.on("message", (data: Buffer) => {
-      const payload: GatewayPayload = JSON.parse(data.toString());
-      this.handlePayload(payload);
+      try {
+        const payload: GatewayPayload = JSON.parse(data.toString());
+        this.handlePayload(payload);
+      } catch {
+        void 0;
+      }
     });
 
     this.ws.on("close", () => {
@@ -239,6 +243,10 @@ export class DiscordGateway {
 
   private scheduleReconnect(): void {
     if (this.reconnecting) return;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     this.reconnecting = true;
     this.stopHeartbeat();
     if (this.ws) {
@@ -261,9 +269,11 @@ export class DiscordGateway {
     this.reconnectTimer = setTimeout(() => {
       if (!this.stopped) {
         this.reconnectSync();
+        this.reconnecting = false;
+      } else {
+        this.reconnecting = false;
       }
     }, delay);
-    this.reconnecting = false;
   }
 
   private reconnectSync(): void {

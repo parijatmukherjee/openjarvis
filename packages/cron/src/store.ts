@@ -76,25 +76,31 @@ export class SqlCronStore implements CronPersistence {
 
   loadAll(): CronJob[] {
     const rows = this.stmtLoadAll.all() as Record<string, unknown>[];
-    return rows.map((row) => {
-      const job: CronJob = {
-        id: row.id as string,
-        name: row.name as string,
-        cron: row.cron as string,
-        intent: row.intent as string,
-        enabled: (row.enabled as number) === 1,
-        createdAt: row.createdAt as string,
-      };
-      if (row.params !== null) {
-        job.params = JSON.parse(row.params as string) as Record<string, unknown>;
+    const jobs: CronJob[] = [];
+    for (const row of rows) {
+      try {
+        const job: CronJob = {
+          id: row.id as string,
+          name: row.name as string,
+          cron: row.cron as string,
+          intent: row.intent as string,
+          enabled: (row.enabled as number) === 1,
+          createdAt: row.createdAt as string,
+        };
+        if (row.params !== null) {
+          job.params = JSON.parse(row.params as string) as Record<string, unknown>;
+        }
+        if (row.lastRun !== null) {
+          job.lastRun = row.lastRun as string;
+        }
+        if (row.nextRun !== null) {
+          job.nextRun = row.nextRun as string;
+        }
+        jobs.push(job);
+      } catch {
+        void 0;
       }
-      if (row.lastRun !== null) {
-        job.lastRun = row.lastRun as string;
-      }
-      if (row.nextRun !== null) {
-        job.nextRun = row.nextRun as string;
-      }
-      return job;
-    });
+    }
+    return jobs;
   }
 }

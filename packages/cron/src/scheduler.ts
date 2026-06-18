@@ -43,7 +43,11 @@ export class CronScheduler {
           this.store.update(updated);
         }
         if (this.onTick) {
-          await this.onTick(updated);
+          try {
+            await this.onTick(updated);
+          } catch {
+            void 0;
+          }
         }
       });
       this.tasks.set(id, task);
@@ -87,7 +91,11 @@ export class CronScheduler {
             this.store.update(updated);
           }
           if (this.onTick) {
-            await this.onTick(updated);
+            try {
+              await this.onTick(updated);
+            } catch {
+              void 0;
+            }
           }
         });
         this.tasks.set(job.id, task);
