@@ -39,7 +39,12 @@ export function createNotionQueryTool(
     result: NotionQueryResult as unknown as z.ZodType<NotionQueryResult>,
     capabilities: [{ name: "notion:read" as const }],
     handler: async (args) => {
-      const result = await client.queryDatabase(args.databaseId, args.filter, args.sorts, args.limit);
+      const result = await client.queryDatabase(
+        args.databaseId,
+        args.filter,
+        args.sorts,
+        args.limit,
+      );
       return {
         results: result.results.map(mapPage),
         hasMore: result.hasMore,

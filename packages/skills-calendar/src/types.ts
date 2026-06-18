@@ -63,7 +63,13 @@ export const CreateEventInputSchema = z.object({
   end: z.object({ dateTime: z.string(), timeZone: z.string() }),
   location: z.string().optional(),
   attendees: z
-    .array(z.object({ name: z.string(), address: z.string(), type: z.enum(["required", "optional"]).optional() }))
+    .array(
+      z.object({
+        name: z.string(),
+        address: z.string(),
+        type: z.enum(["required", "optional"]).optional(),
+      }),
+    )
     .optional(),
   isAllDay: z.boolean().optional(),
 });

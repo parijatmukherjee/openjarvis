@@ -86,18 +86,14 @@ describe("OpClient", () => {
     const error = new Error("item doesn't exist");
     const exec = vi.fn().mockRejectedValue(error);
     const client = new OpClient({ exec });
-    await expect(client.read("op://vault/item/field")).rejects.toThrow(
-      "1Password item not found",
-    );
+    await expect(client.read("op://vault/item/field")).rejects.toThrow("1Password item not found");
   });
 
   it("rethrows unknown errors", async () => {
     const error = new Error("something else went wrong");
     const exec = vi.fn().mockRejectedValue(error);
     const client = new OpClient({ exec });
-    await expect(client.read("op://vault/item/field")).rejects.toThrow(
-      "something else went wrong",
-    );
+    await expect(client.read("op://vault/item/field")).rejects.toThrow("something else went wrong");
   });
 });
 

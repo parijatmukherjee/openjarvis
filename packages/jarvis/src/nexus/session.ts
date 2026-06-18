@@ -38,8 +38,7 @@ export class AgentSession {
     }
     this.depth++;
 
-    const sessionId =
-      this.mode === "fork" ? `${this.parentAgentId}-${agentId}` : agentId;
+    const sessionId = this.mode === "fork" ? `${this.parentAgentId}-${agentId}` : agentId;
 
     const route: AgentRoute = {
       agentId,

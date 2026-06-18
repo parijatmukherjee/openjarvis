@@ -1,13 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { AgentSession } from "../../src/nexus/session.js";
-import type { AgentSessionConfig, AgentResult, AgentRoute, AgentContext } from "../../src/nexus/types.js";
+import type {
+  AgentSessionConfig,
+  AgentResult,
+  AgentRoute,
+  AgentContext,
+} from "../../src/nexus/types.js";
 import type { AgentPool } from "../../src/nexus/pool.js";
 import { InProcessAgentPool } from "../../src/nexus/pool.js";
 
-function stubPool(overrides?: {
-  executeResult?: AgentResult;
-  delayMs?: number;
-}): AgentPool {
+function stubPool(overrides?: { executeResult?: AgentResult; delayMs?: number }): AgentPool {
   const executeResult = overrides?.executeResult ?? {
     agentId: "research",
     success: true,

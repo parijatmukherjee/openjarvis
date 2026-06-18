@@ -46,8 +46,14 @@ function makePage(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const notionReadGrant: AgentGrant = { agentId: "test-agent", capabilities: [{ name: "notion:read" }] };
-const notionWriteGrant: AgentGrant = { agentId: "test-agent", capabilities: [{ name: "notion:write" }] };
+const notionReadGrant: AgentGrant = {
+  agentId: "test-agent",
+  capabilities: [{ name: "notion:read" }],
+};
+const notionWriteGrant: AgentGrant = {
+  agentId: "test-agent",
+  capabilities: [{ name: "notion:write" }],
+};
 const notionAllGrant: AgentGrant = {
   agentId: "test-agent",
   capabilities: [{ name: "notion:read" }, { name: "notion:write" }],
@@ -127,9 +133,7 @@ describe("notion_get", () => {
   });
 
   it("calls GET /v1/pages/{id} and maps to NotionPage", async () => {
-    const { fetch, calls } = mockNotionFetch([
-      { status: 200, body: makePage() },
-    ]);
+    const { fetch, calls } = mockNotionFetch([{ status: 200, body: makePage() }]);
     const tool = createNotionGetTool({ fetch, token: "test-token" });
     const result = await tool.handler({ pageId: "page-1" }, ctx);
     expect(result.page.id).toBe("page-1");
@@ -152,10 +156,7 @@ describe("notion_create", () => {
       { status: 200, body: makePage({ id: "new-page", url: "https://notion.so/new-page" }) },
     ]);
     const tool = createNotionCreateTool({ fetch, token: "test-token" });
-    const result = await tool.handler(
-      { databaseId: "db-1", title: "New Page" },
-      ctx,
-    );
+    const result = await tool.handler({ databaseId: "db-1", title: "New Page" }, ctx);
     expect(result.pageId).toBe("new-page");
     expect(result.url).toBe("https://notion.so/new-page");
     expect(calls[0].method).toBe("POST");
@@ -173,9 +174,7 @@ describe("notion_update", () => {
   });
 
   it("calls PATCH /v1/pages/{id}", async () => {
-    const { fetch, calls } = mockNotionFetch([
-      { status: 200, body: makePage() },
-    ]);
+    const { fetch, calls } = mockNotionFetch([{ status: 200, body: makePage() }]);
     const tool = createNotionUpdateTool({ fetch, token: "test-token" });
     const result = await tool.handler(
       { pageId: "page-1", properties: { Status: { select: { name: "Done" } } } },
@@ -187,14 +186,9 @@ describe("notion_update", () => {
   });
 
   it("sends archived flag when provided", async () => {
-    const { fetch, calls } = mockNotionFetch([
-      { status: 200, body: makePage() },
-    ]);
+    const { fetch, calls } = mockNotionFetch([{ status: 200, body: makePage() }]);
     const tool = createNotionUpdateTool({ fetch, token: "test-token" });
-    await tool.handler(
-      { pageId: "page-1", properties: {}, archived: true },
-      ctx,
-    );
+    await tool.handler({ pageId: "page-1", properties: {}, archived: true }, ctx);
     const body = calls[0].body as Record<string, unknown>;
     expect(body.archived).toBe(true);
   });

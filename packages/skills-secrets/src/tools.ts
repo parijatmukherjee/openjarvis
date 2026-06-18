@@ -31,10 +31,7 @@ export function createSecretsGetTool(
   };
 }
 
-export function registerSecretsTools(
-  registry: ToolRegistry,
-  config: OpClientConfig = {},
-): void {
+export function registerSecretsTools(registry: ToolRegistry, config: OpClientConfig = {}): void {
   const opClient = new OpClient(config);
   registry.register(createSecretsGetTool(opClient));
 }

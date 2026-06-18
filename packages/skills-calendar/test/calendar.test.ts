@@ -34,9 +34,7 @@ const graphEvent = {
   start: { dateTime: "2026-06-18T10:00:00", timeZone: "UTC" },
   end: { dateTime: "2026-06-18T11:00:00", timeZone: "UTC" },
   location: { displayName: "Room 42" },
-  attendees: [
-    { emailAddress: { name: "Alice", address: "alice@example.com" }, type: "required" },
-  ],
+  attendees: [{ emailAddress: { name: "Alice", address: "alice@example.com" }, type: "required" }],
   isAllDay: false,
 };
 
@@ -99,7 +97,11 @@ describe("GraphCalendarClient", () => {
       });
 
       const client = createClient();
-      await client.getEvents("cal-1", { start: "2026-06-18T00:00:00", end: "2026-06-19T00:00:00", limit: 10 });
+      await client.getEvents("cal-1", {
+        start: "2026-06-18T00:00:00",
+        end: "2026-06-19T00:00:00",
+        limit: 10,
+      });
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("startDateTime=2026-06-18T00%3A00%3A00"),
@@ -271,7 +273,13 @@ describe("calendar_get_events tool", () => {
 
     const tool = createCalendarGetEventsTool(client);
     const result = await tool.handler(
-      { provider: "graph", calendarId: "cal-1", start: "2026-06-18T00:00:00", end: "2026-06-19T00:00:00", limit: 10 },
+      {
+        provider: "graph",
+        calendarId: "cal-1",
+        start: "2026-06-18T00:00:00",
+        end: "2026-06-19T00:00:00",
+        limit: 10,
+      },
       ctx,
     );
     expect(result.events).toHaveLength(1);

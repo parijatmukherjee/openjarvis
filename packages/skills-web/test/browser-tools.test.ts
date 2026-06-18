@@ -60,7 +60,9 @@ describe("browser_navigate", () => {
 
   it("propagates navigation errors", async () => {
     const browser = createMockBrowserAutomation();
-    (browser.navigate as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("navigation failed"));
+    (browser.navigate as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("navigation failed"),
+    );
     const registry = new ToolRegistry();
     registerBrowserTools(registry, browser);
     const res = await registry.invoke(

@@ -77,7 +77,13 @@ const CalendarCreateArgsSchema = z.object({
   end: z.object({ dateTime: z.string(), timeZone: z.string() }),
   location: z.string().optional(),
   attendees: z
-    .array(z.object({ name: z.string(), address: z.string(), type: z.enum(["required", "optional"]).optional() }))
+    .array(
+      z.object({
+        name: z.string(),
+        address: z.string(),
+        type: z.enum(["required", "optional"]).optional(),
+      }),
+    )
     .optional(),
   isAllDay: z.boolean().optional(),
 });
@@ -130,7 +136,13 @@ const CalendarUpdateArgsSchema = z.object({
   end: z.object({ dateTime: z.string(), timeZone: z.string() }).optional(),
   location: z.string().optional(),
   attendees: z
-    .array(z.object({ name: z.string(), address: z.string(), type: z.enum(["required", "optional"]).optional() }))
+    .array(
+      z.object({
+        name: z.string(),
+        address: z.string(),
+        type: z.enum(["required", "optional"]).optional(),
+      }),
+    )
     .optional(),
   isAllDay: z.boolean().optional(),
 });

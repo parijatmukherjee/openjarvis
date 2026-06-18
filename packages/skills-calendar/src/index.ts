@@ -1,9 +1,4 @@
-export type {
-  CalendarEvent,
-  CalendarInfo,
-  CreateEventInput,
-  CalendarConfig,
-} from "./types.js";
+export type { CalendarEvent, CalendarInfo, CreateEventInput, CalendarConfig } from "./types.js";
 export {
   CalendarInfoSchema,
   CalendarEventSchema,

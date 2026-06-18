@@ -15,6 +15,6 @@ describe("@openjarvis/channels telegram exports", () => {
 
   it("exports telegram types", async () => {
     const mod = await import("../../src/index.js");
-    expect(mod.TelegramToolClients).toBeUndefined();
+    expect(mod.createTelegramSendTool).toBeTypeOf("function");
   });
 });

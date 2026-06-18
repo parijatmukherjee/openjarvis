@@ -1,4 +1,10 @@
-import type { NotionConfig, NotionPage, NotionQueryResult, NotionCreateInput, NotionUpdateInput } from "./types.js";
+import type {
+  NotionConfig,
+  NotionPage,
+  NotionQueryResult,
+  NotionCreateInput,
+  NotionUpdateInput,
+} from "./types.js";
 
 const NOTION_API_BASE = "https://api.notion.com/v1";
 const NOTION_VERSION = "2022-06-28";
@@ -67,7 +73,11 @@ export class NotionClient {
     return this.mapPage(response);
   }
 
-  private async request(method: string, path: string, body?: Record<string, unknown>): Promise<unknown> {
+  private async request(
+    method: string,
+    path: string,
+    body?: Record<string, unknown>,
+  ): Promise<unknown> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
@@ -101,7 +111,7 @@ export class NotionClient {
         throw new Error(`Notion API: HTTP ${response.status} ${text}`);
       }
 
-      return await response.json() as unknown;
+      return (await response.json()) as unknown;
     } finally {
       clearTimeout(timer);
     }
@@ -135,7 +145,9 @@ export class NotionClient {
     return {
       results: Array.isArray(r.results) ? r.results.map((p: unknown) => this.mapPage(p)) : [],
       hasMore: r.has_more as boolean,
-      ...(r.next_cursor !== undefined && r.next_cursor !== null ? { nextCursor: r.next_cursor as string } : {}),
+      ...(r.next_cursor !== undefined && r.next_cursor !== null
+        ? { nextCursor: r.next_cursor as string }
+        : {}),
     };
   }
 }

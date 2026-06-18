@@ -56,35 +56,32 @@ function toF(celsius: number): number {
 
 interface WttrCurrentCondition {
   temp_C: string;
- FeelsLikeC: string;
-humidity: string;
-weatherDesc: { value: string }[];
-winddir16Point: string;
-windspeedKmph: string;
-visibility: string;
-pressure: string;
+  FeelsLikeC: string;
+  humidity: string;
+  weatherDesc: { value: string }[];
+  winddir16Point: string;
+  windspeedKmph: string;
+  visibility: string;
+  pressure: string;
 }
 
 interface WttrForecastDay {
   date: string;
   maxtempC: string;
-mintempC: string;
-hourly: {
-  weatherDesc: { value: string }[];
-  chanceofrain: string;
-}[];
+  mintempC: string;
+  hourly: {
+    weatherDesc: { value: string }[];
+    chanceofrain: string;
+  }[];
 }
 
 interface WttrResponse {
   current_condition?: WttrCurrentCondition[];
-weather?: WttrForecastDay[];
-nearest_area?: { areaName: { value: string }[] }[];
+  weather?: WttrForecastDay[];
+  nearest_area?: { areaName: { value: string }[] }[];
 }
 
-async function fetchWttr(
-  location: string,
-  config: WeatherConfig,
-): Promise<WttrResponse> {
+async function fetchWttr(location: string, config: WeatherConfig): Promise<WttrResponse> {
   const doFetch = config.fetch ?? globalThis.fetch;
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const controller = new AbortController();
@@ -146,7 +143,10 @@ export function createWeatherForecastTool(
     args: WeatherForecastArgs as unknown as z.ZodType<WeatherForecastArgs>,
     result: WeatherForecastResult as unknown as z.ZodType<WeatherForecastResult>,
     capabilities: [{ name: "weather:read" as const }],
-    handler: async (args: WeatherForecastArgs, _ctx: ToolContext): Promise<WeatherForecastResult> => {
+    handler: async (
+      args: WeatherForecastArgs,
+      _ctx: ToolContext,
+    ): Promise<WeatherForecastResult> => {
       const data = await fetchWttr(args.location, config);
       const areaName = data.nearest_area?.[0]?.areaName?.[0]?.value ?? args.location;
       const days = args.days ?? 1;
@@ -171,7 +171,10 @@ export function createWeatherForecastTool(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyToolDefinition = ToolDefinition<any, any>;
 
-export function registerWeatherTools(registry: { register(tool: AnyToolDefinition): void }, config: WeatherConfig = {}): void {
+export function registerWeatherTools(
+  registry: { register(tool: AnyToolDefinition): void },
+  config: WeatherConfig = {},
+): void {
   registry.register(createWeatherCurrentTool(config));
   registry.register(createWeatherForecastTool(config));
 }

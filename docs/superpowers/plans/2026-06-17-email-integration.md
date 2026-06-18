@@ -13,6 +13,7 @@
 ## Task 1: Scaffold package and add capabilities
 
 **Files:**
+
 - Create: `packages/skills-email/package.json`
 - Create: `packages/skills-email/tsconfig.json`
 - Create: `packages/skills-email/vitest.config.ts`
@@ -81,7 +82,18 @@ export default defineConfig({
 - [ ] **Step 4: Create empty src/index.ts**
 
 ```ts
-export type { EmailClient, EmailFolder, EmailMessage, EmailAttachment, EmailDraft, ListOptions, EmailConfig, EmailToolClients, DeviceCodeInfo, AuthResult } from "./types.js";
+export type {
+  EmailClient,
+  EmailFolder,
+  EmailMessage,
+  EmailAttachment,
+  EmailDraft,
+  ListOptions,
+  EmailConfig,
+  EmailToolClients,
+  DeviceCodeInfo,
+  AuthResult,
+} from "./types.js";
 export { GmailEmailClient } from "./gmail/client.js";
 export { GraphEmailClient } from "./graph/graph-client.js";
 export { registerEmailTools } from "./tools.js";
@@ -127,6 +139,7 @@ git commit -m "feat(email): scaffold skills-email package and add email capabili
 ## Task 2: Types and interfaces
 
 **Files:**
+
 - Create: `packages/skills-email/src/types.ts`
 - Test: `packages/skills-email/test/types.test.ts`
 
@@ -416,11 +429,15 @@ export const EmailDraftSchema = z.object({
   subject: z.string(),
   body: z.string(),
   htmlBody: z.string().optional(),
-  attachments: z.array(z.object({
-    filename: z.string(),
-    contentType: z.string(),
-    content: z.instanceof(Uint8Array),
-  })).optional(),
+  attachments: z
+    .array(
+      z.object({
+        filename: z.string(),
+        contentType: z.string(),
+        content: z.instanceof(Uint8Array),
+      }),
+    )
+    .optional(),
 });
 
 export const ListOptionsSchema = z.object({
@@ -450,6 +467,7 @@ git commit -m "feat(email): add type definitions and Zod schemas for email integ
 ## Task 3: Gmail IMAP client
 
 **Files:**
+
 - Create: `packages/skills-email/src/gmail/imap-client.ts`
 - Test: `packages/skills-email/test/gmail/imap-client.test.ts`
 
@@ -571,7 +589,9 @@ describe("GmailImapClient", () => {
     ]);
     const ic = new GmailImapClient(config, client);
     const results = await ic.search("from:alice@example.com");
-    expect(impl.search).toHaveBeenCalledWith(expect.objectContaining({ from: "alice@example.com" }));
+    expect(impl.search).toHaveBeenCalledWith(
+      expect.objectContaining({ from: "alice@example.com" }),
+    );
     expect(results).toHaveLength(2);
   });
 
@@ -709,8 +729,14 @@ export class GmailImapClient {
   private mapMessage(msg: Record<string, unknown>, folder: string): EmailMessage {
     const envelope = (msg.envelope ?? msg) as Record<string, unknown>;
     const from = (envelope.from ?? { name: "", address: "" }) as { name: string; address: string };
-    const to = (Array.isArray(envelope.to) ? envelope.to : []) as Array<{ name: string; address: string }>;
-    const cc = (Array.isArray(envelope.cc) ? envelope.cc : []) as Array<{ name: string; address: string }>;
+    const to = (Array.isArray(envelope.to) ? envelope.to : []) as Array<{
+      name: string;
+      address: string;
+    }>;
+    const cc = (Array.isArray(envelope.cc) ? envelope.cc : []) as Array<{
+      name: string;
+      address: string;
+    }>;
     const bodyParts = msg.bodyParts as Map<string, string> | undefined;
     return {
       id: String(msg.uid ?? ""),
@@ -720,7 +746,7 @@ export class GmailImapClient {
       subject: String(envelope.subject ?? ""),
       body: bodyParts?.get("text") ?? "",
       htmlBody: bodyParts?.get("html"),
-      date: new Date(envelope.date as string ?? Date.now()).toISOString(),
+      date: new Date((envelope.date as string) ?? Date.now()).toISOString(),
       attachments: [],
       folder,
       flags: Array.isArray(msg.flags) ? (msg.flags as string[]) : [],
@@ -764,6 +790,7 @@ git commit -m "feat(email): add GmailImapClient with listFolders, listMessages, 
 ## Task 4: Gmail SMTP sender
 
 **Files:**
+
 - Create: `packages/skills-email/src/gmail/smtp-sender.ts`
 - Test: `packages/skills-email/test/gmail/smtp-sender.test.ts`
 
@@ -796,7 +823,10 @@ describe("GmailSmtpSender", () => {
 
   beforeEach(() => {
     transport = createMockTransport();
-    sender = new GmailSmtpSender(config, transport as unknown as ReturnType<typeof import("nodemailer").createTransport>);
+    sender = new GmailSmtpSender(
+      config,
+      transport as unknown as ReturnType<typeof import("nodemailer").createTransport>,
+    );
   });
 
   it("sends a simple email and returns the messageId", async () => {
@@ -807,11 +837,13 @@ describe("GmailSmtpSender", () => {
     };
     const messageId = await sender.send(draft);
     expect(messageId).toBe("msg123@gmail.com");
-    expect(transport.sendMail).toHaveBeenCalledWith(expect.objectContaining({
-      to: "bob@example.com",
-      subject: "Hello",
-      text: "Hi Bob",
-    }));
+    expect(transport.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "bob@example.com",
+        subject: "Hello",
+        text: "Hi Bob",
+      }),
+    );
   });
 
   it("includes cc addresses when provided", async () => {
@@ -822,9 +854,11 @@ describe("GmailSmtpSender", () => {
       body: "Hi",
     };
     await sender.send(draft);
-    expect(transport.sendMail).toHaveBeenCalledWith(expect.objectContaining({
-      cc: "carol@example.com",
-    }));
+    expect(transport.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cc: "carol@example.com",
+      }),
+    );
   });
 
   it("sends html body when provided", async () => {
@@ -835,10 +869,12 @@ describe("GmailSmtpSender", () => {
       htmlBody: "<p>HTML text</p>",
     };
     await sender.send(draft);
-    expect(transport.sendMail).toHaveBeenCalledWith(expect.objectContaining({
-      text: "Plain text",
-      html: "<p>HTML text</p>",
-    }));
+    expect(transport.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "Plain text",
+        html: "<p>HTML text</p>",
+      }),
+    );
   });
 
   it("sends attachments when provided", async () => {
@@ -846,11 +882,13 @@ describe("GmailSmtpSender", () => {
       to: [{ address: "bob@example.com" }],
       subject: "Report",
       body: "See attached",
-      attachments: [{
-        filename: "report.pdf",
-        contentType: "application/pdf",
-        content: new Uint8Array([1, 2, 3]),
-      }],
+      attachments: [
+        {
+          filename: "report.pdf",
+          contentType: "application/pdf",
+          content: new Uint8Array([1, 2, 3]),
+        },
+      ],
     };
     await sender.send(draft);
     const call = transport.sendMail.mock.calls[0][0];
@@ -865,9 +903,11 @@ describe("GmailSmtpSender", () => {
       body: "Hi",
     };
     await sender.send(draft);
-    expect(transport.sendMail).toHaveBeenCalledWith(expect.objectContaining({
-      to: '"Bob" <bob@example.com>',
-    }));
+    expect(transport.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: '"Bob" <bob@example.com>',
+      }),
+    );
   });
 
   it("surfaces send errors without throwing", async () => {
@@ -905,16 +945,15 @@ export interface GmailSmtpConfig {
 export class GmailSmtpSender {
   constructor(
     private readonly config: GmailSmtpConfig,
-    private readonly transport: { sendMail: (...args: unknown[]) => Promise<{ messageId: string }>; close: () => void },
+    private readonly transport: {
+      sendMail: (...args: unknown[]) => Promise<{ messageId: string }>;
+      close: () => void;
+    },
   ) {}
 
   async send(draft: EmailDraft): Promise<string> {
-    const toAddresses = draft.to.map((r) =>
-      r.name ? `"${r.name}" <${r.address}>` : r.address,
-    );
-    const ccAddresses = draft.cc?.map((r) =>
-      r.name ? `"${r.name}" <${r.address}>` : r.address,
-    );
+    const toAddresses = draft.to.map((r) => (r.name ? `"${r.name}" <${r.address}>` : r.address));
+    const ccAddresses = draft.cc?.map((r) => (r.name ? `"${r.name}" <${r.address}>` : r.address));
 
     const mailOptions: Record<string, unknown> = {
       from: this.config.user,
@@ -962,6 +1001,7 @@ git commit -m "feat(email): add GmailSmtpSender with send and attachment support
 ## Task 5: Gmail composed client
 
 **Files:**
+
 - Create: `packages/skills-email/src/gmail/client.ts`
 - Test: `packages/skills-email/test/gmail/client.test.ts`
 
@@ -978,9 +1018,9 @@ import type { EmailDraft, EmailFolder, EmailMessage } from "../../src/types.js";
 
 function createMockImap() {
   return {
-    listFolders: vi.fn<() => Promise<EmailFolder[]>>().mockResolvedValue([
-      { name: "INBOX", path: "INBOX", delimiter: "." },
-    ]),
+    listFolders: vi
+      .fn<() => Promise<EmailFolder[]>>()
+      .mockResolvedValue([{ name: "INBOX", path: "INBOX", delimiter: "." }]),
     listMessages: vi.fn<() => Promise<EmailMessage[]>>().mockResolvedValue([]),
     getMessage: vi.fn<() => Promise<EmailMessage>>().mockResolvedValue({
       id: "1",
@@ -1008,7 +1048,10 @@ describe("GmailEmailClient", () => {
   it("delegates listFolders to imap client", async () => {
     const imap = createMockImap();
     const smtp = createMockSmtp();
-    const client = new GmailEmailClient(imap as unknown as GmailImapClient, smtp as unknown as GmailSmtpSender);
+    const client = new GmailEmailClient(
+      imap as unknown as GmailImapClient,
+      smtp as unknown as GmailSmtpSender,
+    );
     const folders = await client.listFolders();
     expect(folders).toEqual([{ name: "INBOX", path: "INBOX", delimiter: "." }]);
     expect(imap.listFolders).toHaveBeenCalled();
@@ -1017,7 +1060,10 @@ describe("GmailEmailClient", () => {
   it("delegates listMessages to imap client", async () => {
     const imap = createMockImap();
     const smtp = createMockSmtp();
-    const client = new GmailEmailClient(imap as unknown as GmailImapClient, smtp as unknown as GmailSmtpSender);
+    const client = new GmailEmailClient(
+      imap as unknown as GmailImapClient,
+      smtp as unknown as GmailSmtpSender,
+    );
     await client.listMessages("INBOX", { limit: 10 });
     expect(imap.listMessages).toHaveBeenCalledWith("INBOX", { limit: 10 });
   });
@@ -1025,7 +1071,10 @@ describe("GmailEmailClient", () => {
   it("delegates getMessage to imap client", async () => {
     const imap = createMockImap();
     const smtp = createMockSmtp();
-    const client = new GmailEmailClient(imap as unknown as GmailImapClient, smtp as unknown as GmailSmtpSender);
+    const client = new GmailEmailClient(
+      imap as unknown as GmailImapClient,
+      smtp as unknown as GmailSmtpSender,
+    );
     const msg = await client.getMessage("1");
     expect(msg.id).toBe("1");
     expect(imap.getMessage).toHaveBeenCalledWith("1");
@@ -1034,7 +1083,10 @@ describe("GmailEmailClient", () => {
   it("delegates send to smtp sender", async () => {
     const imap = createMockImap();
     const smtp = createMockSmtp();
-    const client = new GmailEmailClient(imap as unknown as GmailImapClient, smtp as unknown as GmailSmtpSender);
+    const client = new GmailEmailClient(
+      imap as unknown as GmailImapClient,
+      smtp as unknown as GmailSmtpSender,
+    );
     const draft: EmailDraft = { to: [{ address: "x@y.com" }], subject: "Hi", body: "Yo" };
     const messageId = await client.send(draft);
     expect(messageId).toBe("msg123");
@@ -1044,7 +1096,10 @@ describe("GmailEmailClient", () => {
   it("delegates search to imap client", async () => {
     const imap = createMockImap();
     const smtp = createMockSmtp();
-    const client = new GmailEmailClient(imap as unknown as GmailImapClient, smtp as unknown as GmailSmtpSender);
+    const client = new GmailEmailClient(
+      imap as unknown as GmailImapClient,
+      smtp as unknown as GmailSmtpSender,
+    );
     await client.search("from:alice");
     expect(imap.search).toHaveBeenCalledWith("from:alice");
   });
@@ -1112,6 +1167,7 @@ git commit -m "feat(email): add GmailEmailClient composing IMAP and SMTP"
 ## Task 6: Microsoft Graph client + OAuth
 
 **Files:**
+
 - Create: `packages/skills-email/src/graph/oauth.ts`
 - Create: `packages/skills-email/src/graph/graph-client.ts`
 - Test: `packages/skills-email/test/graph/oauth.test.ts`
@@ -1131,8 +1187,14 @@ function createMockVault(): { vault: Vault; store: Map<string, string> } {
   return {
     vault: {
       get: vi.fn((key: string) => Promise.resolve(store.get(key) ?? null)),
-      set: vi.fn((key: string, value: string) => { store.set(key, value); return Promise.resolve(); }),
-      delete: vi.fn((key: string) => { store.delete(key); return Promise.resolve(); }),
+      set: vi.fn((key: string, value: string) => {
+        store.set(key, value);
+        return Promise.resolve();
+      }),
+      delete: vi.fn((key: string) => {
+        store.delete(key);
+        return Promise.resolve();
+      }),
     },
     store,
   };
@@ -1157,13 +1219,14 @@ describe("GraphOAuth", () => {
   it("startDeviceCodeAuth calls device code endpoint and returns DeviceCodeInfo", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        device_code: "dc123",
-        user_code: "ABC-XYZ",
-        verification_uri: "https://microsoft.com/devicelogin",
-        expires_in: 900,
-        interval: 5,
-      }),
+      json: () =>
+        Promise.resolve({
+          device_code: "dc123",
+          user_code: "ABC-XYZ",
+          verification_uri: "https://microsoft.com/devicelogin",
+          expires_in: 900,
+          interval: 5,
+        }),
     });
     const info = await oauth.startDeviceCodeAuth();
     expect(info.deviceCode).toBe("dc123");
@@ -1178,11 +1241,12 @@ describe("GraphOAuth", () => {
   it("waitForAuth polls token endpoint and stores tokens", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        access_token: "at123",
-        refresh_token: "rt123",
-        expires_in: 3600,
-      }),
+      json: () =>
+        Promise.resolve({
+          access_token: "at123",
+          refresh_token: "rt123",
+          expires_in: 3600,
+        }),
     });
     const result = await oauth.waitForAuth("dc123");
     expect(result.success).toBe(true);
@@ -1194,10 +1258,11 @@ describe("GraphOAuth", () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 400,
-      json: () => Promise.resolve({
-        error: "authorization_pending",
-        error_description: "Authorization is pending",
-      }),
+      json: () =>
+        Promise.resolve({
+          error: "authorization_pending",
+          error_description: "Authorization is pending",
+        }),
     });
     const result = await oauth.waitForAuth("dc123");
     expect(result.success).toBe(false);
@@ -1208,11 +1273,12 @@ describe("GraphOAuth", () => {
     vaultStore.store.set("graph:refresh-token", "rt-existing");
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        access_token: "at-new",
-        refresh_token: "rt-new",
-        expires_in: 3600,
-      }),
+      json: () =>
+        Promise.resolve({
+          access_token: "at-new",
+          refresh_token: "rt-new",
+          expires_in: 3600,
+        }),
     });
     const result = await oauth.refreshToken();
     expect(result.success).toBe(true);
@@ -1241,11 +1307,12 @@ describe("GraphOAuth", () => {
     vaultStore.store.set("graph:token-expires", nearExpiry);
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        access_token: "at-refreshed",
-        refresh_token: "rt-refreshed",
-        expires_in: 3600,
-      }),
+      json: () =>
+        Promise.resolve({
+          access_token: "at-refreshed",
+          refresh_token: "rt-refreshed",
+          expires_in: 3600,
+        }),
     });
     const token = await oauth.getAccessToken();
     expect(token).toBe("at-refreshed");
@@ -1282,12 +1349,13 @@ describe("GraphEmailClient", () => {
   it("listFolders calls Graph API and maps to EmailFolder[]", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        value: [
-          { id: "folder1", displayName: "Inbox", totalItemCount: 10, unreadItemCount: 3 },
-          { id: "folder2", displayName: "Sent Items", totalItemCount: 50, unreadItemCount: 0 },
-        ],
-      }),
+      json: () =>
+        Promise.resolve({
+          value: [
+            { id: "folder1", displayName: "Inbox", totalItemCount: 10, unreadItemCount: 3 },
+            { id: "folder2", displayName: "Sent Items", totalItemCount: 50, unreadItemCount: 0 },
+          ],
+        }),
     });
     const folders = await client.listFolders();
     expect(folders).toEqual([
@@ -1305,20 +1373,21 @@ describe("GraphEmailClient", () => {
   it("listMessages calls Graph API and maps to EmailMessage[]", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        value: [
-          {
-            id: "msg1",
-            from: { emailAddress: { name: "Alice", address: "alice@example.com" } },
-            toRecipients: [{ emailAddress: { name: "Bob", address: "bob@example.com" } }],
-            ccRecipients: [],
-            subject: "Hello",
-            body: { content: "Hi Bob", contentType: "text" },
-            receivedDateTime: "2026-06-17T00:00:00Z",
-            isRead: true,
-          },
-        ],
-      }),
+      json: () =>
+        Promise.resolve({
+          value: [
+            {
+              id: "msg1",
+              from: { emailAddress: { name: "Alice", address: "alice@example.com" } },
+              toRecipients: [{ emailAddress: { name: "Bob", address: "bob@example.com" } }],
+              ccRecipients: [],
+              subject: "Hello",
+              body: { content: "Hi Bob", contentType: "text" },
+              receivedDateTime: "2026-06-17T00:00:00Z",
+              isRead: true,
+            },
+          ],
+        }),
     });
     const messages = await client.listMessages("folder1", { limit: 10 });
     expect(messages).toHaveLength(1);
@@ -1329,16 +1398,17 @@ describe("GraphEmailClient", () => {
   it("getMessage fetches a single message", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        id: "msg42",
-        from: { emailAddress: { name: "Dave", address: "dave@example.com" } },
-        toRecipients: [{ emailAddress: { name: "Eve", address: "eve@example.com" } }],
-        ccRecipients: [],
-        subject: "Single",
-        body: { content: "Body text", contentType: "text" },
-        receivedDateTime: "2026-06-17T00:00:00Z",
-        isRead: false,
-      }),
+      json: () =>
+        Promise.resolve({
+          id: "msg42",
+          from: { emailAddress: { name: "Dave", address: "dave@example.com" } },
+          toRecipients: [{ emailAddress: { name: "Eve", address: "eve@example.com" } }],
+          ccRecipients: [],
+          subject: "Single",
+          body: { content: "Body text", contentType: "text" },
+          receivedDateTime: "2026-06-17T00:00:00Z",
+          isRead: false,
+        }),
     });
     const msg = await client.getMessage("msg42");
     expect(msg.id).toBe("msg42");
@@ -1363,20 +1433,21 @@ describe("GraphEmailClient", () => {
   it("search calls Graph search endpoint", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        value: [
-          {
-            id: "msg1",
-            from: { emailAddress: { name: "Alice", address: "alice@example.com" } },
-            toRecipients: [],
-            ccRecipients: [],
-            subject: "Re: Project",
-            body: { content: "content", contentType: "text" },
-            receivedDateTime: "2026-06-17T00:00:00Z",
-            isRead: true,
-          },
-        ],
-      }),
+      json: () =>
+        Promise.resolve({
+          value: [
+            {
+              id: "msg1",
+              from: { emailAddress: { name: "Alice", address: "alice@example.com" } },
+              toRecipients: [],
+              ccRecipients: [],
+              subject: "Re: Project",
+              body: { content: "content", contentType: "text" },
+              receivedDateTime: "2026-06-17T00:00:00Z",
+              isRead: true,
+            },
+          ],
+        }),
     });
     const results = await client.search("project update");
     expect(results).toHaveLength(1);
@@ -1394,7 +1465,8 @@ describe("GraphEmailClient", () => {
   });
 
   it("retries on 429 with Retry-After header", async () => {
-    const retryFetch = vi.fn()
+    const retryFetch = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: false,
         status: 429,
@@ -1457,7 +1529,9 @@ export class GraphOAuth {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error_description: "unknown error" }));
-      throw new Error(`device code request failed: ${error.error_description ?? response.statusText}`);
+      throw new Error(
+        `device code request failed: ${error.error_description ?? response.statusText}`,
+      );
     }
     const data = await response.json();
     return {
@@ -1482,7 +1556,10 @@ export class GraphOAuth {
     });
     const data = await response.json();
     if (!response.ok) {
-      return { success: false, error: data.error ?? data.error_description ?? "unknown auth error" };
+      return {
+        success: false,
+        error: data.error ?? data.error_description ?? "unknown auth error",
+      };
     }
     const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
     await this.vault.set("graph:access-token", data.access_token);
@@ -1508,7 +1585,10 @@ export class GraphOAuth {
     });
     const data = await response.json();
     if (!response.ok) {
-      return { success: false, error: data.error ?? data.error_description ?? "token refresh failed" };
+      return {
+        success: false,
+        error: data.error ?? data.error_description ?? "token refresh failed",
+      };
     }
     const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
     await this.vault.set("graph:access-token", data.access_token);
@@ -1541,7 +1621,14 @@ export class GraphOAuth {
 Create `packages/skills-email/src/graph/graph-client.ts`:
 
 ```ts
-import type { EmailFolder, EmailMessage, EmailDraft, ListOptions, DeviceCodeInfo, AuthResult } from "../types.js";
+import type {
+  EmailFolder,
+  EmailMessage,
+  EmailDraft,
+  ListOptions,
+  DeviceCodeInfo,
+  AuthResult,
+} from "../types.js";
 
 export interface GraphClientDeps {
   getToken: () => Promise<string>;
@@ -1643,8 +1730,14 @@ export class GraphEmailClient {
 
   private mapMessage(m: Record<string, unknown>): EmailMessage {
     const from = m.from as Record<string, Record<string, string>> | undefined;
-    const toRecipients = (Array.isArray(m.toRecipients) ? m.toRecipients : []) as Record<string, Record<string, string>>[];
-    const ccRecipients = (Array.isArray(m.ccRecipients) ? m.ccRecipients : []) as Record<string, Record<string, string>>[];
+    const toRecipients = (Array.isArray(m.toRecipients) ? m.toRecipients : []) as Record<
+      string,
+      Record<string, string>
+    >[];
+    const ccRecipients = (Array.isArray(m.ccRecipients) ? m.ccRecipients : []) as Record<
+      string,
+      Record<string, string>
+    >[];
     const body = m.body as Record<string, string> | undefined;
     return {
       id: String(m.id),
@@ -1716,6 +1809,7 @@ git commit -m "feat(email): add GraphOAuth and GraphEmailClient with device code
 ## Task 7: Email tools (registration + routing)
 
 **Files:**
+
 - Create: `packages/skills-email/src/tools.ts`
 - Test: `packages/skills-email/test/tools.test.ts`
 
@@ -1744,9 +1838,16 @@ function makeClients(): EmailToolClients {
       listFolders: vi.fn().mockResolvedValue([{ name: "INBOX", path: "INBOX", delimiter: "." }]),
       listMessages: vi.fn().mockResolvedValue([]),
       getMessage: vi.fn().mockResolvedValue({
-        id: "1", from: { name: "A", address: "a@b.com" },
-        to: [], cc: [], subject: "Test", body: "Hello",
-        date: "2026-06-17T00:00:00Z", attachments: [], folder: "INBOX", flags: [],
+        id: "1",
+        from: { name: "A", address: "a@b.com" },
+        to: [],
+        cc: [],
+        subject: "Test",
+        body: "Hello",
+        date: "2026-06-17T00:00:00Z",
+        attachments: [],
+        folder: "INBOX",
+        flags: [],
       }),
       send: vi.fn().mockResolvedValue("msg123"),
       search: vi.fn().mockResolvedValue([]),
@@ -1755,16 +1856,25 @@ function makeClients(): EmailToolClients {
       listFolders: vi.fn().mockResolvedValue([{ name: "Inbox", path: "inbox", delimiter: "/" }]),
       listMessages: vi.fn().mockResolvedValue([]),
       getMessage: vi.fn().mockResolvedValue({
-        id: "g1", from: { name: "A", address: "a@b.com" },
-        to: [], cc: [], subject: "Test", body: "Hello",
-        date: "2026-06-17T00:00:00Z", attachments: [], folder: "Inbox", flags: [],
+        id: "g1",
+        from: { name: "A", address: "a@b.com" },
+        to: [],
+        cc: [],
+        subject: "Test",
+        body: "Hello",
+        date: "2026-06-17T00:00:00Z",
+        attachments: [],
+        folder: "Inbox",
+        flags: [],
       }),
       send: vi.fn().mockResolvedValue("sent"),
       search: vi.fn().mockResolvedValue([]),
       startDeviceCodeAuth: vi.fn().mockResolvedValue({
-        deviceCode: "dc123", userCode: "ABC-XYZ",
+        deviceCode: "dc123",
+        userCode: "ABC-XYZ",
         verificationUrl: "https://microsoft.com/devicelogin",
-        expiresIn: 900, interval: 5,
+        expiresIn: 900,
+        interval: 5,
       }),
       waitForAuth: vi.fn().mockResolvedValue({ success: true }),
       refreshToken: vi.fn().mockResolvedValue({ success: true }),
@@ -1826,12 +1936,15 @@ describe("createEmailDraftTool", () => {
   it("returns a draftId and preview without sending", async () => {
     const clients = makeClients();
     const tool = createEmailDraftTool(clients);
-    const result = await tool.handler({
-      provider: "gmail",
-      to: [{ address: "bob@example.com" }],
-      subject: "Test draft",
-      body: "Draft body",
-    }, ctx);
+    const result = await tool.handler(
+      {
+        provider: "gmail",
+        to: [{ address: "bob@example.com" }],
+        subject: "Test draft",
+        body: "Draft body",
+      },
+      ctx,
+    );
     expect(result.draftId).toBeDefined();
     expect(result.preview.subject).toBe("Test draft");
     expect(clients.gmail!.send).not.toHaveBeenCalled();
@@ -1848,17 +1961,22 @@ describe("createEmailSendTool", () => {
   it("calls gmail send when provider is gmail", async () => {
     const clients = makeClients();
     const tool = createEmailSendTool(clients);
-    await tool.handler({
-      provider: "gmail",
-      to: [{ address: "bob@example.com" }],
-      subject: "Hello",
-      body: "Hi Bob",
-    }, ctx);
-    expect(clients.gmail!.send).toHaveBeenCalledWith(expect.objectContaining({
-      to: [{ address: "bob@example.com" }],
-      subject: "Hello",
-      body: "Hi Bob",
-    }));
+    await tool.handler(
+      {
+        provider: "gmail",
+        to: [{ address: "bob@example.com" }],
+        subject: "Hello",
+        body: "Hi Bob",
+      },
+      ctx,
+    );
+    expect(clients.gmail!.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: [{ address: "bob@example.com" }],
+        subject: "Hello",
+        body: "Hi Bob",
+      }),
+    );
   });
 });
 
@@ -1880,7 +1998,11 @@ describe("registerEmailTools", () => {
     registerEmailTools(registry, clients);
     const noGrant: AgentGrant = { agentId: "test-agent", capabilities: [] };
     const result = await registry.invoke(
-      { id: "c1", tool: "email_send", args: { provider: "gmail", to: [{ address: "x@y.com" }], subject: "Hi", body: "yo" } },
+      {
+        id: "c1",
+        tool: "email_send",
+        args: { provider: "gmail", to: [{ address: "x@y.com" }], subject: "Hi", body: "yo" },
+      },
       noGrant,
       ctx,
     );
@@ -1923,7 +2045,10 @@ import { EmailMessageSchema, ListOptionsSchema } from "./types.js";
 
 export function createEmailSearchTool(
   clients: EmailToolClients,
-): ToolDefinition<{ provider: string; query: string; folder?: string; limit?: number }, { messages: unknown[]; total: number }> {
+): ToolDefinition<
+  { provider: string; query: string; folder?: string; limit?: number },
+  { messages: unknown[]; total: number }
+> {
   return {
     name: "email_search",
     description: "Search email messages by query string",
@@ -1951,7 +2076,10 @@ export function createEmailSearchTool(
 
 export function createEmailReadTool(
   clients: EmailToolClients,
-): ToolDefinition<{ provider: string; messageId?: string; folder?: string; limit?: number }, { message?: unknown; messages?: unknown[] }> {
+): ToolDefinition<
+  { provider: string; messageId?: string; folder?: string; limit?: number },
+  { message?: unknown; messages?: unknown[] }
+> {
   return {
     name: "email_read",
     description: "Read a single email message or list messages in a folder",
@@ -1981,9 +2109,17 @@ export function createEmailReadTool(
   };
 }
 
-export function createEmailDraftTool(
-  clients: EmailToolClients,
-): ToolDefinition<{ provider: string; to: unknown[]; cc?: unknown[]; subject: string; body: string; htmlBody?: string }, { draftId: string; preview: unknown }> {
+export function createEmailDraftTool(clients: EmailToolClients): ToolDefinition<
+  {
+    provider: string;
+    to: unknown[];
+    cc?: unknown[];
+    subject: string;
+    body: string;
+    htmlBody?: string;
+  },
+  { draftId: string; preview: unknown }
+> {
   return {
     name: "email_draft",
     description: "Create an email draft preview without sending",
@@ -2018,9 +2154,18 @@ export function createEmailDraftTool(
   };
 }
 
-export function createEmailSendTool(
-  clients: EmailToolClients,
-): ToolDefinition<{ provider: string; to: unknown[]; cc?: unknown[]; subject: string; body: string; htmlBody?: string; attachments?: unknown[] }, { messageId: string }> {
+export function createEmailSendTool(clients: EmailToolClients): ToolDefinition<
+  {
+    provider: string;
+    to: unknown[];
+    cc?: unknown[];
+    subject: string;
+    body: string;
+    htmlBody?: string;
+    attachments?: unknown[];
+  },
+  { messageId: string }
+> {
   return {
     name: "email_send",
     description: "Send an email message",
@@ -2031,11 +2176,15 @@ export function createEmailSendTool(
       subject: z.string(),
       body: z.string(),
       htmlBody: z.string().optional(),
-      attachments: z.array(z.object({
-        filename: z.string(),
-        contentType: z.string(),
-        content: z.instanceof(Uint8Array),
-      })).optional(),
+      attachments: z
+        .array(
+          z.object({
+            filename: z.string(),
+            contentType: z.string(),
+            content: z.instanceof(Uint8Array),
+          }),
+        )
+        .optional(),
     }),
     result: z.object({ messageId: z.string() }),
     capabilities: [{ name: "email:send" as const }],
@@ -2050,7 +2199,9 @@ export function createEmailSendTool(
         subject: args.subject,
         body: args.body,
         htmlBody: args.htmlBody,
-        attachments: args.attachments as Array<{ filename: string; contentType: string; content: Uint8Array }> | undefined,
+        attachments: args.attachments as
+          | Array<{ filename: string; contentType: string; content: Uint8Array }>
+          | undefined,
       };
       const messageId = await client.send(draft);
       return { messageId };
@@ -2090,13 +2241,25 @@ git commit -m "feat(email): add email tools with search, read, draft, send and p
 ## Task 8: Update index.ts and run full test suite
 
 **Files:**
+
 - Modify: `packages/skills-email/src/index.ts`
 - Modify: `packages/skills-email/src/gmail/client.ts` (ensure re-export)
 
 - [ ] **Step 1: Update src/index.ts with all exports**
 
 ```ts
-export type { EmailClient, EmailFolder, EmailMessage, EmailAttachment, EmailDraft, ListOptions, EmailConfig, EmailToolClients, DeviceCodeInfo, AuthResult } from "./types.js";
+export type {
+  EmailClient,
+  EmailFolder,
+  EmailMessage,
+  EmailAttachment,
+  EmailDraft,
+  ListOptions,
+  EmailConfig,
+  EmailToolClients,
+  DeviceCodeInfo,
+  AuthResult,
+} from "./types.js";
 export type { GmailImapConfig } from "./gmail/imap-client.js";
 export type { GmailSmtpConfig } from "./gmail/smtp-sender.js";
 export { GmailImapClient } from "./gmail/imap-client.js";
@@ -2105,8 +2268,20 @@ export { GmailEmailClient } from "./gmail/client.js";
 export { GraphOAuth } from "./graph/oauth.js";
 export type { GraphOAuthConfig } from "./graph/oauth.js";
 export { GraphEmailClient } from "./graph/graph-client.js";
-export { createEmailSearchTool, createEmailReadTool, createEmailDraftTool, createEmailSendTool, registerEmailTools } from "./tools.js";
-export { EmailFolderSchema, EmailAttachmentSchema, EmailMessageSchema, EmailDraftSchema, ListOptionsSchema } from "./types.js";
+export {
+  createEmailSearchTool,
+  createEmailReadTool,
+  createEmailDraftTool,
+  createEmailSendTool,
+  registerEmailTools,
+} from "./tools.js";
+export {
+  EmailFolderSchema,
+  EmailAttachmentSchema,
+  EmailMessageSchema,
+  EmailDraftSchema,
+  ListOptionsSchema,
+} from "./types.js";
 ```
 
 - [ ] **Step 2: Run the full skills-email test suite**
@@ -2133,6 +2308,7 @@ git commit -m "feat(email): update index.ts with all exports"
 ## Task 9: Router and Pool integration
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/router.ts`
 - Modify: `packages/jarvis/src/nexus/pool.ts`
 

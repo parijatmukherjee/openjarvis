@@ -88,12 +88,12 @@ interface ListOptions {
 
 ### 2.2 Tool Definitions
 
-| Tool | Capability | Approval Gate | Description |
-|------|-----------|---------------|-------------|
-| `email_search` | `email:read` | No | Search messages by query string |
-| `email_read` | `email:read` | No | Read a single message or list messages in a folder |
-| `email_draft` | `email:send` | No | Create a draft (does not send) |
-| `email_send` | `email:send` | Yes | Send an email; requires approval if tainted |
+| Tool           | Capability   | Approval Gate | Description                                        |
+| -------------- | ------------ | ------------- | -------------------------------------------------- |
+| `email_search` | `email:read` | No            | Search messages by query string                    |
+| `email_read`   | `email:read` | No            | Read a single message or list messages in a folder |
+| `email_draft`  | `email:send` | No            | Create a draft (does not send)                     |
+| `email_send`   | `email:send` | Yes           | Send an email; requires approval if tainted        |
 
 ### 2.3 Tool Args & Results (Zod schemas)
 
@@ -172,6 +172,7 @@ result: z.object({ messageId: z.string() }),
 **Auth:** App password stored in Vault under key `gmail:app-password`. No OAuth needed for Gmail.
 
 **Connection management:**
+
 - Lazy connect on first operation
 - Auto-reconnect on connection drop
 - Idle timeout: 5 minutes of inactivity → disconnect
@@ -211,12 +212,14 @@ result: z.object({ messageId: z.string() }),
 ```
 
 **Token management:**
+
 - Auto-refresh when `expires_in - 300s < now` (5-minute buffer)
 - On 401: attempt refresh once, retry the original request
 - On refresh failure: surface clear error, do not retry further
 - Scopes: `Mail.Read Mail.ReadWrite Mail.Send offline_access`
 
 **Rate limiting:**
+
 - Honor `Retry-After` header on 429 responses
 - Default: 4 requests/second per client instance
 - Exponential backoff: 1s, 2s, 4s on transient failures
@@ -262,16 +265,16 @@ export interface AuthResult {
 
 ## 4. Error Handling
 
-| Scenario | Behavior |
-|----------|----------|
-| IMAP connection drop | Retry with exponential backoff (3 attempts: 1s, 2s, 4s) |
-| IMAP auth failure (bad app password) | Surface clear error, no retry |
-| Graph 401 Unauthorized | Auto-refresh token, retry once |
-| Graph 429 Rate Limited | Honor Retry-After header, wait then retry |
-| Graph auth failure (expired/revoked token) | Surface clear error, prompt re-auth |
-| Network timeout | 30s default, configurable via `EmailConfig.timeout` |
-| Invalid email address in send | Zod validation catches before handler |
-| Attachment too large | Reject with error if > 25MB (Gmail) or 150MB (Graph) |
+| Scenario                                   | Behavior                                                |
+| ------------------------------------------ | ------------------------------------------------------- |
+| IMAP connection drop                       | Retry with exponential backoff (3 attempts: 1s, 2s, 4s) |
+| IMAP auth failure (bad app password)       | Surface clear error, no retry                           |
+| Graph 401 Unauthorized                     | Auto-refresh token, retry once                          |
+| Graph 429 Rate Limited                     | Honor Retry-After header, wait then retry               |
+| Graph auth failure (expired/revoked token) | Surface clear error, prompt re-auth                     |
+| Network timeout                            | 30s default, configurable via `EmailConfig.timeout`     |
+| Invalid email address in send              | Zod validation catches before handler                   |
+| Attachment too large                       | Reject with error if > 25MB (Gmail) or 150MB (Graph)    |
 
 All tool handlers follow the never-throws pattern: errors are caught and returned as `{ ok: false, error: string }`.
 
@@ -313,21 +316,22 @@ packages/skills-email/
 // Added to AppSettings.skills
 interface EmailConfig {
   gmail?: {
-    imap: string;          // default: "imap.gmail.com"
-    smtp: string;          // default: "smtp.gmail.com"
-    imapPort?: number;     // default: 993
-    smtpPort?: number;     // default: 465
+    imap: string; // default: "imap.gmail.com"
+    smtp: string; // default: "smtp.gmail.com"
+    imapPort?: number; // default: 993
+    smtpPort?: number; // default: 465
   };
   graph?: {
     clientId: string;
-    tenant: string;        // default: "consumers"
+    tenant: string; // default: "consumers"
   };
-  timeout?: number;        // default: 30000 (ms)
+  timeout?: number; // default: 30000 (ms)
   maxAttachmentSize?: number; // default: 26214400 (25MB)
 }
 ```
 
 Secrets stored in Vault:
+
 - `gmail:app-password` — Gmail app password
 - `graph:access-token` — current Graph access token
 - `graph:refresh-token` — Graph refresh token
@@ -345,10 +349,12 @@ Added to `CapabilityName` union in `packages/core/src/security/capability.ts`:
 ## 8. Router & Pool Integration
 
 **Router** (`packages/jarvis/src/nexus/router.ts`):
+
 - Add routes: `search_email`, `read_email`, `draft_email`, `send_email`
 - Map to `email_search`, `email_read`, `email_draft`, `email_send` tools
 
 **Pool** (`packages/jarvis/src/nexus/pool.ts`):
+
 - Add `email` agent with `email:read` + `email:send` capabilities
 
 ## 9. Security Considerations
@@ -363,12 +369,12 @@ Added to `CapabilityName` union in `packages/core/src/security/capability.ts`:
 
 ## 10. Dependencies
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `node-imap` | ^0.9.0 | IMAP client for Gmail reading |
-| `mailparser` | ^3.7.0 | Parse raw MIME messages into structured objects |
-| `nodemailer` | ^6.9.0 | SMTP client for Gmail sending |
-| `@openjarvis/core` | workspace:* | ToolDefinition, ToolRegistry, Vault, capabilities |
+| Package            | Version      | Purpose                                           |
+| ------------------ | ------------ | ------------------------------------------------- |
+| `node-imap`        | ^0.9.0       | IMAP client for Gmail reading                     |
+| `mailparser`       | ^3.7.0       | Parse raw MIME messages into structured objects   |
+| `nodemailer`       | ^6.9.0       | SMTP client for Gmail sending                     |
+| `@openjarvis/core` | workspace:\* | ToolDefinition, ToolRegistry, Vault, capabilities |
 
 No OAuth library — device code flow and token refresh are implemented with plain `fetch()` calls.
 

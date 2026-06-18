@@ -44,7 +44,10 @@ export function createBrowserNavigateTool(
     args: BrowserNavigateArgs,
     result: BrowserNavigateResult,
     capabilities: [{ name: "web:browse" as const }],
-    handler: async (args: BrowserNavigateArgs, _ctx: ToolContext): Promise<BrowserNavigateResult> => {
+    handler: async (
+      args: BrowserNavigateArgs,
+      _ctx: ToolContext,
+    ): Promise<BrowserNavigateResult> => {
       return browserAutomation.navigate(args.url);
     },
   };
@@ -74,13 +77,19 @@ export function createBrowserScreenshotTool(
     args: BrowserScreenshotArgs,
     result: BrowserScreenshotResult,
     capabilities: [{ name: "web:browse" as const }],
-    handler: async (_args: BrowserScreenshotArgs, _ctx: ToolContext): Promise<BrowserScreenshotResult> => {
+    handler: async (
+      _args: BrowserScreenshotArgs,
+      _ctx: ToolContext,
+    ): Promise<BrowserScreenshotResult> => {
       return browserAutomation.screenshot();
     },
   };
 }
 
-export function registerBrowserTools(registry: ToolRegistry, browserAutomation: BrowserAutomation): void {
+export function registerBrowserTools(
+  registry: ToolRegistry,
+  browserAutomation: BrowserAutomation,
+): void {
   registry.register(createBrowserNavigateTool(browserAutomation));
   registry.register(createBrowserClickTool(browserAutomation));
   registry.register(createBrowserScreenshotTool(browserAutomation));

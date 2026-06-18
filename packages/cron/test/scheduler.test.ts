@@ -97,7 +97,11 @@ describe("CronScheduler", () => {
   });
 
   it("defaults enabled to true", async () => {
-    const job = await scheduler.schedule({ name: "Default enabled", cron: "0 0 * * *", intent: "x" });
+    const job = await scheduler.schedule({
+      name: "Default enabled",
+      cron: "0 0 * * *",
+      intent: "x",
+    });
     expect(job.enabled).toBe(true);
   });
 
@@ -142,7 +146,11 @@ describe("cron tools", () => {
     const registry = new ToolRegistry();
     registerCronTools(registry, scheduler);
     const res = await registry.invoke(
-      { id: "t1", tool: "cron_schedule", args: { name: "Test", cron: "0 9 * * 1-5", intent: "test-intent" } },
+      {
+        id: "t1",
+        tool: "cron_schedule",
+        args: { name: "Test", cron: "0 9 * * 1-5", intent: "test-intent" },
+      },
       fullGrant,
       ctx,
     );
@@ -176,7 +184,11 @@ describe("cron tools", () => {
     const registry = new ToolRegistry();
     registerCronTools(registry, scheduler);
     const createRes = await registry.invoke(
-      { id: "t1", tool: "cron_schedule", args: { name: "To cancel", cron: "0 0 * * *", intent: "x" } },
+      {
+        id: "t1",
+        tool: "cron_schedule",
+        args: { name: "To cancel", cron: "0 0 * * *", intent: "x" },
+      },
       fullGrant,
       ctx,
     );
@@ -207,11 +219,7 @@ describe("cron tools", () => {
     const registry = new ToolRegistry();
     registerCronTools(registry, scheduler);
     const noGrant: AgentGrant = { agentId: "test-agent", capabilities: [] };
-    const res = await registry.invoke(
-      { id: "t1", tool: "cron_list", args: {} },
-      noGrant,
-      ctx,
-    );
+    const res = await registry.invoke({ id: "t1", tool: "cron_list", args: {} }, noGrant, ctx);
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/capability denied/);
   });

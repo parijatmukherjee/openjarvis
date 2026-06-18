@@ -16,7 +16,12 @@ function makeClients(): TelegramToolClients {
       type: "supergroup",
       title: "Test Group",
       username: "testgroup",
-    }) as () => Promise<{ id: number; type: string; title: string | null; username: string | null }>,
+    }) as () => Promise<{
+      id: number;
+      type: string;
+      title: string | null;
+      username: string | null;
+    }>,
   };
 }
 
@@ -34,7 +39,10 @@ describe("createTelegramSendTool", () => {
     const tool = createTelegramSendTool(clients);
     const reg = new ToolRegistry();
     reg.register(tool);
-    const grant: AgentGrant = { agentId: "test-agent", capabilities: [{ name: "telegram:message" }] };
+    const grant: AgentGrant = {
+      agentId: "test-agent",
+      capabilities: [{ name: "telegram:message" }],
+    };
     const result = await reg.invoke(
       { id: "c1", tool: "telegram_send", args: { chatId: 12345, text: "hello" } },
       grant,

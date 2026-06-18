@@ -50,8 +50,7 @@ describe("TelegramBot", () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve({ ok: false, description: "Bad Request: chat not found" }),
+        json: () => Promise.resolve({ ok: false, description: "Bad Request: chat not found" }),
       });
 
       const bot = new TelegramBot({ token: "test-token" });
@@ -150,7 +149,9 @@ describe("TelegramBot", () => {
       await bot.stop();
 
       expect(fetchFn).toHaveBeenCalled();
-      expect(fetchFn.mock.calls[0]?.[0]).toContain("api.telegram.org/bottest-token/getUpdates");
+      expect((fetchFn.mock.calls as unknown as string[][])[0]?.[0]).toContain(
+        "api.telegram.org/bottest-token/getUpdates",
+      );
     });
   });
 });

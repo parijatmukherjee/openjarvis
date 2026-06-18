@@ -100,10 +100,7 @@ describe("weather_current", () => {
     expect(result.windDirection).toBe("SW");
     expect(result.visibility).toBe(10);
     expect(result.pressure).toBe(1013);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://wttr.in/London?format=j1",
-      expect.any(Object),
-    );
+    expect(fetchMock).toHaveBeenCalledWith("https://wttr.in/London?format=j1", expect.any(Object));
   });
 
   it("converts to Fahrenheit when units is F", async () => {
