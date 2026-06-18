@@ -21,7 +21,9 @@ export type CapabilityName =
   | "notion:write"
   | "secrets:read"
   | "cron:read"
-  | "cron:manage";
+  | "cron:manage"
+  | "telegram:message"
+  | "telegram:read";
 
 export interface Capability {
   name: CapabilityName;
