@@ -1,11 +1,13 @@
 import type { z } from "zod";
 import type { Capability } from "../security/capability.js";
+import type { Provenance } from "../security/taint.js";
 
 /** Minimal execution context handed to a tool handler. Expands in later milestones. */
 export interface ToolContext {
   agentId: string;
   /** Correlation ID for the current turn, propagated to logs and audit. */
   traceId?: string;
+  influencedBy?: Provenance[];
 }
 
 /** A registered tool: typed args/result schemas, required capabilities, a handler. */
@@ -15,6 +17,7 @@ export interface ToolDefinition<TArgs = unknown, TResult = unknown> {
   args: z.ZodType<TArgs>;
   result: z.ZodType<TResult>;
   capabilities: Capability[];
+  approvalRequired?: boolean;
   handler: (args: TArgs, ctx: ToolContext) => Promise<TResult>;
 }
 
