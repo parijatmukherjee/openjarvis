@@ -240,7 +240,7 @@ describe("GraphEmailClient", () => {
       };
 
       const client = createClient();
-      await expect(client.send(draft)).rejects.toThrow("Graph API 403");
+      await expect(client.send(draft)).rejects.toThrow("Graph API POST /me/sendMail failed: 403");
     });
   });
 
@@ -343,7 +343,7 @@ describe("GraphEmailClient", () => {
         .mockResolvedValueOnce(rateLimitedResponse);
 
       const client = createClient();
-      await expect(client.listFolders()).rejects.toThrow("Max retries exceeded for 429");
+      await expect(client.listFolders()).rejects.toThrow("too many 429 responses");
     });
 
     it("handles API error without error.message", async () => {
@@ -355,7 +355,7 @@ describe("GraphEmailClient", () => {
       });
 
       const client = createClient();
-      await expect(client.listFolders()).rejects.toThrow("Graph API 500: Internal Server Error");
+      await expect(client.listFolders()).rejects.toThrow("Graph API GET /me/mailFolders failed: 500 Internal Server Error");
     });
 
     it("handles folder without unreadItemCount", async () => {

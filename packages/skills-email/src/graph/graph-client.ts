@@ -46,6 +46,9 @@ export class GraphEmailClient {
       });
 
       if (res.status === 429) {
+        if (attempt >= maxRetries) {
+          throw new Error(`Graph API GET ${path}: too many 429 responses`);
+        }
         const retryAfter = res.headers.get("Retry-After");
         const delay = retryAfter ? Number(retryAfter) * 1000 : 1000;
         await new Promise((r) => setTimeout(r, delay));
@@ -53,15 +56,18 @@ export class GraphEmailClient {
       }
 
       if (!res.ok) {
-        const body = (await res.json()) as { error?: { message?: string } };
-        const msg = body?.error?.message ?? res.statusText;
-        throw new Error(`Graph API ${res.status}: ${msg}`);
+        let message: string;
+        try {
+          const body = (await res.json()) as { error?: { message?: string } };
+          message = body?.error?.message ?? res.statusText;
+        } catch {
+          message = res.statusText;
+        }
+        throw new Error(`Graph API GET ${path} failed: ${res.status} ${message}`);
       }
 
       return res.json();
     }
-
-    throw new Error("Max retries exceeded for 429");
   }
 
   private mapMessage(msg: Record<string, unknown>): EmailMessage {
@@ -157,9 +163,14 @@ export class GraphEmailClient {
     });
 
     if (!res.ok) {
-      const body = (await res.json()) as { error?: { message?: string } };
-      const msg = body?.error?.message ?? res.statusText;
-      throw new Error(`Graph API ${res.status}: ${msg}`);
+      let message: string;
+      try {
+        const body = (await res.json()) as { error?: { message?: string } };
+        message = body?.error?.message ?? res.statusText;
+      } catch {
+        message = res.statusText;
+      }
+      throw new Error(`Graph API POST /me/sendMail failed: ${res.status} ${message}`);
     }
 
     return `sent-${Date.now()}`;

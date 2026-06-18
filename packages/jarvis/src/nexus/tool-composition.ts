@@ -1,4 +1,5 @@
-import { ToolRegistry } from "@openjarvis/core";
+import { ToolRegistry, diskFreeTool, createDocumentTool } from "@openjarvis/core";
+import type { DocumentConverter } from "@openjarvis/core";
 import type { DiscordToolClients } from "@openjarvis/channels";
 import type { TelegramToolClients } from "@openjarvis/channels";
 import { registerDiscordTools, registerTelegramTools } from "@openjarvis/channels";
@@ -30,6 +31,7 @@ export interface ToolCompositionConfig {
   web?: { config?: WebFetchConfig; browserAutomation?: BrowserAutomation };
   weather?: { config?: WeatherConfig };
   secrets?: { config?: OpClientConfig };
+  document?: { converter: DocumentConverter };
   cron?: { scheduler: CronScheduler };
 }
 
@@ -38,6 +40,11 @@ export function composeToolRegistry(
   logger?: import("@openjarvis/core").Logger,
 ): ToolRegistry {
   const registry = new ToolRegistry(logger);
+  registry.register(diskFreeTool);
+
+  if (config.document) {
+    registry.register(createDocumentTool(config.document.converter));
+  }
 
   if (config.discord) {
     registerDiscordTools(registry, config.discord.clients);

@@ -38,7 +38,7 @@ export class RuleBasedRouter implements IntentRouter {
       ["cron_list", this.routeToCron],
       ["cron_cancel", this.routeToCron],
       ["secret_get", this.routeToSecrets],
-      ["secret_set", this.routeToSecrets],
+      ["search_discord", this.routeToDiscord],
     ]);
   }
 

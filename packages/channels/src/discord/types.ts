@@ -31,6 +31,7 @@ export enum GatewayOP {
   IDENTIFY = 2,
   RESUME = 6,
   RECONNECT = 7,
+  INVALID_SESSION = 9,
   HELLO = 10,
   HEARTBEAT_ACK = 11,
 }

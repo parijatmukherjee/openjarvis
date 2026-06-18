@@ -152,6 +152,11 @@ export class DiscordGateway {
       case GatewayOP.RECONNECT:
         this.scheduleReconnect();
         break;
+      case GatewayOP.INVALID_SESSION:
+        this.sessionId = null;
+        this.sequence = null;
+        this.scheduleReconnect();
+        break;
       case GatewayOP.HEARTBEAT:
         this.sendHeartbeat();
         break;
@@ -285,7 +290,7 @@ export class DiscordGateway {
   }
 
   private reconnectSync(): void {
-    const url = this.gatewayUrl ?? this.resumeUrl ?? DEFAULT_GATEWAY_URL;
+    const url = this.resumeUrl ?? this.gatewayUrl ?? DEFAULT_GATEWAY_URL;
     this.connect(url);
   }
 

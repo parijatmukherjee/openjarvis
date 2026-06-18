@@ -55,7 +55,7 @@ export class CronScheduler {
 
     this.jobs.set(id, job);
     if (this.store) {
-      this.store.save(job);
+      await this.store.save(job);
     }
     return { ...job };
   }

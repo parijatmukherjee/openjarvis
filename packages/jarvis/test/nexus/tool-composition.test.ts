@@ -63,9 +63,9 @@ function makeBrowserAutomation(): BrowserAutomation {
 }
 
 describe("composeToolRegistry", () => {
-  it("returns an empty registry when no config is provided", () => {
+  it("returns registry with platform tools when no config is provided", () => {
     const registry = composeToolRegistry({});
-    expect(registry.list()).toHaveLength(0);
+    expect(registry.list().map((t) => t.name)).toContain("disk_free");
   });
 
   it("registers discord tools when discord config is provided", () => {

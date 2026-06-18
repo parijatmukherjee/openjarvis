@@ -84,15 +84,15 @@ describe("RuleBasedRouter", () => {
     expect(plan.primary?.required).toBe(true);
   });
 
-  it("routes 'secret_set' intent to secrets agent as required", () => {
+  it("routes 'search_discord' intent to discord agent", () => {
     const intent: Intent = {
-      action: "secret_set",
-      params: { key: "API_KEY", value: "xxx" },
-      confidence: 0.95,
+      action: "search_discord",
+      params: { query: "test" },
+      confidence: 0.9,
       ambiguous: false,
     };
     const plan = router.route(intent, context);
-    expect(plan.primary?.agentId).toBe("secrets");
+    expect(plan.primary?.agentId).toBe("discord");
     expect(plan.primary?.required).toBe(true);
   });
 

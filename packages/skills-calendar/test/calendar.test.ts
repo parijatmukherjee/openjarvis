@@ -239,7 +239,7 @@ describe("GraphCalendarClient", () => {
         .mockResolvedValueOnce(rateLimitedResponse);
 
       const client = createClient();
-      await expect(client.listCalendars()).rejects.toThrow("Max retries exceeded for 429");
+      await expect(client.listCalendars()).rejects.toThrow("too many 429 responses");
     });
 
     it("handles 404 errors", async () => {
@@ -251,7 +251,7 @@ describe("GraphCalendarClient", () => {
       });
 
       const client = createClient();
-      await expect(client.deleteEvent("missing")).rejects.toThrow("Graph API 404");
+      await expect(client.deleteEvent("missing")).rejects.toThrow("Graph Calendar API DELETE");
     });
 
     it("handles API errors without error.message", async () => {
@@ -263,7 +263,7 @@ describe("GraphCalendarClient", () => {
       });
 
       const client = createClient();
-      await expect(client.listCalendars()).rejects.toThrow("Graph API 500: Internal Server Error");
+      await expect(client.listCalendars()).rejects.toThrow("Graph Calendar API GET /me/calendars failed: 500 Internal Server Error");
     });
 
     it("handles network errors", async () => {
@@ -282,7 +282,7 @@ describe("GraphCalendarClient", () => {
       });
 
       const client = createClient();
-      await expect(client.listCalendars()).rejects.toThrow("Graph API 403");
+      await expect(client.listCalendars()).rejects.toThrow("Graph Calendar API GET /me/calendars failed: 403");
     });
 
     it("handles 204 No Content response", async () => {

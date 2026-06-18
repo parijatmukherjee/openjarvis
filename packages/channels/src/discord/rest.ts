@@ -112,6 +112,9 @@ export class DiscordRest {
         this.updateBucket(path, res);
 
         if (res.status === 429) {
+          if (attempt >= maxAttempts) {
+            throw new Error(`Discord REST ${method} ${path}: too many 429 responses`);
+          }
           const retryAfter = this.parseRetryAfter(res);
           await this.sleep(retryAfter);
           continue;
