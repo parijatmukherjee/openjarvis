@@ -19,7 +19,9 @@ export type CapabilityName =
   | "calendar:write"
   | "notion:read"
   | "notion:write"
-  | "secrets:read";
+  | "secrets:read"
+  | "cron:read"
+  | "cron:manage";
 
 export interface Capability {
   name: CapabilityName;

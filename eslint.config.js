@@ -3,7 +3,7 @@ import tseslint from "typescript-eslint";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/coverage/**", "reference/**", "packages/desktop/src/renderer/**", "packages/desktop/tailwind.config.js", "packages/desktop/postcss.config.js", "packages/desktop/vite.renderer.config.ts", "packages/*/vitest.config.ts", "packages/*/tsconfig.test.json", "packages/skills-web/test/**/*.ts", "packages/skills-email/test/**/*.ts", "packages/skills-weather/test/**/*.ts", "packages/skills-calendar/test/**/*.ts", "packages/skills-notion/test/**/*.ts", "packages/skills-secrets/test/**/*.ts"] },
+  { ignores: ["**/dist/**", "**/coverage/**", "reference/**", "packages/desktop/src/renderer/**", "packages/desktop/tailwind.config.js", "packages/desktop/postcss.config.js", "packages/desktop/vite.renderer.config.ts", "packages/*/vitest.config.ts", "packages/*/tsconfig.test.json", "packages/skills-web/test/**/*.ts", "packages/skills-email/test/**/*.ts", "packages/skills-weather/test/**/*.ts", "packages/skills-calendar/test/**/*.ts", "packages/skills-notion/test/**/*.ts", "packages/skills-secrets/test/**/*.ts", "packages/cron/test/**/*.ts"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
