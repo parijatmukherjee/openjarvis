@@ -10,6 +10,7 @@ interface RateBucket {
 export class DiscordRest {
   private readonly baseUrl = "https://discord.com/api/v10";
   private readonly buckets = new Map<string, RateBucket>();
+  private readonly pathToBucket = new Map<string, string>();
   private readonly fetchImpl: FetchImpl;
 
   constructor(
@@ -103,7 +104,7 @@ export class DiscordRest {
 
       if (res.status === 429) {
         const retryAfter = this.parseRetryAfter(res);
-        await this.sleep(retryAfter * 1000);
+        await this.sleep(retryAfter);
         continue;
       }
 
@@ -126,25 +127,30 @@ export class DiscordRest {
     const header = res.headers.get("Retry-After");
     if (header) {
       const parsed = Number(header);
-      if (!Number.isNaN(parsed)) return parsed;
+      if (!Number.isNaN(parsed)) {
+        return parsed > 1000 ? parsed : parsed * 1000;
+      }
     }
-    return 1;
+    return 1000;
   }
 
-  private updateBucket(_path: string, res: Response): void {
+  private updateBucket(path: string, res: Response): void {
     const bucketId = res.headers.get("X-RateLimit-Bucket");
     if (bucketId) {
+      this.pathToBucket.set(path, bucketId);
       const remaining = Number(res.headers.get("X-RateLimit-Remaining") ?? "1");
       const reset = Number(res.headers.get("X-RateLimit-Reset") ?? "0");
       this.buckets.set(bucketId, { remaining, resetAt: reset * 1000 });
     }
   }
 
-  private async waitForBucket(_path: string): Promise<void> {
-    for (const bucket of this.buckets.values()) {
-      if (bucket.remaining <= 0 && Date.now() < bucket.resetAt) {
-        await this.sleep(bucket.resetAt - Date.now());
-      }
+  private async waitForBucket(path: string): Promise<void> {
+    const bucketId = this.pathToBucket.get(path);
+    if (!bucketId) return;
+    const bucket = this.buckets.get(bucketId);
+    if (!bucket) return;
+    if (bucket.remaining <= 0 && Date.now() < bucket.resetAt) {
+      await this.sleep(bucket.resetAt - Date.now());
     }
   }
 
