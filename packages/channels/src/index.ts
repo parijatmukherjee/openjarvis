@@ -5,3 +5,4 @@ export * from "./discord/session-mapper.js";
 export * from "./telegram/tools.js";
 export * from "./telegram/types.js";
 export * from "./telegram/bot.js";
+export * from "./telegram/session-mapper.js";

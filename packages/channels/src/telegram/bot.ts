@@ -1,4 +1,5 @@
 import type { TelegramMessage, TelegramChatInfo, TelegramBotConfig } from "./types.js";
+import { TelegramSessionMapper } from "./session-mapper.js";
 
 export type FetchLike = typeof globalThis.fetch;
 
@@ -36,10 +37,12 @@ export class TelegramBot {
   private handlers: ((msg: TelegramMessage) => void)[] = [];
   private pollAbort: AbortController | null = null;
   private readonly fetchFn: FetchLike;
+  private sessionMapper: TelegramSessionMapper;
 
   constructor(config: TelegramBotConfig, fetchFn?: FetchLike) {
     this.baseUrl = `https://api.telegram.org/bot${config.token}`;
     this.fetchFn = fetchFn ?? globalThis.fetch;
+    this.sessionMapper = new TelegramSessionMapper();
   }
 
   async start(): Promise<void> {
@@ -125,6 +128,7 @@ export class TelegramBot {
   }
 
   private mapMessage(raw: TelegramRawMessage): TelegramMessage {
+    this.sessionMapper.getOrCreateSession(raw.chat.id, raw.chat.type);
     return {
       id: raw.message_id,
       chatId: raw.chat.id,
