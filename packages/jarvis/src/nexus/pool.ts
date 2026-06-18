@@ -167,6 +167,16 @@ export class InProcessAgentPool implements AgentPool {
           active: true,
         },
       ],
+      [
+        "slow",
+        {
+          id: "slow",
+          name: "Slow Agent",
+          role: "test",
+          capabilities: [],
+          active: true,
+        },
+      ],
     ]);
 
     this.factories = new Map<string, AgentFactory>([
