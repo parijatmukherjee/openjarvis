@@ -116,7 +116,9 @@ export class OllamaAdapter implements ModelAdapter {
       try {
         const json = JSON.parse(text);
         detail = json.error ?? json.message ?? text;
-      } catch {}
+      } catch {
+        detail = text;
+      }
       throw new Error(`ollama POST /api/chat failed: ${res.status} ${detail.slice(0, 200)}`);
     }
     return parseOllamaResponse(parseJsonOrThrow<OllamaChatResponse>(text, "ollama", res.status));

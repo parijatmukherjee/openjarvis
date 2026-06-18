@@ -86,14 +86,22 @@ export class TelegramBot {
   }
 
   private async getUpdates(signal?: AbortSignal): Promise<TelegramUpdate[]> {
-    const res = await this.callApi("getUpdates", {
-      offset: this.offset,
-      timeout: 30,
-    }, signal);
+    const res = await this.callApi(
+      "getUpdates",
+      {
+        offset: this.offset,
+        timeout: 30,
+      },
+      signal,
+    );
     return res as TelegramUpdate[];
   }
 
-  private async callApi(method: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+  private async callApi(
+    method: string,
+    params: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<unknown> {
     const url = `${this.baseUrl}/${method}`;
     const init: RequestInit = {
       method: "POST",

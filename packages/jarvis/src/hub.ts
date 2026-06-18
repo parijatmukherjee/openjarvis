@@ -110,7 +110,10 @@ export class JarvisHub {
       await this.transitionTo("idle");
       this.cfg.eventBus.publish({
         topic: "jarvis.error",
-        payload: { error: err instanceof Error ? err.message : String(err), sessionId: this.sessionId },
+        payload: {
+          error: err instanceof Error ? err.message : String(err),
+          sessionId: this.sessionId,
+        },
         timestamp: Date.now(),
         source: "jarvis",
       });

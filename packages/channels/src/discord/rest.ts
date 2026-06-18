@@ -74,7 +74,12 @@ export class DiscordRest {
     return data;
   }
 
-  private async request<T>(path: string, method: string, body?: unknown, timeoutMs = 30000): Promise<T> {
+  private async request<T>(
+    path: string,
+    method: string,
+    body?: unknown,
+    timeoutMs = 30000,
+  ): Promise<T> {
     const maxAttempts = 4;
     let attempt = 0;
 

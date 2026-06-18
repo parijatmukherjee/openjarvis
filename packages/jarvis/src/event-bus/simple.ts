@@ -14,7 +14,9 @@ export class SimpleEventBus implements EventBus {
       for (const handler of handlers) {
         try {
           await handler(event);
-        } catch {}
+        } catch {
+          void 0;
+        }
       }
     }
   }

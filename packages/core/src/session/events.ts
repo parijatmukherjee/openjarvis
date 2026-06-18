@@ -2,9 +2,30 @@ import type { PhaseEvent } from "../playbook/events.js";
 
 export type DomainEvent =
   | { type: "SessionStarted"; sessionId: string; agentId: string; at: number; seq?: number }
-  | { type: "TurnStarted"; sessionId: string; turnId: string; input: string; at: number; seq?: number }
-  | { type: "TurnEnded"; sessionId: string; turnId: string; final: string; at: number; seq?: number }
-  | { type: "TurnFailed"; sessionId: string; turnId: string; error: string; at: number; seq?: number }
+  | {
+      type: "TurnStarted";
+      sessionId: string;
+      turnId: string;
+      input: string;
+      at: number;
+      seq?: number;
+    }
+  | {
+      type: "TurnEnded";
+      sessionId: string;
+      turnId: string;
+      final: string;
+      at: number;
+      seq?: number;
+    }
+  | {
+      type: "TurnFailed";
+      sessionId: string;
+      turnId: string;
+      error: string;
+      at: number;
+      seq?: number;
+    }
   | (PhaseEvent & { seq?: number });
 
 export interface EventStore {
