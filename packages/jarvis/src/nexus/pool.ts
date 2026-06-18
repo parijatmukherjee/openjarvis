@@ -106,6 +106,16 @@ export class InProcessAgentPool implements AgentPool {
           active: true,
         },
       ],
+      [
+        "notion",
+        {
+          id: "notion",
+          name: "Notion Agent",
+          role: "data",
+          capabilities: ["notion:read", "notion:write"],
+          active: true,
+        },
+      ],
     ]);
 
     this.factories = new Map<string, AgentFactory>([
@@ -118,6 +128,7 @@ export class InProcessAgentPool implements AgentPool {
       ["discord", async () => ({ messageId: "mock-msg-123" })],
       ["web", async () => ({ markdown: "Fetched content", url: "https://example.com" })],
       ["email", async () => ({ messageId: "mock-email-123" })],
+      ["notion", async () => ({ pages: [] })],
       [
         "slow",
         async () => {

@@ -28,6 +28,10 @@ export class RuleBasedRouter implements IntentRouter {
       ["calendar_create", this.routeToCalendar],
       ["calendar_update", this.routeToCalendar],
       ["calendar_delete", this.routeToCalendar],
+      ["query_notion", this.routeToNotion],
+      ["get_notion", this.routeToNotion],
+      ["create_notion", this.routeToNotion],
+      ["update_notion", this.routeToNotion],
     ]);
   }
 
@@ -118,6 +122,14 @@ export class RuleBasedRouter implements IntentRouter {
       parallel: [],
       sequential: [],
       primary: { agentId: "email", confidence: intent.confidence, required: true },
+    };
+  }
+
+  private routeToNotion(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "notion", confidence: intent.confidence, required: false },
     };
   }
 }
