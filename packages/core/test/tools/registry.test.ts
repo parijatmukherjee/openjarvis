@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 import { ToolRegistry } from "../../src/tools/registry.js";
-import type { ToolDefinition } from "../../src/tools/tool.js";
+import type { ToolDefinition, ToolContext } from "../../src/tools/tool.js";
 import type { AgentGrant } from "../../src/security/capability.js";
+import { provenance } from "../../src/security/taint.js";
 import { type Logger, type LogLevel } from "../../src/observability/logger.js";
 import type { MetricsCollector } from "../../src/observability/metrics.js";
 
@@ -214,5 +215,64 @@ describe("ToolRegistry", () => {
     expect(histograms).toHaveLength(1);
     expect(histograms[0].name).toBe("ToolCallLatency");
     expect(histograms[0].value).toBeGreaterThanOrEqual(0);
+  });
+
+  describe("approval gate", () => {
+    const gatedTool: ToolDefinition<Record<string, never>, { echoed: string }> = {
+      name: "gated",
+      description: "requires approval when tainted",
+      args: z.object({}),
+      result: z.object({ echoed: z.string() }),
+      capabilities: [{ name: "host:info" }],
+      approvalRequired: true,
+      handler: async () => ({ echoed: "ok" }),
+    };
+
+    it("blocks approvalRequired:true tool when influencedBy contains tainted provenance", async () => {
+      const reg = new ToolRegistry();
+      reg.register(gatedTool);
+      const taintedCtx: ToolContext = {
+        agentId: "probe-agent",
+        influencedBy: [provenance("external", "user-input")],
+      };
+      const res = await reg.invoke({ id: "g1", tool: "gated", args: {} }, grant, taintedCtx);
+      expect(res.ok).toBe(false);
+      expect(res.error).toMatch(/approval/);
+    });
+
+    it("allows approvalRequired:true tool when influencedBy contains only safe provenance", async () => {
+      const reg = new ToolRegistry();
+      reg.register(gatedTool);
+      const safeCtx: ToolContext = {
+        agentId: "probe-agent",
+        influencedBy: [provenance("operator", "cli")],
+      };
+      const res = await reg.invoke({ id: "g2", tool: "gated", args: {} }, grant, safeCtx);
+      expect(res).toEqual({ id: "g2", tool: "gated", ok: true, data: { echoed: "ok" } });
+    });
+
+    it("allows non-approvalRequired tool regardless of taint", async () => {
+      const reg = new ToolRegistry();
+      reg.register(echoTool);
+      const taintedCtx: ToolContext = {
+        agentId: "probe-agent",
+        influencedBy: [provenance("external", "user-input")],
+      };
+      const res = await reg.invoke(
+        { id: "g3", tool: "echo", args: { msg: "hi" } },
+        grant,
+        taintedCtx,
+      );
+      expect(res.ok).toBe(true);
+    });
+
+    it("allows approvalRequired:true tool when no influencedBy", async () => {
+      const reg = new ToolRegistry();
+      reg.register(gatedTool);
+      const res = await reg.invoke({ id: "g4", tool: "gated", args: {} }, grant, {
+        agentId: "probe-agent",
+      });
+      expect(res).toEqual({ id: "g4", tool: "gated", ok: true, data: { echoed: "ok" } });
+    });
   });
 });

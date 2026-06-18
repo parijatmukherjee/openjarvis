@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ToolDefinition, ToolContext, ToolRegistry } from "@openjarvis/core";
-import type { BrowserAutomation } from "./browser.js";
+import type { BrowserAutomation, TabInfo } from "./browser.js";
 
 const BrowserNavigateArgs = z.object({
   url: z.string().url(),
@@ -25,6 +25,18 @@ const BrowserClickResult = z.object({
 export type BrowserClickArgs = z.infer<typeof BrowserClickArgs>;
 export type BrowserClickResult = z.infer<typeof BrowserClickResult>;
 
+const BrowserTypeArgs = z.object({
+  selector: z.string().min(1),
+  text: z.string(),
+});
+
+const BrowserTypeResult = z.object({
+  typed: z.boolean(),
+});
+
+export type BrowserTypeArgs = z.infer<typeof BrowserTypeArgs>;
+export type BrowserTypeResult = z.infer<typeof BrowserTypeResult>;
+
 const BrowserScreenshotArgs = z.object({});
 
 const BrowserScreenshotResult = z.object({
@@ -34,6 +46,62 @@ const BrowserScreenshotResult = z.object({
 
 export type BrowserScreenshotArgs = z.infer<typeof BrowserScreenshotArgs>;
 export type BrowserScreenshotResult = z.infer<typeof BrowserScreenshotResult>;
+
+const AccessibilityNodeSchema: z.ZodType<Record<string, unknown>> = z.lazy(
+  (): z.ZodType<Record<string, unknown>> =>
+    z.object({
+      role: z.string(),
+      name: z.string().optional(),
+      value: z.string().optional(),
+      description: z.string().optional(),
+      children: z.array(AccessibilityNodeSchema).optional(),
+    }),
+);
+
+const BrowserAccessibilityArgs = z.object({});
+
+const BrowserAccessibilityResult = z.object({
+  role: z.string(),
+  name: z.string().optional(),
+  value: z.string().optional(),
+  description: z.string().optional(),
+  children: z.array(AccessibilityNodeSchema).optional(),
+});
+
+export type BrowserAccessibilityArgs = z.infer<typeof BrowserAccessibilityArgs>;
+export type BrowserAccessibilityResult = z.infer<typeof BrowserAccessibilityResult>;
+
+const BrowserListTabsArgs = z.object({});
+
+const BrowserListTabsResult = z.array(
+  z.object({
+    id: z.string(),
+    url: z.string(),
+    title: z.string(),
+  }),
+);
+
+const BrowserSwitchTabArgs = z.object({
+  tabId: z.string().min(1),
+});
+
+const BrowserSwitchTabResult = z.object({
+  switched: z.boolean(),
+});
+
+export type BrowserSwitchTabArgs = z.infer<typeof BrowserSwitchTabArgs>;
+export type BrowserSwitchTabResult = z.infer<typeof BrowserSwitchTabResult>;
+
+const BrowserCloseTabArgs = z.object({
+  tabId: z.string().min(1),
+});
+
+const BrowserCloseTabResult = z.object({
+  closed: z.boolean(),
+});
+
+export type BrowserCloseTabArgs = z.infer<typeof BrowserCloseTabArgs>;
+export type BrowserCloseTabResult = z.infer<typeof BrowserCloseTabResult>;
 
 export function createBrowserNavigateTool(
   browserAutomation: BrowserAutomation,
@@ -68,6 +136,21 @@ export function createBrowserClickTool(
   };
 }
 
+export function createBrowserTypeTool(
+  browserAutomation: BrowserAutomation,
+): ToolDefinition<BrowserTypeArgs, BrowserTypeResult> {
+  return {
+    name: "browser_type",
+    description: "Type text into an element in the browser by CSS selector",
+    args: BrowserTypeArgs,
+    result: BrowserTypeResult,
+    capabilities: [{ name: "web:browse" as const }],
+    handler: async (args: BrowserTypeArgs, _ctx: ToolContext): Promise<BrowserTypeResult> => {
+      return browserAutomation.type(args.selector, args.text);
+    },
+  };
+}
+
 export function createBrowserScreenshotTool(
   browserAutomation: BrowserAutomation,
 ): ToolDefinition<BrowserScreenshotArgs, BrowserScreenshotResult> {
@@ -86,11 +169,90 @@ export function createBrowserScreenshotTool(
   };
 }
 
+export function createBrowserAccessibilityTool(
+  browserAutomation: BrowserAutomation,
+): ToolDefinition<BrowserAccessibilityArgs, BrowserAccessibilityResult> {
+  return {
+    name: "browser_accessibility",
+    description: "Extract the accessibility tree of the current browser page",
+    args: BrowserAccessibilityArgs,
+    result: BrowserAccessibilityResult,
+    capabilities: [{ name: "web:browse" as const }],
+    handler: async (
+      _args: BrowserAccessibilityArgs,
+      _ctx: ToolContext,
+    ): Promise<BrowserAccessibilityResult> => {
+      return browserAutomation.accessibility() as unknown as Promise<BrowserAccessibilityResult>;
+    },
+  };
+}
+
+export function createBrowserListTabsTool(
+  browserAutomation: BrowserAutomation,
+): ToolDefinition<z.infer<typeof BrowserListTabsArgs>, TabInfo[]> {
+  return {
+    name: "browser_list_tabs",
+    description: "List all open browser tabs",
+    args: BrowserListTabsArgs,
+    result: BrowserListTabsResult,
+    capabilities: [{ name: "web:browse" as const }],
+    handler: async (
+      _args: z.infer<typeof BrowserListTabsArgs>,
+      _ctx: ToolContext,
+    ): Promise<TabInfo[]> => {
+      return browserAutomation.listTabs();
+    },
+  };
+}
+
+export function createBrowserSwitchTabTool(
+  browserAutomation: BrowserAutomation,
+): ToolDefinition<BrowserSwitchTabArgs, BrowserSwitchTabResult> {
+  return {
+    name: "browser_switch_tab",
+    description: "Switch to a browser tab by its ID",
+    args: BrowserSwitchTabArgs,
+    result: BrowserSwitchTabResult,
+    capabilities: [{ name: "web:browse" as const }],
+    handler: async (
+      args: BrowserSwitchTabArgs,
+      _ctx: ToolContext,
+    ): Promise<BrowserSwitchTabResult> => {
+      await browserAutomation.switchTab(args.tabId);
+      return { switched: true };
+    },
+  };
+}
+
+export function createBrowserCloseTabTool(
+  browserAutomation: BrowserAutomation,
+): ToolDefinition<BrowserCloseTabArgs, BrowserCloseTabResult> {
+  return {
+    name: "browser_close_tab",
+    description: "Close a browser tab by its ID",
+    args: BrowserCloseTabArgs,
+    result: BrowserCloseTabResult,
+    capabilities: [{ name: "web:browse" as const }],
+    handler: async (
+      args: BrowserCloseTabArgs,
+      _ctx: ToolContext,
+    ): Promise<BrowserCloseTabResult> => {
+      await browserAutomation.closeTab(args.tabId);
+      return { closed: true };
+    },
+  };
+}
+
 export function registerBrowserTools(
   registry: ToolRegistry,
   browserAutomation: BrowserAutomation,
 ): void {
   registry.register(createBrowserNavigateTool(browserAutomation));
   registry.register(createBrowserClickTool(browserAutomation));
+  registry.register(createBrowserTypeTool(browserAutomation));
   registry.register(createBrowserScreenshotTool(browserAutomation));
+  registry.register(createBrowserAccessibilityTool(browserAutomation));
+  registry.register(createBrowserListTabsTool(browserAutomation));
+  registry.register(createBrowserSwitchTabTool(browserAutomation));
+  registry.register(createBrowserCloseTabTool(browserAutomation));
 }

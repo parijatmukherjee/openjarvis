@@ -757,3 +757,161 @@ describe("calendar_get_events tool branches", () => {
     expect(client.getEvents).toHaveBeenCalledWith("cal-1", {});
   });
 });
+
+describe("GraphCalendarClient recurrence and timezone", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetToken.mockResolvedValue("tok-123");
+  });
+
+  it("creates an event with daily recurrence", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "evt-daily" }),
+    });
+
+    const client = createClient();
+    const eventId = await client.createEvent("cal-1", {
+      subject: "Daily Standup",
+      start: { dateTime: "2026-06-18T09:00:00", timeZone: "UTC" },
+      end: { dateTime: "2026-06-18T09:15:00", timeZone: "UTC" },
+      recurrence: { pattern: "daily", interval: 1 },
+    });
+
+    expect(eventId).toBe("evt-daily");
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(callBody.recurrence).toEqual({
+      pattern: { type: "daily", interval: 1 },
+      range: { type: "noEnd", startDate: "2026-06-18" },
+    });
+  });
+
+  it("creates an event with weekly recurrence on specific days", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "evt-weekly" }),
+    });
+
+    const client = createClient();
+    const eventId = await client.createEvent("cal-1", {
+      subject: "Weekly Meeting",
+      start: { dateTime: "2026-06-18T10:00:00", timeZone: "UTC" },
+      end: { dateTime: "2026-06-18T11:00:00", timeZone: "UTC" },
+      recurrence: { pattern: "weekly", interval: 1, daysOfWeek: [1, 3, 5] },
+    });
+
+    expect(eventId).toBe("evt-weekly");
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(callBody.recurrence).toEqual({
+      pattern: { type: "weekly", interval: 1, daysOfWeek: ["monday", "wednesday", "friday"] },
+      range: { type: "noEnd", startDate: "2026-06-18" },
+    });
+  });
+
+  it("creates an event with a numbered occurrence range", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "evt-numbered" }),
+    });
+
+    const client = createClient();
+    const eventId = await client.createEvent("cal-1", {
+      subject: "Sprint Planning",
+      start: { dateTime: "2026-06-18T10:00:00", timeZone: "UTC" },
+      end: { dateTime: "2026-06-18T11:00:00", timeZone: "UTC" },
+      recurrence: { pattern: "weekly", interval: 2, daysOfWeek: [1], occurrences: 5 },
+    });
+
+    expect(eventId).toBe("evt-numbered");
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(callBody.recurrence).toEqual({
+      pattern: { type: "weekly", interval: 2, daysOfWeek: ["monday"] },
+      range: { type: "numbered", startDate: "2026-06-18", numberOfOccurrences: 5 },
+    });
+  });
+
+  it("creates an event with an endDate range", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "evt-enddate" }),
+    });
+
+    const client = createClient();
+    const eventId = await client.createEvent("cal-1", {
+      subject: "Limited Series",
+      start: { dateTime: "2026-06-18T10:00:00", timeZone: "UTC" },
+      end: { dateTime: "2026-06-18T11:00:00", timeZone: "UTC" },
+      recurrence: { pattern: "monthly", interval: 1, daysOfMonth: [15], endDate: "2026-12-31" },
+    });
+
+    expect(eventId).toBe("evt-enddate");
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(callBody.recurrence).toEqual({
+      pattern: { type: "monthly", interval: 1, daysOfMonth: [15] },
+      range: { type: "endDate", startDate: "2026-06-18", endDate: "2026-12-31" },
+    });
+  });
+
+  it("uses default timezone when none provided", async () => {
+    const client = new GraphCalendarClient({
+      getToken: mockGetToken,
+      fetch: mockFetch,
+      defaultTimezone: "America/New_York",
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "evt-tz" }),
+    });
+
+    const eventId = await client.createEvent("cal-1", {
+      subject: "TZ Event",
+      start: { dateTime: "2026-06-18T10:00:00", timeZone: "" },
+      end: { dateTime: "2026-06-18T11:00:00", timeZone: "" },
+    });
+
+    expect(eventId).toBe("evt-tz");
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(callBody.start.timeZone).toBe("America/New_York");
+    expect(callBody.end.timeZone).toBe("America/New_York");
+  });
+
+  it("falls back to UTC when no default timezone and empty timeZone provided", async () => {
+    const client = createClient();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "evt-utc" }),
+    });
+
+    await client.createEvent("cal-1", {
+      subject: "UTC Event",
+      start: { dateTime: "2026-06-18T10:00:00", timeZone: "" },
+      end: { dateTime: "2026-06-18T11:00:00", timeZone: "" },
+    });
+
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(callBody.start.timeZone).toBe("UTC");
+    expect(callBody.end.timeZone).toBe("UTC");
+  });
+
+  it("preserves explicit timezone even when default is set", async () => {
+    const client = new GraphCalendarClient({
+      getToken: mockGetToken,
+      fetch: mockFetch,
+      defaultTimezone: "America/New_York",
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "evt-explicit" }),
+    });
+
+    await client.createEvent("cal-1", {
+      subject: "Explicit TZ",
+      start: { dateTime: "2026-06-18T10:00:00", timeZone: "Europe/London" },
+      end: { dateTime: "2026-06-18T11:00:00", timeZone: "Europe/London" },
+    });
+
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(callBody.start.timeZone).toBe("Europe/London");
+    expect(callBody.end.timeZone).toBe("Europe/London");
+  });
+});

@@ -159,6 +159,7 @@ export function createEmailSendTool(
     args: SendArgsSchema as unknown as z.ZodType<SendArgs>,
     result: SendResultSchema as unknown as z.ZodType<SendResult>,
     capabilities: [{ name: "email:send" as const }],
+    approvalRequired: true,
     handler: async (args) => {
       const client = args.provider === "graph" ? clients.graph : clients.gmail;
       if (!client) {

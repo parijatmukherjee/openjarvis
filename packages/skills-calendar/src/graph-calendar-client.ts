@@ -1,19 +1,32 @@
-import type { CalendarEvent, CalendarInfo, CreateEventInput } from "./types.js";
+import type { CalendarEvent, CalendarInfo, CreateEventInput, RecurrencePattern } from "./types.js";
 
 const BASE_URL = "https://graph.microsoft.com/v1.0";
+
+const DAY_NAMES: Record<number, string> = {
+  0: "sunday",
+  1: "monday",
+  2: "tuesday",
+  3: "wednesday",
+  4: "thursday",
+  5: "friday",
+  6: "saturday",
+};
 
 export interface GraphCalendarClientDeps {
   getToken: () => Promise<string>;
   fetch?: typeof globalThis.fetch;
+  defaultTimezone?: string;
 }
 
 export class GraphCalendarClient {
   private getToken: () => Promise<string>;
   private fetchImpl: typeof globalThis.fetch;
+  private defaultTimezone: string;
 
   constructor(deps: GraphCalendarClientDeps) {
     this.getToken = deps.getToken;
     this.fetchImpl = deps.fetch ?? globalThis.fetch.bind(globalThis);
+    this.defaultTimezone = deps.defaultTimezone ?? "UTC";
   }
 
   private async graphRequest(
@@ -110,11 +123,50 @@ export class GraphCalendarClient {
     return event;
   }
 
+  private mapRecurrence(input: RecurrencePattern, startDate: string): Record<string, unknown> {
+    const pattern: Record<string, unknown> = {
+      type: input.pattern,
+      interval: input.interval,
+    };
+
+    if (input.daysOfWeek !== undefined) {
+      pattern.daysOfWeek = input.daysOfWeek.map((d) => DAY_NAMES[d] ?? `day${d}`);
+    }
+
+    if (input.daysOfMonth !== undefined) {
+      pattern.daysOfMonth = input.daysOfMonth;
+    }
+
+    const range: Record<string, unknown> = {
+      type: "noEnd" as string,
+      startDate,
+    };
+
+    if (input.endDate !== undefined) {
+      range.type = "endDate";
+      range.endDate = input.endDate;
+    } else if (input.occurrences !== undefined) {
+      range.type = "numbered";
+      range.numberOfOccurrences = input.occurrences;
+    }
+
+    return { pattern, range };
+  }
+
   private buildEventPayload(input: CreateEventInput): Record<string, unknown> {
+    const start = {
+      dateTime: input.start.dateTime,
+      timeZone: input.start.timeZone || this.defaultTimezone,
+    };
+    const end = {
+      dateTime: input.end.dateTime,
+      timeZone: input.end.timeZone || this.defaultTimezone,
+    };
+
     const payload: Record<string, unknown> = {
       subject: input.subject,
-      start: input.start,
-      end: input.end,
+      start,
+      end,
       isAllDay: input.isAllDay ?? false,
     };
 
@@ -131,6 +183,10 @@ export class GraphCalendarClient {
         emailAddress: { name: a.name, address: a.address },
         type: a.type ?? "required",
       }));
+    }
+
+    if (input.recurrence !== undefined) {
+      payload.recurrence = this.mapRecurrence(input.recurrence, start.dateTime.slice(0, 10));
     }
 
     return payload;

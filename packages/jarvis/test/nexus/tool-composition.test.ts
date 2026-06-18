@@ -15,6 +15,7 @@ function makeDiscordClients(): DiscordToolClients {
       guildId: "g-1",
       type: "text" as const,
     }),
+    searchMessages: async () => [],
   };
 }
 

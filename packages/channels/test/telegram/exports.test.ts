@@ -13,6 +13,11 @@ describe("@openjarvis/channels telegram exports", () => {
     expect(mod.TelegramBot).toBeTypeOf("function");
   });
 
+  it("exports TelegramSessionMapper", async () => {
+    const mod = await import("../../src/index.js");
+    expect(mod.TelegramSessionMapper).toBeTypeOf("function");
+  });
+
   it("exports telegram types", async () => {
     const mod = await import("../../src/index.js");
     expect(mod.createTelegramSendTool).toBeTypeOf("function");

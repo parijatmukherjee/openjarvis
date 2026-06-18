@@ -1,5 +1,6 @@
 import type { ToolDefinition, ToolCall, ToolResult, ToolContext } from "./tool.js";
 import { type AgentGrant, grantSatisfies } from "../security/capability.js";
+import { requiresApproval } from "../security/taint.js";
 import { type Logger, noopLogger } from "../observability/logger.js";
 import type { MetricsCollector } from "../observability/metrics.js";
 import { noopMetricsCollector } from "../observability/metrics.js";
@@ -59,6 +60,21 @@ export class ToolRegistry {
         missing: missing.map((c) => c.name),
       });
       return fail(call, `capability denied: ${missing.map((c) => c.name).join(", ")}`);
+    }
+
+    if (
+      tool.approvalRequired &&
+      ctx.influencedBy &&
+      requiresApproval({
+        sideEffecting: true,
+        influencedBy: ctx.influencedBy,
+      })
+    ) {
+      this.logger.log("warn", "approval_required", { tool: call.tool });
+      return fail(
+        call,
+        `approval required: tool "${call.tool}" is side-effecting and influenced by tainted content`,
+      );
     }
 
     // Everything that can throw lives inside the try so `invoke` never throws:

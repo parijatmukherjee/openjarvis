@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToolRegistry } from "@openjarvis/core";
 import type { AgentGrant } from "@openjarvis/core";
 import { CronScheduler } from "../src/scheduler.js";
+import type { CronPersistence } from "../src/store.js";
+import type { CronJob } from "../src/types.js";
 import { registerCronTools } from "../src/tools.js";
 
 vi.mock("node-cron", () => {
@@ -43,7 +45,7 @@ describe("CronScheduler", () => {
   let scheduler: CronScheduler;
 
   beforeEach(() => {
-    scheduler = new CronScheduler();
+    scheduler = new CronScheduler({});
   });
 
   it("creates and starts a job", async () => {
@@ -140,10 +142,40 @@ describe("CronScheduler", () => {
 
   it("calls onTick callback when job fires", async () => {
     const onTick = vi.fn().mockResolvedValue(undefined);
-    const sched = new CronScheduler(onTick);
+    const sched = new CronScheduler({ onTick });
     await sched.schedule({ name: "Tick test", cron: "* * * * *", intent: "tick" });
     const tasks = await sched.list();
     expect(tasks).toHaveLength(1);
+  });
+
+  it("restores jobs from store on restore()", async () => {
+    const savedJobs: CronJob[] = [];
+    const mockStore: CronPersistence = {
+      save: (job) => {
+        savedJobs.push({ ...job });
+      },
+      update: (job) => {
+        const idx = savedJobs.findIndex((j) => j.id === job.id);
+        if (idx >= 0) savedJobs[idx] = { ...job };
+      },
+      remove: (id) => {
+        const idx = savedJobs.findIndex((j) => j.id === id);
+        if (idx >= 0) {
+          savedJobs.splice(idx, 1);
+          return true;
+        }
+        return false;
+      },
+      loadAll: () => savedJobs.map((j) => ({ ...j })),
+    };
+    const sched1 = new CronScheduler({ store: mockStore });
+    await sched1.schedule({ name: "Restored", cron: "0 9 * * *", intent: "test" });
+    expect(savedJobs).toHaveLength(1);
+    const sched2 = new CronScheduler({ store: mockStore });
+    await sched2.restore();
+    const jobs = await sched2.list();
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].name).toBe("Restored");
   });
 });
 
@@ -151,7 +183,7 @@ describe("cron tools", () => {
   let scheduler: CronScheduler;
 
   beforeEach(() => {
-    scheduler = new CronScheduler();
+    scheduler = new CronScheduler({});
   });
 
   it("registers tools with correct capabilities", () => {

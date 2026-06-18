@@ -24,6 +24,7 @@ export function createSecretsGetTool(
     args: SecretsGetArgs as unknown as z.ZodType<SecretsGetArgs>,
     result: SecretsGetResult as unknown as z.ZodType<SecretsGetResult>,
     capabilities: [{ name: "secrets:read" as const }],
+    approvalRequired: true,
     handler: async (args: SecretsGetArgs): Promise<SecretsGetResult> => {
       const value = await opClient.read(args.reference);
       return { value };
