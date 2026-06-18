@@ -53,8 +53,8 @@ export class ProcessEngine {
     if (!handler) throw new ProcessError(`No handler for phase ${phaseId}`);
 
     try {
-      const result = await handler(this.state);
       this.state.currentPhase = phaseId;
+      const result = await handler(this.state);
       this.state.completedPhases.push(phaseId);
       this.state.phaseResults[phaseId] = { status: "success", logs: result.logs };
     } catch (err) {

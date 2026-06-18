@@ -81,6 +81,10 @@ export class CronScheduler {
     if (!this.store) return;
     const jobs = this.store.loadAll();
     for (const job of jobs) {
+      const existing = this.tasks.get(job.id);
+      if (existing) {
+        existing.stop();
+      }
       this.jobs.set(job.id, job);
       if (job.enabled) {
         try {
