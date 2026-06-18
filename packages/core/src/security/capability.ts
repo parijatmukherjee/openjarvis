@@ -14,7 +14,9 @@ export type CapabilityName =
   | "web:browse"
   | "email:read"
   | "email:send"
-  | "weather:read";
+  | "weather:read"
+  | "calendar:read"
+  | "calendar:write";
 
 export interface Capability {
   name: CapabilityName;
