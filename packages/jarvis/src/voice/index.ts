@@ -5,3 +5,4 @@ export * from "./audio.js";
 export * from "./mock-wake-word.js";
 export * from "./mock-stt.js";
 export * from "./mock-tts.js";
+export * from "./ollama-stt.js";
