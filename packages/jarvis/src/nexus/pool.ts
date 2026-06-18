@@ -1,10 +1,20 @@
-import type { AgentRoute, AgentContext, AgentResult, AgentInfo } from "./types.js";
+import type {
+  AgentRoute,
+  AgentContext,
+  AgentResult,
+  AgentInfo,
+  AgentSessionConfig,
+} from "./types.js";
+import { AgentSession } from "./session.js";
 
 export interface AgentPool {
   list(): Promise<AgentInfo[]>;
   execute(route: AgentRoute, context: AgentContext): Promise<AgentResult>;
   health(agentId: string): Promise<boolean>;
 }
+
+export const MAX_CONCURRENT = 3;
+export const MAX_SPAWN_DEPTH = 2;
 
 interface AgentFactory {
   (context: AgentContext): Promise<unknown>;
@@ -13,6 +23,7 @@ interface AgentFactory {
 export class InProcessAgentPool implements AgentPool {
   private agents: Map<string, AgentInfo>;
   private factories: Map<string, AgentFactory>;
+  private sessions: Map<string, AgentSession>;
 
   constructor() {
     this.agents = new Map([
@@ -116,6 +127,26 @@ export class InProcessAgentPool implements AgentPool {
           active: true,
         },
       ],
+      [
+        "cron",
+        {
+          id: "cron",
+          name: "Cron Agent",
+          role: "scheduling",
+          capabilities: ["cron:schedule", "cron:list", "cron:cancel"],
+          active: true,
+        },
+      ],
+      [
+        "secrets",
+        {
+          id: "secrets",
+          name: "Secrets Agent",
+          role: "security",
+          capabilities: ["secrets:read", "secrets:write", "secrets:delete"],
+          active: true,
+        },
+      ],
     ]);
 
     this.factories = new Map<string, AgentFactory>([
@@ -129,6 +160,8 @@ export class InProcessAgentPool implements AgentPool {
       ["web", async () => ({ markdown: "Fetched content", url: "https://example.com" })],
       ["email", async () => ({ messageId: "mock-email-123" })],
       ["notion", async () => ({ pages: [] })],
+      ["cron", async () => ({ scheduled: true, jobId: "mock-cron-123" })],
+      ["secrets", async () => ({ secretKey: "mock-secret", stored: true })],
       [
         "slow",
         async () => {
@@ -137,6 +170,8 @@ export class InProcessAgentPool implements AgentPool {
         },
       ],
     ]);
+
+    this.sessions = new Map();
   }
 
   async list(): Promise<AgentInfo[]> {
@@ -167,5 +202,19 @@ export class InProcessAgentPool implements AgentPool {
 
   async health(agentId: string): Promise<boolean> {
     return this.agents.has(agentId) && this.agents.get(agentId)!.active;
+  }
+
+  createSession(parentAgentId: string, mode: "fork" | "isolated"): AgentSession {
+    const id = `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const config: AgentSessionConfig = {
+      id,
+      parentAgentId,
+      mode,
+      maxDepth: MAX_SPAWN_DEPTH,
+      timeoutMs: 30000,
+    };
+    const session = new AgentSession(config, this);
+    this.sessions.set(id, session);
+    return session;
   }
 }

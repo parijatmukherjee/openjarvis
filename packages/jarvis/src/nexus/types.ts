@@ -63,6 +63,14 @@ export interface AgentContext {
   memory?: unknown;
 }
 
+export interface AgentSessionConfig {
+  id: string;
+  parentAgentId: string;
+  mode: "fork" | "isolated";
+  maxDepth: number;
+  timeoutMs: number;
+}
+
 export interface Synthesizer {
   synthesize(
     results: AgentResult[],
