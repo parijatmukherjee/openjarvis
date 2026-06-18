@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { provenance, requiresApproval } from "../../src/security/taint.js";
+import { provenance, requiresApproval, TaintError } from "../../src/security/taint.js";
 
 describe("provenance (the Gate)", () => {
   it("marks external content as tainted and trusted sources as clean", () => {
@@ -29,5 +29,26 @@ describe("requiresApproval (taint -> approval rule)", () => {
     expect(
       requiresApproval({ sideEffecting: true, influencedBy: [provenance("tool", "disk_free")] }),
     ).toBe(false);
+  });
+});
+
+describe("TaintError", () => {
+  it("is throwable with correct name and message", () => {
+    const error = new TaintError("tainted input blocked");
+    expect(error.name).toBe("TaintError");
+    expect(error.message).toBe("tainted input blocked");
+    expect(error).toBeInstanceOf(Error);
+  });
+
+  it("can be caught in a try/catch", () => {
+    try {
+      throw new TaintError("side-effect gated");
+    } catch (err) {
+      expect(err).toBeInstanceOf(TaintError);
+      expect((err as TaintError).name).toBe("TaintError");
+      expect((err as TaintError).message).toBe("side-effect gated");
+      return;
+    }
+    expect.unreachable("should have thrown");
   });
 });
