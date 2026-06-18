@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import type { CronJob, CronJobCreate } from "./types.js";
+import type { CronPersistence } from "./store.js";
 
 export type OnTickCallback = (job: CronJob) => Promise<void>;
 
@@ -7,9 +8,11 @@ export class CronScheduler {
   private jobs = new Map<string, CronJob>();
   private tasks = new Map<string, cron.ScheduledTask>();
   private readonly onTick: OnTickCallback | undefined;
+  private readonly store: CronPersistence | undefined;
 
-  constructor(onTick?: OnTickCallback) {
-    this.onTick = onTick;
+  constructor(opts?: { onTick?: OnTickCallback; store?: CronPersistence }) {
+    this.onTick = opts?.onTick;
+    this.store = opts?.store;
   }
 
   async schedule(input: CronJobCreate): Promise<CronJob> {
@@ -36,6 +39,9 @@ export class CronScheduler {
         const updated = this.jobs.get(job.id);
         if (!updated) return;
         updated.lastRun = new Date().toISOString();
+        if (this.store) {
+          this.store.update(updated);
+        }
         if (this.onTick) {
           await this.onTick(updated);
         }
@@ -44,6 +50,9 @@ export class CronScheduler {
     }
 
     this.jobs.set(id, job);
+    if (this.store) {
+      this.store.save(job);
+    }
     return { ...job };
   }
 
@@ -58,6 +67,31 @@ export class CronScheduler {
       this.tasks.delete(id);
     }
     const deleted = this.jobs.delete(id);
+    if (deleted && this.store) {
+      this.store.remove(id);
+    }
     return deleted;
+  }
+
+  async restore(): Promise<void> {
+    if (!this.store) return;
+    const jobs = this.store.loadAll();
+    for (const job of jobs) {
+      this.jobs.set(job.id, job);
+      if (job.enabled) {
+        const task = cron.schedule(job.cron, async () => {
+          const updated = this.jobs.get(job.id);
+          if (!updated) return;
+          updated.lastRun = new Date().toISOString();
+          if (this.store) {
+            this.store.update(updated);
+          }
+          if (this.onTick) {
+            await this.onTick(updated);
+          }
+        });
+        this.tasks.set(job.id, task);
+      }
+    }
   }
 }

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@openjarvis/core": "*",
+    "@openjarvis/state": "*",
     "node-cron": "^3.0.0",
     "zod": "^3.23.0"
   },
