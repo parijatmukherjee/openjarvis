@@ -14,11 +14,6 @@ function mockExec(stdout: string, stderr = "") {
   return vi.fn().mockResolvedValue({ stdout, stderr });
 }
 
-function mockExecError(message: string) {
-  const error = new Error(message);
-  return vi.fn().mockRejectedValue(error);
-}
-
 describe("OpClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();

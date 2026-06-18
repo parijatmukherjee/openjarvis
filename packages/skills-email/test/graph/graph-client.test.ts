@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GraphEmailClient } from "../../src/graph/graph-client.js";
-import type { EmailFolder, EmailMessage, EmailDraft } from "../../src/types.js";
+import type { EmailMessage, EmailDraft } from "../../src/types.js";
 
 const mockGetToken = vi.fn<() => Promise<string>>().mockResolvedValue("tok-123");
 const mockFetch = vi.fn();

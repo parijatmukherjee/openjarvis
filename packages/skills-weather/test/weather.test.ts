@@ -155,7 +155,7 @@ describe("weather_current", () => {
     const data = mockWttrResponse({ nearest_area: undefined });
     const fetchMock = mockFetch(data);
     const tool = createWeatherCurrentTool({ fetch: fetchMock });
-    const result = await tool.handler({ location: "Berlin" }, ctx);
+    const result = await tool.handler({ location: "Berlin", units: "C" }, ctx);
     expect(result.location).toBe("Berlin");
   });
 
@@ -163,7 +163,7 @@ describe("weather_current", () => {
     const data = mockWttrResponse({ current_condition: undefined });
     const fetchMock = mockFetch(data);
     const tool = createWeatherCurrentTool({ fetch: fetchMock });
-    await expect(tool.handler({ location: "London" }, ctx)).rejects.toThrow(
+    await expect(tool.handler({ location: "London", units: "C" }, ctx)).rejects.toThrow(
       "no current condition data",
     );
   });
@@ -172,7 +172,7 @@ describe("weather_current", () => {
     const data = mockWttrResponse({ current_condition: [] });
     const fetchMock = mockFetch(data);
     const tool = createWeatherCurrentTool({ fetch: fetchMock });
-    await expect(tool.handler({ location: "London" }, ctx)).rejects.toThrow(
+    await expect(tool.handler({ location: "London", units: "C" }, ctx)).rejects.toThrow(
       "no current condition data",
     );
   });
@@ -195,7 +195,7 @@ describe("weather_forecast", () => {
   it("fetches and parses forecast data", async () => {
     const fetchMock = mockFetch(mockWttrResponse());
     const tool = createWeatherForecastTool({ fetch: fetchMock });
-    const result = await tool.handler({ location: "London", days: 1 }, ctx);
+    const result = await tool.handler({ location: "London", days: 1, units: "C" }, ctx);
     expect(result.location).toBe("London");
     expect(result.forecasts).toHaveLength(1);
     expect(result.forecasts[0].date).toBe("2026-06-18");
@@ -216,14 +216,14 @@ describe("weather_forecast", () => {
   it("returns multiple days of forecast", async () => {
     const fetchMock = mockFetch(mockWttrResponse());
     const tool = createWeatherForecastTool({ fetch: fetchMock });
-    const result = await tool.handler({ location: "London", days: 3 }, ctx);
+    const result = await tool.handler({ location: "London", days: 3, units: "C" }, ctx);
     expect(result.forecasts).toHaveLength(3);
   });
 
-  it("defaults to 1 day forecast", async () => {
+  it("returns 1 day forecast", async () => {
     const fetchMock = mockFetch(mockWttrResponse());
     const tool = createWeatherForecastTool({ fetch: fetchMock });
-    const result = await tool.handler({ location: "London" }, ctx);
+    const result = await tool.handler({ location: "London", units: "C", days: 1 }, ctx);
     expect(result.forecasts).toHaveLength(1);
   });
 
@@ -258,7 +258,7 @@ describe("weather_forecast", () => {
     const data = mockWttrResponse({ weather: undefined });
     const fetchMock = mockFetch(data);
     const tool = createWeatherForecastTool({ fetch: fetchMock });
-    const result = await tool.handler({ location: "London" }, ctx);
+    const result = await tool.handler({ location: "London", units: "C", days: 1 }, ctx);
     expect(result.forecasts).toEqual([]);
   });
 
@@ -288,7 +288,7 @@ describe("weather_forecast", () => {
     };
     const fetchMock = mockFetch(data);
     const tool = createWeatherForecastTool({ fetch: fetchMock });
-    const result = await tool.handler({ location: "London" }, ctx);
+    const result = await tool.handler({ location: "London", units: "C", days: 1 }, ctx);
     expect(result.forecasts).toHaveLength(1);
     expect(result.forecasts[0].description).toBe("");
     expect(result.forecasts[0].chanceOfRain).toBe(0);
@@ -312,7 +312,7 @@ describe("weather_forecast", () => {
     };
     const fetchMock = mockFetch(data);
     const tool = createWeatherCurrentTool({ fetch: fetchMock });
-    const result = await tool.handler({ location: "London" }, ctx);
+    const result = await tool.handler({ location: "London", units: "C" }, ctx);
     expect(result.description).toBe("");
   });
 });

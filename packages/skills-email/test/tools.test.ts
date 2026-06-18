@@ -7,8 +7,8 @@ import {
   createEmailDraftTool,
   createEmailSendTool,
   registerEmailTools,
-  type EmailToolClients,
 } from "../src/tools.js";
+import type { EmailToolClients } from "../src/types.js";
 
 const ctx = { agentId: "test-agent" };
 
@@ -72,14 +72,14 @@ describe("createEmailSearchTool", () => {
   it("calls gmail search when provider is gmail", async () => {
     const clients = makeClients();
     const tool = createEmailSearchTool(clients);
-    await tool.handler({ provider: "gmail", query: "from:alice" }, ctx);
+    await tool.handler({ provider: "gmail", query: "from:alice", folder: "INBOX", limit: 10 }, ctx);
     expect(clients.gmail!.search).toHaveBeenCalledWith("from:alice");
   });
 
   it("calls graph search when provider is graph", async () => {
     const clients = makeClients();
     const tool = createEmailSearchTool(clients);
-    await tool.handler({ provider: "graph", query: "project update" }, ctx);
+    await tool.handler({ provider: "graph", query: "project update", folder: "INBOX", limit: 10 }, ctx);
     expect(clients.graph!.search).toHaveBeenCalledWith("project update");
   });
 });
@@ -94,14 +94,14 @@ describe("createEmailReadTool", () => {
   it("calls getMessage when messageId is provided", async () => {
     const clients = makeClients();
     const tool = createEmailReadTool(clients);
-    await tool.handler({ provider: "gmail", messageId: "42" }, ctx);
+    await tool.handler({ provider: "gmail", messageId: "42", folder: "INBOX", limit: 20 }, ctx);
     expect(clients.gmail!.getMessage).toHaveBeenCalledWith("42");
   });
 
   it("calls listMessages when no messageId is provided", async () => {
     const clients = makeClients();
     const tool = createEmailReadTool(clients);
-    await tool.handler({ provider: "gmail", folder: "INBOX" }, ctx);
+    await tool.handler({ provider: "gmail", folder: "INBOX", limit: 20 }, ctx);
     expect(clients.gmail!.listMessages).toHaveBeenCalledWith("INBOX", expect.any(Object));
   });
 });
@@ -206,7 +206,7 @@ describe("registerEmailTools", () => {
   it("throws when gmail provider not configured", async () => {
     const clients: EmailToolClients = { gmail: undefined, graph: makeClients().graph };
     const tool = createEmailSearchTool(clients);
-    await expect(tool.handler({ provider: "gmail", query: "test" }, ctx)).rejects.toThrow(
+    await expect(tool.handler({ provider: "gmail", query: "test", folder: "INBOX", limit: 10 }, ctx)).rejects.toThrow(
       "gmail provider not configured",
     );
   });
@@ -214,7 +214,7 @@ describe("registerEmailTools", () => {
   it("throws when graph provider not configured", async () => {
     const clients: EmailToolClients = { gmail: makeClients().gmail, graph: undefined };
     const tool = createEmailSearchTool(clients);
-    await expect(tool.handler({ provider: "graph", query: "test" }, ctx)).rejects.toThrow(
+    await expect(tool.handler({ provider: "graph", query: "test", folder: "INBOX", limit: 10 }, ctx)).rejects.toThrow(
       "graph provider not configured",
     );
   });
@@ -222,7 +222,7 @@ describe("registerEmailTools", () => {
   it("throws when gmail provider not configured in email_read", async () => {
     const clients: EmailToolClients = { gmail: undefined, graph: makeClients().graph };
     const tool = createEmailReadTool(clients);
-    await expect(tool.handler({ provider: "gmail" }, ctx)).rejects.toThrow(
+    await expect(tool.handler({ provider: "gmail", folder: "INBOX", limit: 20 }, ctx)).rejects.toThrow(
       "gmail provider not configured",
     );
   });
@@ -230,7 +230,7 @@ describe("registerEmailTools", () => {
   it("throws when graph provider not configured in email_read", async () => {
     const clients: EmailToolClients = { gmail: makeClients().gmail, graph: undefined };
     const tool = createEmailReadTool(clients);
-    await expect(tool.handler({ provider: "graph", messageId: "1" }, ctx)).rejects.toThrow(
+    await expect(tool.handler({ provider: "graph", messageId: "1", folder: "INBOX", limit: 20 }, ctx)).rejects.toThrow(
       "graph provider not configured",
     );
   });
@@ -347,14 +347,14 @@ describe("createEmailReadTool branches", () => {
   it("reads message by id using graph provider", async () => {
     const clients = makeClients();
     const tool = createEmailReadTool(clients);
-    await tool.handler({ provider: "graph", messageId: "g1" }, ctx);
+    await tool.handler({ provider: "graph", messageId: "g1", folder: "INBOX", limit: 20 }, ctx);
     expect(clients.graph!.getMessage).toHaveBeenCalledWith("g1");
   });
 
   it("reads message by id using gmail provider", async () => {
     const clients = makeClients();
     const tool = createEmailReadTool(clients);
-    await tool.handler({ provider: "gmail", messageId: "1" }, ctx);
+    await tool.handler({ provider: "gmail", messageId: "1", folder: "INBOX", limit: 20 }, ctx);
     expect(clients.gmail!.getMessage).toHaveBeenCalledWith("1");
   });
 
@@ -365,10 +365,10 @@ describe("createEmailReadTool branches", () => {
     expect(clients.gmail!.listMessages).toHaveBeenCalledWith("INBOX", { limit: 5 });
   });
 
-  it("lists messages with default options when no limit", async () => {
+  it("lists messages with default limit of 20", async () => {
     const clients = makeClients();
     const tool = createEmailReadTool(clients);
-    await tool.handler({ provider: "gmail", folder: "INBOX" }, ctx);
-    expect(clients.gmail!.listMessages).toHaveBeenCalledWith("INBOX", {});
+    await tool.handler({ provider: "gmail", folder: "INBOX", limit: 20 }, ctx);
+    expect(clients.gmail!.listMessages).toHaveBeenCalledWith("INBOX", { limit: 20 });
   });
 });
