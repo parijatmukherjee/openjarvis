@@ -36,6 +36,7 @@ export class DesktopStore {
       const parsed = JSON.parse(text) as unknown;
       const result = schema.safeParse(parsed);
       if (result.success) return result.data;
+      console.warn(`[DesktopStore] Schema validation failed for ${file}, using defaults`);
       return fallback;
     } catch (err) {
       if (this.isEnoent(err)) return fallback;

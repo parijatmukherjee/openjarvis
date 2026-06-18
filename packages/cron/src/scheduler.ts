@@ -83,22 +83,26 @@ export class CronScheduler {
     for (const job of jobs) {
       this.jobs.set(job.id, job);
       if (job.enabled) {
-        const task = cron.schedule(job.cron, async () => {
-          const updated = this.jobs.get(job.id);
-          if (!updated) return;
-          updated.lastRun = new Date().toISOString();
-          if (this.store) {
-            await this.store.update(updated);
-          }
-          if (this.onTick) {
-            try {
-              await this.onTick(updated);
-            } catch {
-              void 0;
+        try {
+          const task = cron.schedule(job.cron, async () => {
+            const updated = this.jobs.get(job.id);
+            if (!updated) return;
+            updated.lastRun = new Date().toISOString();
+            if (this.store) {
+              await this.store.update(updated);
             }
-          }
-        });
-        this.tasks.set(job.id, task);
+            if (this.onTick) {
+              try {
+                await this.onTick(updated);
+              } catch {
+                void 0;
+              }
+            }
+          });
+          this.tasks.set(job.id, task);
+        } catch {
+          continue;
+        }
       }
     }
   }

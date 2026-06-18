@@ -37,18 +37,26 @@ export class PlaywrightBrowserAutomation implements BrowserAutomation {
   private pages = new Map<string, import("playwright").Page>();
   private activeTabId: string | undefined;
   private readonly launchOptions: LaunchOptions | undefined;
+  private initPromise: Promise<import("playwright").Browser> | undefined;
 
   constructor(options?: { launchOptions?: LaunchOptions }) {
     this.launchOptions = options?.launchOptions;
   }
 
   private async ensureBrowser(tabId?: string): Promise<import("playwright").Page> {
-    if (!this.browser) {
+    if (!this.browser && !this.initPromise) {
       const { chromium } = await import("playwright");
-      this.browser = await chromium.launch(this.launchOptions);
+      this.initPromise = chromium.launch(this.launchOptions);
     }
+    try {
+      this.browser = await this.initPromise;
+    } catch {
+      this.initPromise = undefined;
+      throw new Error("Failed to launch browser");
+    }
+    this.initPromise = undefined;
     if (!this.context) {
-      this.context = await this.browser.newContext();
+      this.context = await this.browser!.newContext();
     }
     if (tabId !== undefined) {
       const page = this.pages.get(tabId);

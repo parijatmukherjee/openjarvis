@@ -86,43 +86,62 @@ export class NotionClient {
     path: string,
     body?: Record<string, unknown>,
   ): Promise<unknown> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const maxAttempts = 3;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
-    try {
-      const init: RequestInit = {
-        method,
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          "Notion-Version": NOTION_VERSION,
-          "Content-Type": "application/json",
-        },
-        signal: controller.signal,
-      };
-      if (body !== undefined) {
-        init.body = JSON.stringify(body);
-      }
+      try {
+        const init: RequestInit = {
+          method,
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+            "Notion-Version": NOTION_VERSION,
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
+        };
+        if (body !== undefined) {
+          init.body = JSON.stringify(body);
+        }
 
-      const response = await this.doFetch(`${NOTION_API_BASE}${path}`, init);
+        const response = await this.doFetch(`${NOTION_API_BASE}${path}`, init);
 
-      if (response.status === 401) {
-        throw new Error("Notion API: unauthorized (invalid token)");
-      }
-      if (response.status === 404) {
-        throw new Error("Notion API: not found");
-      }
-      if (response.status === 429) {
-        throw new Error("Notion API: rate limited");
-      }
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(`Notion API: HTTP ${response.status} ${text}`);
-      }
+        if (response.status === 401) {
+          throw new Error("Notion API: unauthorized (invalid token)");
+        }
+        if (response.status === 404) {
+          throw new Error("Notion API: not found");
+        }
+        if (response.status === 429) {
+          if (attempt >= maxAttempts - 1) {
+            throw new Error("Notion API: rate limited");
+          }
+          const retryAfter = response.headers.get("Retry-After");
+          const delay = retryAfter ? Number(retryAfter) * 1000 : 1000;
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        if (response.status >= 500) {
+          if (attempt < maxAttempts - 1) {
+            const backoff = Math.pow(2, attempt) * 1000;
+            await new Promise((r) => setTimeout(r, backoff));
+            continue;
+          }
+          const text = await response.text().catch(() => "");
+          throw new Error(`Notion API: HTTP ${response.status} ${text}`);
+        }
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(`Notion API: HTTP ${response.status} ${text}`);
+        }
 
-      return (await response.json()) as unknown;
-    } finally {
-      clearTimeout(timer);
+        return (await response.json()) as unknown;
+      } finally {
+        clearTimeout(timer);
+      }
     }
+    throw new Error("Notion API: max retries exceeded");
   }
 
   private mapPage(raw: unknown): NotionPage {
