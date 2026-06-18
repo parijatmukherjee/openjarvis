@@ -16,7 +16,9 @@ export type CapabilityName =
   | "email:send"
   | "weather:read"
   | "calendar:read"
-  | "calendar:write";
+  | "calendar:write"
+  | "notion:read"
+  | "notion:write";
 
 export interface Capability {
   name: CapabilityName;
