@@ -347,17 +347,29 @@ describe("GraphEmailClient", () => {
     });
 
     it("handles API error without error.message", async () => {
-      mockFetch.mockResolvedValueOnce({
+      vi.useFakeTimers();
+
+      const serverErrorResponse = {
         ok: false,
         status: 500,
         statusText: "Internal Server Error",
         json: async () => ({}),
-      });
+      };
+
+      mockFetch
+        .mockResolvedValueOnce(serverErrorResponse)
+        .mockResolvedValueOnce(serverErrorResponse)
+        .mockResolvedValueOnce(serverErrorResponse)
+        .mockResolvedValueOnce(serverErrorResponse);
 
       const client = createClient();
-      await expect(client.listFolders()).rejects.toThrow(
-        "Graph API GET /me/mailFolders failed: 500 Internal Server Error",
-      );
+      const promise = client.listFolders();
+      const assertion = expect(promise).rejects.toThrow("500 server error after 3 retries");
+
+      await vi.runAllTimersAsync();
+      await assertion;
+
+      vi.useRealTimers();
     });
 
     it("handles folder without unreadItemCount", async () => {

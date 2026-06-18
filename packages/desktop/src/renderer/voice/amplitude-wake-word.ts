@@ -20,6 +20,8 @@ export class AmplitudeWakeWordEngine {
   private monitoring = false;
   private lastAmplitude = 0;
   private respondState = false;
+  private cooldown = false;
+  private cooldownTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(config: AmplitudeWakeWordConfig) {
     this.threshold = config.threshold ?? 0.15;
@@ -50,10 +52,13 @@ export class AmplitudeWakeWordEngine {
         if (this.sustainedSince === null) {
           this.sustainedSince = now;
         } else if (now - this.sustainedSince >= this.sustainedMs) {
+          if (this.cooldown) return;
           if (this.wakeCallback) {
             this.wakeCallback();
           }
           this.sustainedSince = null;
+          this.cooldown = true;
+          this.cooldownTimer = setTimeout(() => { this.cooldown = false; }, 1000);
         }
       } else {
         this.sustainedSince = null;
@@ -66,6 +71,11 @@ export class AmplitudeWakeWordEngine {
     this.monitoring = false;
     this.wakeCallback = null;
     this.sustainedSince = null;
+    this.cooldown = false;
+    if (this.cooldownTimer) {
+      clearTimeout(this.cooldownTimer);
+      this.cooldownTimer = null;
+    }
     if (this.unsubscribeAmplitude) {
       this.unsubscribeAmplitude();
       this.unsubscribeAmplitude = null;

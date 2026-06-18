@@ -92,9 +92,12 @@ export class DiscordGateway {
   }
 
   private async fetchGatewayUrl(): Promise<string> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
     try {
       const res = await fetch("https://discord.com/api/v10/gateway/bot", {
         headers: { Authorization: `Bot ${this.config.token}` },
+        signal: controller.signal,
       });
       if (res.ok) {
         const body = (await res.json()) as { url?: string };
@@ -104,6 +107,8 @@ export class DiscordGateway {
       }
     } catch {
       void 0;
+    } finally {
+      clearTimeout(timeoutId);
     }
     return DEFAULT_GATEWAY_URL;
   }
@@ -114,6 +119,7 @@ export class DiscordGateway {
 
     this.ws.on("open", () => {
       this.backoffMs = INITIAL_BACKOFF_MS;
+      this.reconnecting = false;
     });
 
     this.ws.on("message", (data: Buffer) => {

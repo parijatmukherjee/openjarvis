@@ -113,7 +113,7 @@ export class InProcessAgentPool implements AgentPool {
           id: "web",
           name: "Web Agent",
           role: "web",
-          capabilities: ["web:fetch", "document:convert"],
+          capabilities: ["web:fetch", "web:browse", "document:convert"],
           active: true,
         },
       ],

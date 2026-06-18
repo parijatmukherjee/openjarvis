@@ -1,7 +1,7 @@
 import type { Synthesizer, Synthesis } from "../synthesis.js";
 import type { Intent } from "../intent.js";
 import type { JarvisContext } from "../context.js";
-import type { AgentResult } from "../agents/delegator.js";
+import type { DelegatorResult } from "../agents/delegator.js";
 
 /**
  * Simple rule-based synthesizer for v1.
@@ -13,7 +13,7 @@ import type { AgentResult } from "../agents/delegator.js";
  */
 export class SimpleSynthesizer implements Synthesizer {
   async synthesize(
-    results: AgentResult[],
+    results: DelegatorResult[],
     originalIntent: Intent,
     _context: JarvisContext,
   ): Promise<Synthesis> {

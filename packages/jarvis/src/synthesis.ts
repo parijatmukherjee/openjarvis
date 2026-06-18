@@ -1,10 +1,10 @@
 import type { Intent } from "./intent.js";
 import type { JarvisContext } from "./context.js";
-import type { AgentResult } from "./agents/delegator.js";
+import type { DelegatorResult } from "./agents/delegator.js";
 
 export interface Synthesizer {
   synthesize(
-    results: AgentResult[],
+    results: DelegatorResult[],
     originalIntent: Intent,
     context: JarvisContext,
   ): Promise<Synthesis>;

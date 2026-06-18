@@ -4,7 +4,7 @@ import type {
   VisualResolverConfig,
   Intent,
   JarvisContext,
-  AgentResult,
+  DelegatorResult,
   VisualCommand,
 } from "../src/index.js";
 
@@ -16,7 +16,7 @@ describe("VisualResolver interface", () => {
 
   it("resolve accepts correct parameters and returns VisualCommand[]", () => {
     expectTypeOf<VisualResolver["resolve"]>().parameters.toEqualTypeOf<
-      [Intent, AgentResult[], JarvisContext]
+      [Intent, DelegatorResult[], JarvisContext]
     >();
     expectTypeOf<VisualResolver["resolve"]>().returns.toEqualTypeOf<VisualCommand[]>();
   });

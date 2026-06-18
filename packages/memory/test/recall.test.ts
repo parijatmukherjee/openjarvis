@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   toMatchQuery,
+  escapeFts5Token,
   decay,
   scoreCandidate,
   rankCandidates,
@@ -27,9 +28,19 @@ function frag(over: Partial<Fragment>): Fragment {
   };
 }
 
+describe("escapeFts5Token", () => {
+  it("wraps tokens in double quotes", () => {
+    expect(escapeFts5Token("hello")).toBe('"hello"');
+  });
+
+  it("escapes internal double quotes", () => {
+    expect(escapeFts5Token('say "hi"')).toBe('"say ""hi"""');
+  });
+});
+
 describe("toMatchQuery", () => {
   it("lowercases, extracts word tokens, dedupes, and ORs them for FTS5", () => {
-    expect(toMatchQuery("How much DISK space is free? disk")).toBe("disk OR space OR free");
+    expect(toMatchQuery("How much DISK space is free? disk")).toBe('"disk" OR "space" OR "free"');
   });
 
   it("returns null when there are no usable tokens", () => {

@@ -35,39 +35,54 @@ export class GraphEmailClient {
     throw new Error("Use GraphOAuth instead");
   }
 
-  private async graphGet(path: string): Promise<unknown> {
-    const token = await this.getToken();
-    const url = `${BASE_URL}${path}`;
-    const maxRetries = 3;
-
+  private async requestWithRetry(
+    url: string,
+    init: RequestInit & { method?: string },
+    maxRetries = 3,
+  ): Promise<Response> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const res = await this.fetchImpl(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await this.fetchImpl(url, init);
 
       if (res.status === 429) {
         if (attempt >= maxRetries) {
-          throw new Error(`Graph API GET ${path}: too many 429 responses`);
+          throw new Error(`Graph API ${init.method ?? "GET"} ${url}: too many 429 responses`);
         }
         const retryAfter = res.headers.get("Retry-After");
-        const delay = retryAfter ? Number(retryAfter) * 1000 : 1000;
+        const delay = retryAfter ? Number(retryAfter) * 1000 : 1000 * Math.pow(2, attempt);
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
 
-      if (!res.ok) {
-        let message: string;
-        try {
-          const body = (await res.json()) as { error?: { message?: string } };
-          message = body?.error?.message ?? res.statusText;
-        } catch {
-          message = res.statusText;
+      if (res.status >= 500 && res.status < 600) {
+        if (attempt >= maxRetries) {
+          throw new Error(`Graph API ${init.method ?? "GET"} ${url}: ${res.status} server error after ${maxRetries} retries`);
         }
-        throw new Error(`Graph API GET ${path} failed: ${res.status} ${message}`);
+        await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        continue;
       }
 
-      return res.json();
+      return res;
     }
+    throw new Error("unreachable");
+  }
+
+  private async graphGet(path: string): Promise<unknown> {
+    const token = await this.getToken();
+    const url = `${BASE_URL}${path}`;
+    const res = await this.requestWithRetry(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      let message: string;
+      try {
+        const body = (await res.json()) as { error?: { message?: string } };
+        message = body?.error?.message ?? res.statusText;
+      } catch {
+        message = res.statusText;
+      }
+      throw new Error(`Graph API GET ${path} failed: ${res.status} ${message}`);
+    }
+    return res.json();
   }
 
   private mapMessage(msg: Record<string, unknown>): EmailMessage {
@@ -153,7 +168,7 @@ export class GraphEmailClient {
     const token = await this.getToken();
     const payload = this.buildSendMailBody(draft);
 
-    const res = await this.fetchImpl(`${BASE_URL}/me/sendMail`, {
+    const res = await this.requestWithRetry(`${BASE_URL}/me/sendMail`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

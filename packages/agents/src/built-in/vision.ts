@@ -1,4 +1,4 @@
-import type { AgentResult } from "@openjarvis/jarvis";
+import type { DelegatorResult } from "@openjarvis/jarvis";
 import type { DetectedObject, PresenceState } from "@openjarvis/jarvis";
 
 export interface VisionAgent {
@@ -15,7 +15,7 @@ export interface VisionContext {
   presenceState: PresenceState;
 }
 
-export interface VisionAgentResult extends AgentResult {
+export interface VisionAgentResult extends DelegatorResult {
   output: {
     summary: string;
     objects: DetectedObject[];
@@ -52,7 +52,7 @@ export class MockVisionAgent implements VisionAgent {
       agentName: "VisionAgent",
       output: { summary, objects, presence: context.presenceState },
       success: true,
-      auditEntry: {} as AgentResult["auditEntry"],
+      auditEntry: {} as DelegatorResult["auditEntry"],
     };
   }
 }
