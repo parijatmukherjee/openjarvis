@@ -27,7 +27,7 @@ export interface WSLike {
 
 const CLOSED = 3;
 const DEFAULT_GATEWAY_URL = "wss://gateway.discord.gg/?v=10&encoding=json";
-const INTENTS = 32767;
+const INTENTS = (1 << 0) | (1 << 9) | (1 << 12) | (1 << 15);
 const INITIAL_BACKOFF_MS = 1000;
 const MAX_BACKOFF_MS = 60000;
 const JITTER_FACTOR = 0.25;
@@ -46,6 +46,7 @@ export class DiscordGateway {
   private gatewayUrl: string | null = null;
   private reconnecting = false;
   private stopped = false;
+  private heartbeatAcked = false;
   private messageHandlers: Set<MessageHandler> = new Set();
   private dispatchHandlers: Set<DispatchHandler> = new Set();
 
@@ -146,6 +147,7 @@ export class DiscordGateway {
         this.handleHello(payload.d as HelloData);
         break;
       case GatewayOP.HEARTBEAT_ACK:
+        this.heartbeatAcked = true;
         break;
       case GatewayOP.RECONNECT:
         this.scheduleReconnect();
@@ -197,7 +199,13 @@ export class DiscordGateway {
 
   private startHeartbeat(intervalMs: number): void {
     this.stopHeartbeat();
+    this.heartbeatAcked = true;
     this.heartbeatTimer = setInterval(() => {
+      if (!this.heartbeatAcked) {
+        this.scheduleReconnect();
+        return;
+      }
+      this.heartbeatAcked = false;
       this.sendHeartbeat();
     }, intervalMs);
   }

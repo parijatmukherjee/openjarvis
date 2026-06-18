@@ -96,7 +96,33 @@ export class PlaywrightBrowserAutomation implements BrowserAutomation {
   async accessibility(tabId?: string): Promise<AccessibilityNode> {
     const page = await this.ensureBrowser(tabId);
     const snapshot = await page.ariaSnapshot();
-    return { role: "page", value: snapshot };
+    return this.parseAriaSnapshot(snapshot);
+  }
+
+  private parseAriaSnapshot(snapshot: string): AccessibilityNode {
+    const lines = snapshot.split("\n");
+    const root: AccessibilityNode = { role: "page", children: [] };
+    const stack: { node: AccessibilityNode; indent: number }[] = [
+      { node: root, indent: -1 },
+    ];
+
+    for (const line of lines) {
+      const indent = line.search(/\S/);
+      if (indent === -1) continue;
+      const text = line.trimStart();
+      const match = text.match(/^(\S+)\s+"(.*)"/u);
+      if (!match) continue;
+      const node: AccessibilityNode = { role: match[1], name: match[2] };
+      while (stack.length > 1 && stack[stack.length - 1]!.indent >= indent) {
+        stack.pop();
+      }
+      const parent = stack[stack.length - 1]!;
+      if (!parent.node.children) parent.node.children = [];
+      parent.node.children.push(node);
+      stack.push({ node, indent });
+    }
+
+    return root;
   }
 
   async getCookies(): Promise<
