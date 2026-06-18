@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@openjarvis/core": "*",
-    "@openjarvis/jarvis": "*"
+    "@openjarvis/jarvis": "*",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

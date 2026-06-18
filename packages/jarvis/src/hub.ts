@@ -166,6 +166,11 @@ export class JarvisHub {
           );
         }
         break;
+      case "highlight":
+        if (this.cfg.displayManager.highlight) {
+          await this.cfg.displayManager.highlight(cmd.element, cmd.monitor?.toString());
+        }
+        break;
     }
   }
 

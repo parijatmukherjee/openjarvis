@@ -96,6 +96,28 @@ describe("RuleBasedRouter", () => {
     expect(plan.primary?.required).toBe(true);
   });
 
+  it("routes 'get_calendar' intent to calendar agent", () => {
+    const intent: Intent = {
+      action: "get_calendar",
+      params: {},
+      confidence: 0.85,
+      ambiguous: false,
+    };
+    const plan = router.route(intent, context);
+    expect(plan.primary?.agentId).toBe("calendar");
+  });
+
+  it("routes 'set_reminder' intent to cron agent", () => {
+    const intent: Intent = {
+      action: "set_reminder",
+      params: {},
+      confidence: 0.85,
+      ambiguous: false,
+    };
+    const plan = router.route(intent, context);
+    expect(plan.primary?.agentId).toBe("cron");
+  });
+
   it("routes unknown intent to general agent", () => {
     const intent: Intent = { action: "unknown", params: {}, confidence: 0.3, ambiguous: true };
     const plan = router.route(intent, context);

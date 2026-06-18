@@ -64,6 +64,7 @@ export class DiscordGateway {
 
   async start(): Promise<void> {
     this.stopped = false;
+    this.reconnecting = false;
     this.gatewayUrl = await this.urlResolver();
     this.connect(this.gatewayUrl);
   }

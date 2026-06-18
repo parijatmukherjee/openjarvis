@@ -62,6 +62,12 @@ export class GraphCalendarClient {
         continue;
       }
 
+      if (res.status >= 500 && attempt < maxRetries) {
+        const backoff = Math.pow(2, attempt) * 100;
+        await new Promise((r) => setTimeout(r, backoff));
+        continue;
+      }
+
       if (!res.ok) {
         if (res.status === 404) {
           throw new Error(`Graph Calendar API ${method} ${path} failed: 404 Not found`);

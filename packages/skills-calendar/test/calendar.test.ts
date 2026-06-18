@@ -255,18 +255,20 @@ describe("GraphCalendarClient", () => {
     });
 
     it("handles API errors without error.message", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-        json: async () => ({}),
-      });
+      for (let i = 0; i < 4; i++) {
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          statusText: "Internal Server Error",
+          json: async () => ({}),
+        });
+      }
 
       const client = createClient();
       await expect(client.listCalendars()).rejects.toThrow(
         "Graph Calendar API GET /me/calendars failed: 500 Internal Server Error",
       );
-    });
+    }, 10_000);
 
     it("handles network errors", async () => {
       mockFetch.mockRejectedValueOnce(new Error("Network error"));
