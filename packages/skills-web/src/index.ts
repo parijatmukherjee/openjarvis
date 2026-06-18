@@ -2,13 +2,31 @@ export { createWebFetchTool, registerWebFetchTools, type WebFetchConfig } from "
 export {
   createBrowserNavigateTool,
   createBrowserClickTool,
+  createBrowserTypeTool,
   createBrowserScreenshotTool,
+  createBrowserAccessibilityTool,
+  createBrowserListTabsTool,
+  createBrowserSwitchTabTool,
+  createBrowserCloseTabTool,
   registerBrowserTools,
   type BrowserNavigateArgs,
   type BrowserNavigateResult,
   type BrowserClickArgs,
   type BrowserClickResult,
+  type BrowserTypeArgs,
+  type BrowserTypeResult,
   type BrowserScreenshotArgs,
   type BrowserScreenshotResult,
+  type BrowserAccessibilityArgs,
+  type BrowserAccessibilityResult,
+  type BrowserSwitchTabArgs,
+  type BrowserSwitchTabResult,
+  type BrowserCloseTabArgs,
+  type BrowserCloseTabResult,
 } from "./browser-tools.js";
-export { PlaywrightBrowserAutomation, type BrowserAutomation } from "./browser.js";
+export {
+  PlaywrightBrowserAutomation,
+  type BrowserAutomation,
+  type AccessibilityNode,
+  type TabInfo,
+} from "./browser.js";

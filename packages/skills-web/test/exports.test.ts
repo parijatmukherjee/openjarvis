@@ -12,7 +12,12 @@ describe("@openjarvis/skills-web exports", () => {
     const mod = await import("../src/index.js");
     expect(mod.createBrowserNavigateTool).toBeTypeOf("function");
     expect(mod.createBrowserClickTool).toBeTypeOf("function");
+    expect(mod.createBrowserTypeTool).toBeTypeOf("function");
     expect(mod.createBrowserScreenshotTool).toBeTypeOf("function");
+    expect(mod.createBrowserAccessibilityTool).toBeTypeOf("function");
+    expect(mod.createBrowserListTabsTool).toBeTypeOf("function");
+    expect(mod.createBrowserSwitchTabTool).toBeTypeOf("function");
+    expect(mod.createBrowserCloseTabTool).toBeTypeOf("function");
     expect(mod.registerBrowserTools).toBeTypeOf("function");
     expect(mod.PlaywrightBrowserAutomation).toBeTypeOf("function");
   });
