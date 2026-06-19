@@ -13,6 +13,7 @@ const api = {
   nexusGetTasks: () => ipcRenderer.invoke("nexus:getTasks"),
   nexusGetAgents: () => ipcRenderer.invoke("nexus:getAgents"),
   nexusGetMessages: () => ipcRenderer.invoke("nexus:getMessages"),
+  nexusClearMessages: () => ipcRenderer.invoke("nexus:clearMessages"),
   nexusExecuteIntent: (action: string, params: Record<string, unknown>) =>
     ipcRenderer.invoke("nexus:executeIntent", action, params),
   modelList: (provider: string, baseUrl: string, apiKey?: string) =>

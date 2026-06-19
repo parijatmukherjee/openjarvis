@@ -162,6 +162,11 @@ export function registerIpcHandlers(
   });
 
   ipcMain.handle("nexus:getMessages", async () => {
+    return store.loadMessages();
+  });
+
+  ipcMain.handle("nexus:clearMessages", async () => {
+    await store.clearMessages();
     return [];
   });
 
@@ -169,6 +174,16 @@ export function registerIpcHandlers(
     "nexus:executeIntent",
     async (_event, action: string, params: Record<string, unknown>) => {
       const { engine: eng } = getEngine();
+      const now = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const text = typeof params.text === "string" ? params.text : undefined;
+      if (text) {
+        await store.appendMessage({
+          id: randomUUID(),
+          type: "user",
+          text,
+          timestamp: now(),
+        });
+      }
       try {
         const synthesis = await eng.execute(
           { action, params, confidence: 1, ambiguous: false },
@@ -179,8 +194,22 @@ export function registerIpcHandlers(
             currentTime: new Date(),
           },
         );
+        if (synthesis.spoken) {
+          await store.appendMessage({
+            id: randomUUID(),
+            type: "jarvis",
+            text: synthesis.spoken,
+            timestamp: now(),
+          });
+        }
         return { success: true, spoken: synthesis.spoken, visual: synthesis.visual };
       } catch (err) {
+        await store.appendMessage({
+          id: randomUUID(),
+          type: "system",
+          text: `Error: ${err instanceof Error ? err.message : String(err)}`,
+          timestamp: now(),
+        });
         return { success: false, error: err instanceof Error ? err.message : String(err) };
       }
     },

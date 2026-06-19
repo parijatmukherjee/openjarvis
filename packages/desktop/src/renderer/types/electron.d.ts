@@ -14,6 +14,7 @@ export interface ElectronAPI {
   nexusGetTasks: () => Promise<Task[]>;
   nexusGetAgents: () => Promise<AgentView[]>;
   nexusGetMessages: () => Promise<MessageView[]>;
+  nexusClearMessages: () => Promise<MessageView[]>;
   nexusExecuteIntent: (
     action: string,
     params: Record<string, unknown>,

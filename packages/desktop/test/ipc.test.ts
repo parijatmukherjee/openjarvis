@@ -13,6 +13,9 @@ const mockStore = {
   saveSettings: vi.fn(),
   loadProfile: vi.fn(),
   saveProfile: vi.fn(),
+  loadMessages: vi.fn(),
+  appendMessage: vi.fn(),
+  clearMessages: vi.fn(),
 };
 
 describe("registerIpcHandlers", () => {
@@ -61,5 +64,28 @@ describe("registerIpcHandlers", () => {
     const handler = handlers.get("settings:save")!;
     await handler(null, settings);
     expect(mockStore.saveSettings).toHaveBeenCalledWith(settings);
+  });
+
+  it("registers nexus:clearMessages handler", () => {
+    expect(ipcMain.handle).toHaveBeenCalledWith("nexus:clearMessages", expect.any(Function));
+  });
+
+  it("nexus:getMessages delegates to store.loadMessages", async () => {
+    const messages = [
+      { id: "m-1", type: "user", text: "hi", timestamp: "12:00" },
+      { id: "m-2", type: "jarvis", text: "hello", timestamp: "12:00" },
+    ];
+    mockStore.loadMessages.mockResolvedValue(messages);
+    const handler = handlers.get("nexus:getMessages")!;
+    const result = await handler();
+    expect(mockStore.loadMessages).toHaveBeenCalledOnce();
+    expect(result).toBe(messages);
+  });
+
+  it("nexus:clearMessages delegates to store.clearMessages", async () => {
+    mockStore.clearMessages.mockResolvedValue(undefined);
+    const handler = handlers.get("nexus:clearMessages")!;
+    await handler();
+    expect(mockStore.clearMessages).toHaveBeenCalledOnce();
   });
 });

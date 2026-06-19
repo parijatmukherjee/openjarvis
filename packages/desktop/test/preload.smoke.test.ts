@@ -34,6 +34,7 @@ describe("preload smoke", () => {
       "nexus:getTasks",
       "nexus:getAgents",
       "nexus:getMessages",
+      "nexus:clearMessages",
       "nexus:executeIntent",
       "model:list",
       "env:getApiKeys",

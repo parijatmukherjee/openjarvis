@@ -89,13 +89,11 @@ export function useSettings(): UseSettingsResult {
   );
 
   const resetSettings = useCallback(() => {
-    setSettings(fallbackSettings);
-    if (api) {
-      api
-        .resetSettings()
-        .then((defaults) => setSettings(defaults))
-        .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
-    }
+    if (!api) return;
+    api
+      .resetSettings()
+      .then((defaults) => setSettings(defaults))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }, [api]);
 
   return {

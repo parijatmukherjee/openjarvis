@@ -83,3 +83,12 @@ export const userProfileSchema = z.object({
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
 export const defaultUserProfile: UserProfile = userProfileSchema.parse({});
+
+export const chatMessageSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(["user", "jarvis", "system"]),
+  text: z.string(),
+  timestamp: z.string(),
+});
+
+export type ChatMessage = z.infer<typeof chatMessageSchema>;
