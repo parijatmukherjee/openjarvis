@@ -2,36 +2,22 @@ import { test, expect } from "../../fixtures/electron-app.js";
 
 test.describe("Completion screen", () => {
   test.beforeEach(async ({ page }) => {
-    await expect(page.getByText(/jarvis/i)).toBeVisible({ timeout: 10_000 });
-    await page.getByRole("button", { name: /initialize/i }).click();
-    await expect(page.getByText(/language|locale/i)).toBeVisible({
-      timeout: 10_000,
-    });
-    await page
-      .getByText(/english/i)
-      .first()
-      .click();
-    await page.getByRole("button", { name: /next/i }).click();
-    await expect(page.getByText(/voice|calibrat/i)).toBeVisible({
-      timeout: 10_000,
-    });
-    await page.getByRole("button", { name: /next|skip|continue/i }).click();
-    await expect(page.getByText(/agent|select/i)).toBeVisible({
-      timeout: 10_000,
-    });
-    await page.getByRole("button", { name: /next|continue|finish/i }).click();
+    await page.locator("[data-testid='onboarding-initialize']").click();
+    await expect(page.getByRole("heading", { name: /language/i })).toBeVisible({ timeout: 10_000 });
+    await page.locator("[data-testid='onboarding-continue']").click();
+    await expect(page.getByRole("heading", { name: /voice calibration/i })).toBeVisible({ timeout: 10_000 });
+    await page.locator("[data-testid='voice-start']").click();
+    await expect(page.locator("[data-testid='voice-continue']")).toBeVisible({ timeout: 15_000 });
+    await page.locator("[data-testid='voice-continue']").click();
+    await page.locator("[data-testid='onboarding-continue']").click();
   });
 
-  test("displays completion/ready screen", async ({ page }) => {
-    await expect(page.getByText(/ready|complete|all set|finished/i)).toBeVisible({
-      timeout: 10_000,
-    });
+  test("displays the Ready screen", async ({ page }) => {
+    await expect(page.getByRole("heading", { name: "Ready" })).toBeVisible({ timeout: 10_000 });
   });
 
   test("clicking Launch Dashboard shows the dashboard", async ({ page }) => {
-    await page.getByRole("button", { name: /launch|dashboard|start|go/i }).click();
-    await expect(page.getByText(/task|agent|conversation|dashboard/i)).toBeVisible({
-      timeout: 10_000,
-    });
+    await page.locator("[data-testid='onboarding-launch']").click();
+    await expect(page.locator("[data-testid='btn-settings']")).toBeVisible({ timeout: 10_000 });
   });
 });

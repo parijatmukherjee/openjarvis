@@ -6,6 +6,7 @@ interface NeonButtonProps {
   onClick?: () => void;
   variant?: "primary" | "secondary";
   disabled?: boolean;
+  "data-testid"?: string;
 }
 
 export function NeonButton({
@@ -13,12 +14,14 @@ export function NeonButton({
   onClick,
   variant = "primary",
   disabled = false,
+  "data-testid": dataTestId,
 }: NeonButtonProps) {
   return (
     <motion.button
       className={`neon-button ${variant === "secondary" ? "bg-opacity-5" : ""}`}
       onClick={onClick}
       disabled={disabled}
+      data-testid={dataTestId}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}

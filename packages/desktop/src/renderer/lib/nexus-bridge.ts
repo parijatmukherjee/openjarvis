@@ -1,16 +1,15 @@
+import { randomUUID } from "node:crypto";
 import type { NexusEngine, TaskBoard, AgentPool } from "@openjarvis/jarvis/nexus";
 import type { EventBus } from "@openjarvis/jarvis";
-import type { CapabilityName } from "@openjarvis/core";
 import type { AgentView, MessageView } from "./nexus-types.js";
 
 export type { AgentView, MessageView };
 export type { NexusBridge } from "./nexus-types.js";
 
-// Factory to create a bridge from a Nexus engine instance
 export function createNexusBridge(
   engine: NexusEngine,
   taskBoard: TaskBoard,
-  _agentPool: AgentPool,
+  agentPool: AgentPool,
   eventBus: EventBus,
 ): import("./nexus-types.js").NexusBridge {
   const messages: MessageView[] = [];
@@ -22,68 +21,17 @@ export function createNexusBridge(
     },
 
     async getAgents() {
-      return [
-        {
-          id: "research",
-          name: "Research",
-          role: "Research",
-          status: "active" as const,
-          description: "Web search and information gathering",
-          capabilities: ["web_search", "summarize"] as CapabilityName[],
-          lastActivity: "2m ago",
-          tasksCompleted: 142,
-        },
-        {
-          id: "system",
-          name: "System",
-          role: "System",
-          status: "busy" as const,
-          description: "System operations and file management",
-          capabilities: ["shell", "fs:read", "fs:write"] as CapabilityName[],
-          lastActivity: "now",
-          tasksCompleted: 89,
-        },
-        {
-          id: "weather",
-          name: "Weather",
-          role: "Data",
-          status: "active" as const,
-          description: "Weather data retrieval and forecasts",
-          capabilities: ["weather:read"] as CapabilityName[],
-          lastActivity: "5m ago",
-          tasksCompleted: 256,
-        },
-        {
-          id: "calendar",
-          name: "Calendar",
-          role: "Data",
-          status: "idle" as const,
-          description: "Calendar events and scheduling",
-          capabilities: ["calendar:read", "calendar:write"] as CapabilityName[],
-          lastActivity: "1h ago",
-          tasksCompleted: 67,
-        },
-        {
-          id: "browser",
-          name: "Browser",
-          role: "Browser",
-          status: "failed" as const,
-          description: "Web browser automation",
-          capabilities: ["web:browse"] as CapabilityName[],
-          lastActivity: "3h ago",
-          tasksCompleted: 34,
-        },
-        {
-          id: "vision",
-          name: "Vision",
-          role: "Vision",
-          status: "active" as const,
-          description: "Visual recognition and screen analysis",
-          capabilities: ["detect_humans", "detect_emotion"] as CapabilityName[],
-          lastActivity: "1m ago",
-          tasksCompleted: 198,
-        },
-      ];
+      const agents = await agentPool.list();
+      return agents.map((a) => ({
+        id: a.id,
+        name: a.name,
+        role: a.role,
+        status: (a.active ? "active" : "idle") as AgentView["status"],
+        description: `${a.role} agent`,
+        capabilities: a.capabilities as AgentView["capabilities"],
+        lastActivity: "—",
+        tasksCompleted: 0,
+      }));
     },
 
     async getMessages() {
@@ -102,8 +50,8 @@ export function createNexusBridge(
         await engine.execute(
           { action, params, confidence: 1, ambiguous: false },
           {
-            sessionId: "desktop-session",
-            userId: "user",
+            sessionId: randomUUID(),
+            userId: "desktop-user",
             recentIntents: [],
             currentTime: new Date(),
           },

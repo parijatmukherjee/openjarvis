@@ -69,6 +69,11 @@ export class DesktopStore {
     await this.writeJson("settings.json", appSettingsSchema.parse(settings));
   }
 
+  async resetSettings(): Promise<AppSettings> {
+    await this.writeJson("settings.json", defaultAppSettings);
+    return defaultAppSettings;
+  }
+
   async loadProfile(): Promise<UserProfile> {
     return this.readJson("profile.json", defaultUserProfile, userProfileSchema);
   }

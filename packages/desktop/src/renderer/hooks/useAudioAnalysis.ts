@@ -41,14 +41,7 @@ export function useAudioAnalysis() {
 
       animationFrameRef.current = requestAnimationFrame(analyze);
     } catch (_err) {
-      // Fallback to mock data if microphone access denied
-      const interval = setInterval(() => {
-        setAudioData(() => ({
-          amplitude: Math.random() * 0.3 + 0.1,
-          isSpeaking: false,
-        }));
-      }, 100);
-      return () => clearInterval(interval);
+      setAudioData({ amplitude: 0, isSpeaking: false });
     }
   }, []);
 

@@ -12,6 +12,10 @@
     "./nexus": {
       "types": "./dist/nexus/index.d.ts",
       "import": "./dist/nexus/index.js"
+    },
+    "./model": {
+      "types": "./dist/model/index.d.ts",
+      "import": "./dist/model/index.js"
     }
   },
   "scripts": {

@@ -1,34 +1,49 @@
 import { useState } from "react";
 import { NexusProvider } from "./contexts/NexusContext";
 import { SettingsProvider } from "./context/SettingsContext";
-import { createMockNexusBridge } from "./lib/mock-nexus-bridge";
+import { createIpcNexusBridge } from "./lib/ipc-nexus-bridge";
 import type { NexusBridge } from "./lib/nexus-types";
 import { OnboardingFlow } from "./components/onboarding/OnboardingFlow";
 import { DashboardLayout } from "./components/dashboard/DashboardLayout";
-import { WindowControls } from "./components/WindowControls";
 import { SettingsPanel } from "./components/SettingsPanel";
 
-export function App() {
-  const [showOnboarding, setShowOnboarding] = useState(true);
+function AppContent() {
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return localStorage.getItem("onboardingComplete") !== "true";
+  });
   const [showSettings, setShowSettings] = useState(false);
-  const bridge = useState(
-    () =>
-      (window as unknown as { __testBridge?: NexusBridge }).__testBridge ??
-      createMockNexusBridge(),
-  )[0];
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem("onboardingComplete", "true");
+    setShowOnboarding(false);
+  };
+
+  return (
+    <div className="relative h-screen w-screen overflow-hidden">
+      <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      {showOnboarding ? (
+        <OnboardingFlow onComplete={handleOnboardingComplete} />
+      ) : (
+        <DashboardLayout onSettings={() => setShowSettings(true)} />
+      )}
+    </div>
+  );
+}
+
+export function App() {
+  const bridge = useState<NexusBridge>(() => {
+    if (window.electronAPI?.nexusExecuteIntent) {
+      return createIpcNexusBridge();
+    }
+    throw new Error(
+      "No NexusBridge available. This app must run inside Electron with the preload script loaded.",
+    );
+  })[0];
 
   return (
     <SettingsProvider>
       <NexusProvider value={bridge}>
-        <div className="relative">
-          <WindowControls onSettings={() => setShowSettings(true)} />
-          <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
-          {showOnboarding ? (
-            <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
-          ) : (
-            <DashboardLayout />
-          )}
-        </div>
+        <AppContent />
       </NexusProvider>
     </SettingsProvider>
   );

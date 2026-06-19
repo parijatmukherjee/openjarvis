@@ -6,6 +6,8 @@ coverage/
 probe-bin
 probe-bin.exe
 .vitest-cache/
+playwright-report/
+test-results/
 *.log
 .DS_Store
 .env

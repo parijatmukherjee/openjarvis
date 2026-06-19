@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MockUser } from "../../../src/e2e/mock-user.js";
+import { MockUser } from "../mock-user.js";
 import type { VisualCommand } from "../../../src/synthesis.js";
 import type { BusEvent } from "../../../src/event-bus.js";
 import type { AuditEntry } from "@openjarvis/core";

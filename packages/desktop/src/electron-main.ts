@@ -24,8 +24,6 @@ export function createMainWindow(): BrowserWindow {
     height: DEFAULT_HEIGHT,
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
-    frame: false,
-    titleBarStyle: "hidden",
     show: false,
     webPreferences: {
       preload: join(__dirname, "preload.js"),
@@ -74,8 +72,8 @@ export async function bootstrap(): Promise<void> {
   await app.whenReady();
 
   const createdStore = initializeStore();
-  registerIpcHandlers(createdStore, ipcMain);
-  registerWindowHandlers(ipcMain, () => BrowserWindow.getFocusedWindow() ?? null);
+  registerIpcHandlers(createdStore, ipcMain, () => mainWindow);
+  registerWindowHandlers(ipcMain, () => mainWindow);
 
   mainWindow = createMainWindow();
   await loadRenderer(mainWindow);

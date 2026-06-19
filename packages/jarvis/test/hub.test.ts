@@ -1,17 +1,11 @@
 import { describe, it, expect } from "vitest";
-import {
-  JarvisHub,
-  MockWakeWordEngine,
-  MockSttEngine,
-  MockTtsEngine,
-  MockDisplayManager,
-  MockDelegator,
-  RuleBasedIntentParser,
-  SimpleSynthesizer,
-  SimpleScheduler,
-  SimpleEventBus,
-  type Delegator,
-} from "../src/index.js";
+import { JarvisHub, RuleBasedIntentParser, SimpleSynthesizer, SimpleScheduler, SimpleEventBus } from "../src/index.js";
+import { MockWakeWordEngine } from "../src/voice/mock-wake-word.js";
+import { MockSttEngine } from "../src/voice/mock-stt.js";
+import { MockTtsEngine } from "../src/voice/mock-tts.js";
+import { MockDisplayManager } from "../src/display/mock.js";
+import { MockDelegator } from "../src/agents/mock-delegator.js";
+import type { Delegator } from "../src/agents/delegator.js";
 
 function defaultPersona() {
   return {

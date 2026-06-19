@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import type { JarvisHub } from "../../src/e2e/mock-user.js";
-import { MockUser } from "../../src/e2e/mock-user.js";
+import type { JarvisHub } from "./mock-user.js";
+import { MockUser } from "./mock-user.js";
 import type { VisualCommand } from "../../src/synthesis.js";
 import type { VisionEvent } from "../../src/vision/events.js";
 import type { BusEvent } from "../../src/event-bus.js";

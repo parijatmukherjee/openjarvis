@@ -1,4 +1,5 @@
 import type { AppSettings, UserProfile } from "../main/schemas.js";
+import type { Task, AgentView, MessageView } from "../renderer/lib/nexus-types.js";
 
 export interface ElectronAPI {
   getSystemLocale: () => Promise<string>;
@@ -7,8 +8,21 @@ export interface ElectronAPI {
   closeWindow: () => Promise<void>;
   getSettings: () => Promise<AppSettings>;
   setSettings: (settings: AppSettings) => Promise<void>;
+  resetSettings: () => Promise<AppSettings>;
   getProfile: () => Promise<UserProfile>;
   setProfile: (profile: UserProfile) => Promise<void>;
+  nexusGetTasks: () => Promise<Task[]>;
+  nexusGetAgents: () => Promise<AgentView[]>;
+  nexusGetMessages: () => Promise<MessageView[]>;
+  nexusExecuteIntent: (action: string, params: Record<string, unknown>) => Promise<{
+    success: boolean;
+    spoken?: string;
+    visual?: unknown[];
+    error?: string;
+  }>;
+  modelList: (provider: string, baseUrl: string, apiKey?: string) => Promise<string[]>;
+  getEnvApiKeys: () => Promise<{ ollamaApiKey: string | null; openaiApiKey: string | null }>;
+  onNexusEvent: (callback: (payload: unknown) => void) => () => void;
 }
 
 declare global {

@@ -2,7 +2,7 @@
 # Single entrypoint for all dev, test, and build commands
 # Usage: make dev | make test | make build | make lint | make format
 
-.PHONY: dev test build lint format format-check coverage install clean docker-test test-e2e help
+.PHONY: dev test build lint format format-check coverage install clean docker-test test-e2e renderer-build help
 
 # Default target
 .DEFAULT_GOAL := help
@@ -50,7 +50,7 @@ help: ## Show this help message
 install: ## Install dependencies
 	npm install
 
-dev: install build ## Start the full application (Electron + backend)
+dev: install build preload-build renderer-build ## Start the full application (Electron + backend)
 	@echo "$(GREEN)Starting OpenJarvis Desktop...$(RESET)"
 	cd packages/desktop && npm run dev
 
@@ -71,9 +71,24 @@ test-functional: build ## Run functional/e2e tests
 	@echo "$(GREEN)Running functional tests...$(RESET)"
 	npm run test:functional
 
-test-e2e: build ## Run Playwright E2E tests
-	@echo "$(GREEN)Running E2E tests...$(RESET)"
-	npm run test:e2e
+test-e2e: build renderer-build preload-build ## Run Playwright E2E tests (requires Vite dev server)
+	@echo "$(GREEN)Starting Vite dev server...$(RESET)"
+	@cd packages/desktop && npx vite --config vite.renderer.config.ts --port 5173 &\
+		VITE_PID=$$!; \
+		sleep 3; \
+		echo "$(GREEN)Running E2E tests...$(RESET)"; \
+		cd packages/desktop-e2e && npx playwright test --workers=1; \
+		EXIT_CODE=$$?; \
+		kill $$VITE_PID 2>/dev/null; \
+		exit $$EXIT_CODE
+
+renderer-build: ## Build the Vite renderer
+	@echo "$(GREEN)Building renderer...$(RESET)"
+	cd packages/desktop && npx vite build --config vite.renderer.config.ts
+
+preload-build: ## Build the Electron preload script (CJS)
+	@echo "$(GREEN)Building preload...$(RESET)"
+	cd packages/desktop && npx vite build --config vite.preload.config.ts
 
 coverage: build ## Run tests with coverage report
 	@echo "$(GREEN)Running tests with coverage...$(RESET)"

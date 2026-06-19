@@ -12,8 +12,6 @@ export * from "./visual-resolver.js";
 export * from "./hub.js";
 export * from "./intent/rule-based.js";
 export * from "./synthesis/simple.js";
-export * from "./display/mock.js";
-export * from "./agents/mock-delegator.js";
 export * from "./scheduler/simple.js";
 export * from "./event-bus/simple.js";
 

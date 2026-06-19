@@ -35,6 +35,7 @@ describe("DesktopStore", () => {
       shortcut: "Alt+J",
       autoStart: false,
       locale: "fr-FR",
+      model: { provider: "ollama" as const, model: "llama3", baseUrl: "http://127.0.0.1:11434" },
     };
     await store.saveSettings(settings);
     const loaded = await store.loadSettings();
@@ -56,6 +57,7 @@ describe("DesktopStore", () => {
       shortcut: "Alt+J",
       autoStart: true,
       locale: "en-US",
+      model: { provider: "ollama" as const, model: "llama3", baseUrl: "http://127.0.0.1:11434" },
     });
     const fresh = new DesktopStore(dir);
     const loaded = await fresh.loadSettings();

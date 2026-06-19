@@ -5,6 +5,8 @@ import type {
   AgentInfo,
   AgentSessionConfig,
 } from "./types.js";
+import type { ModelClient } from "../model/types.js";
+import { randomUUID } from "node:crypto";
 import { AgentSession } from "./session.js";
 
 export interface AgentPool {
@@ -24,8 +26,10 @@ export class InProcessAgentPool implements AgentPool {
   private agents: Map<string, AgentInfo>;
   private factories: Map<string, AgentFactory>;
   private sessions: Map<string, AgentSession>;
+  private client: ModelClient | undefined;
 
-  constructor() {
+  constructor(client?: ModelClient) {
+    this.client = client;
     this.agents = new Map([
       [
         "research",
@@ -180,25 +184,42 @@ export class InProcessAgentPool implements AgentPool {
     ]);
 
     this.factories = new Map<string, AgentFactory>([
-      ["research", async () => ({ results: ["Result 1", "Result 2"] })],
-      ["system", async () => ({ opened: true })],
-      ["weather", async () => ({ temp: 72, condition: "sunny" })],
-      ["calendar", async () => ({ events: [{ title: "Meeting", time: "10:00" }] })],
-      ["browser", async () => ({ loaded: true })],
-      ["vision", async () => ({ humans: 1, emotion: "neutral" })],
-      ["discord", async () => ({ messageId: "mock-msg-123" })],
-      ["telegram", async () => ({ messageId: 42 })],
-      ["web", async () => ({ markdown: "Fetched content", url: "https://example.com" })],
-      ["email", async () => ({ messageId: "mock-email-123" })],
-      ["notion", async () => ({ pages: [] })],
-      ["cron", async () => ({ scheduled: true, jobId: "mock-cron-123" })],
-      ["secrets", async () => ({ secretKey: "mock-secret", stored: true })],
-      ["general", async () => ({ response: "general-acknowledgment" })],
+      ["research", async () => ({ status: "dispatched", action: "research" })],
+      ["system", async () => ({ status: "dispatched", action: "system" })],
+      ["weather", async () => ({ status: "dispatched", action: "weather" })],
+      ["calendar", async () => ({ status: "dispatched", action: "calendar" })],
+      ["browser", async () => ({ status: "dispatched", action: "browser" })],
+      ["vision", async () => ({ status: "dispatched", action: "vision" })],
+      ["discord", async () => ({ status: "dispatched", action: "discord" })],
+      ["telegram", async () => ({ status: "dispatched", action: "telegram" })],
+      ["web", async () => ({ status: "dispatched", action: "web" })],
+      ["email", async () => ({ status: "dispatched", action: "email" })],
+      ["notion", async () => ({ status: "dispatched", action: "notion" })],
+      ["general", async (ctx: AgentContext) => {
+        if (this.client) {
+          try {
+            const available = await this.client.isAvailable();
+            if (available) {
+              const prompt = (ctx.intent.params?.text as string) ?? ctx.intent.action;
+              const response = await this.client.chat(
+                prompt,
+                "You are JARVIS, a helpful AI assistant. Respond concisely.",
+              );
+              return { response: response.content };
+            }
+          } catch {
+            // Model unavailable, return acknowledgment
+          }
+        }
+        return { response: "I'm here. How can I help?" };
+      }],
+      ["cron", async () => ({ status: "dispatched", action: "cron" })],
+      ["secrets", async () => ({ status: "dispatched", action: "secrets" })],
       [
         "slow",
         async () => {
           await new Promise((resolve) => setTimeout(resolve, 1000));
-          return { slow: true };
+          return { status: "dispatched", action: "slow" };
         },
       ],
     ]);
@@ -240,7 +261,7 @@ export class InProcessAgentPool implements AgentPool {
   }
 
   createSession(parentAgentId: string, mode: "fork" | "isolated"): AgentSession {
-    const id = `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const id = randomUUID();
     const config: AgentSessionConfig = {
       id,
       parentAgentId,

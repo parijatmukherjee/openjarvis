@@ -101,7 +101,6 @@ describe("electron-main", () => {
           height: 760,
           minWidth: 900,
           minHeight: 600,
-          frame: false,
           show: false,
           webPreferences: expect.objectContaining({
             contextIsolation: true,

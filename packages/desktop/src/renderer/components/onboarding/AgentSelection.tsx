@@ -91,7 +91,7 @@ export function AgentSelection({ onNext }: AgentSelectionProps) {
         </div>
 
         <div className="flex justify-center">
-          <NeonButton onClick={onNext}>Continue</NeonButton>
+          <NeonButton data-testid="onboarding-continue" onClick={onNext}>Continue</NeonButton>
         </div>
       </motion.div>
     </div>

@@ -19,7 +19,7 @@ describe("registerIpcHandlers", () => {
   beforeEach(() => {
     handlers.clear();
     vi.clearAllMocks();
-    registerIpcHandlers(mockStore as unknown as Parameters<typeof registerIpcHandlers>[0], ipcMain);
+    registerIpcHandlers(mockStore as unknown as Parameters<typeof registerIpcHandlers>[0], ipcMain, () => null);
   });
 
   it("registers settings and profile handlers", () => {
@@ -37,10 +37,12 @@ describe("registerIpcHandlers", () => {
       shortcut: "Cmd+J",
       autoStart: true,
       locale: "en-US",
+      model: { provider: "ollama" as const, model: "llama3", baseUrl: "http://127.0.0.1:11434" },
     };
     mockStore.loadSettings.mockResolvedValue(settings);
     const handler = handlers.get("settings:load")!;
-    expect(await handler()).toEqual(settings);
+    const result = await handler();
+    expect(result).toMatchObject(settings);
   });
 
   it("delegates settings:save to the store", async () => {

@@ -1,10 +1,22 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useSettingsContext } from "../../context/SettingsContext";
+import { useNexus } from "../../contexts/NexusContext";
 
 export function Header() {
   const greeting = getGreeting();
   const { profile } = useSettingsContext();
   const userName = profile.userName;
+  const nexus = useNexus();
+  const [agentCount, setAgentCount] = useState(0);
+
+  useEffect(() => {
+    nexus.getAgents().then((agents) => {
+      setAgentCount(agents.length);
+    }).catch(() => {
+      setAgentCount(0);
+    });
+  }, [nexus]);
 
   return (
     <header className="flex items-center justify-between px-6 py-4">
@@ -16,7 +28,7 @@ export function Header() {
         <h1 className="text-2xl font-light tracking-tight">
           {greeting}, <span className="text-neon-cyan">{userName}</span>
         </h1>
-        <p className="text-sm text-text-secondary mt-1">All systems operational. 6 agents ready.</p>
+        <p className="text-sm text-text-secondary mt-1">All systems operational. {agentCount} agents ready.</p>
       </motion.div>
 
       <motion.div

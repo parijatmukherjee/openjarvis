@@ -1,50 +1,77 @@
 import type { Intent, JarvisContext, DispatchPlan } from "./types.js";
+import type { ModelClient } from "../model/types.js";
 
 export interface IntentRouter {
-  route(intent: Intent, context: JarvisContext): DispatchPlan;
+  route(intent: Intent, context: JarvisContext): Promise<DispatchPlan>;
 }
 
 export class RuleBasedRouter implements IntentRouter {
   private rules: Map<string, (intent: Intent) => DispatchPlan>;
+  private client: ModelClient | undefined;
 
-  constructor() {
-    this.rules = new Map([
-      ["search", this.routeToResearch],
-      ["get_updates", this.routeToParallel],
-      ["open_app", this.routeToSystem],
-      ["check_weather", this.routeToWeather],
-      ["check_calendar", this.routeToCalendar],
-      ["browse", this.routeToBrowser],
-      ["vision_query", this.routeToVision],
-      ["send_discord", this.routeToDiscord],
-      ["read_discord", this.routeToDiscord],
-      ["send_telegram", this.routeToTelegram],
-      ["read_telegram", this.routeToTelegram],
-      ["fetch_url", this.routeToWeb],
-      ["search_email", this.routeToEmail],
-      ["read_email", this.routeToEmail],
-      ["draft_email", this.routeToEmail],
-      ["send_email", this.routeToEmail],
-      ["calendar_list", this.routeToCalendar],
-      ["calendar_get_events", this.routeToCalendar],
-      ["calendar_create", this.routeToCalendar],
-      ["calendar_update", this.routeToCalendar],
-      ["calendar_delete", this.routeToCalendar],
-      ["query_notion", this.routeToNotion],
-      ["get_notion", this.routeToNotion],
-      ["create_notion", this.routeToNotion],
-      ["update_notion", this.routeToNotion],
-      ["cron_schedule", this.routeToCron],
-      ["cron_list", this.routeToCron],
-      ["cron_cancel", this.routeToCron],
-      ["secret_get", this.routeToSecrets],
-      ["search_discord", this.routeToDiscord],
-      ["get_calendar", this.routeToCalendar],
-      ["set_reminder", this.routeToCron],
+  constructor(client?: ModelClient) {
+    this.client = client;
+    this.rules = new Map<string, (intent: Intent) => DispatchPlan>([
+      ["search", this.routeToResearch.bind(this)],
+      ["get_updates", this.routeToParallel.bind(this)],
+      ["open_app", this.routeToSystem.bind(this)],
+      ["check_weather", this.routeToWeather.bind(this)],
+      ["check_calendar", this.routeToCalendar.bind(this)],
+      ["browse", this.routeToBrowser.bind(this)],
+      ["vision_query", this.routeToVision.bind(this)],
+      ["send_discord", this.routeToDiscord.bind(this)],
+      ["read_discord", this.routeToDiscord.bind(this)],
+      ["send_telegram", this.routeToTelegram.bind(this)],
+      ["read_telegram", this.routeToTelegram.bind(this)],
+      ["fetch_url", this.routeToWeb.bind(this)],
+      ["search_email", this.routeToEmail.bind(this)],
+      ["read_email", this.routeToEmail.bind(this)],
+      ["draft_email", this.routeToEmail.bind(this)],
+      ["send_email", this.routeToEmail.bind(this)],
+      ["calendar_list", this.routeToCalendar.bind(this)],
+      ["calendar_get_events", this.routeToCalendar.bind(this)],
+      ["calendar_create", this.routeToCalendar.bind(this)],
+      ["calendar_update", this.routeToCalendar.bind(this)],
+      ["calendar_delete", this.routeToCalendar.bind(this)],
+      ["query_notion", this.routeToNotion.bind(this)],
+      ["get_notion", this.routeToNotion.bind(this)],
+      ["create_notion", this.routeToNotion.bind(this)],
+      ["update_notion", this.routeToNotion.bind(this)],
+      ["cron_schedule", this.routeToCron.bind(this)],
+      ["cron_list", this.routeToCron.bind(this)],
+      ["cron_cancel", this.routeToCron.bind(this)],
+      ["secret_get", this.routeToSecrets.bind(this)],
+      ["search_discord", this.routeToDiscord.bind(this)],
+      ["get_calendar", this.routeToCalendar.bind(this)],
+      ["set_reminder", this.routeToCron.bind(this)],
     ]);
   }
 
-  route(intent: Intent, _context: JarvisContext): DispatchPlan {
+  async route(intent: Intent, _context: JarvisContext): Promise<DispatchPlan> {
+    if (this.client) {
+      try {
+        const available = await this.client.isAvailable();
+        if (available) {
+          const validActions = Array.from(this.rules.keys()).join(", ");
+          const response = await this.client.chat(
+            `Classify: "${intent.action}"`,
+            `You are an intent classifier. Respond with JSON: {"action": "<action>", "confidence": <0.0-1.0>}. Valid actions: ${validActions}`,
+          );
+          const parsed = JSON.parse(response.content) as { action: string; confidence: number };
+          if (
+            typeof parsed.confidence === "number" &&
+            parsed.confidence >= 0.7 &&
+            typeof parsed.action === "string" &&
+            this.rules.has(parsed.action)
+          ) {
+            const handler = this.rules.get(parsed.action)!;
+            return handler(intent);
+          }
+        }
+      } catch {
+        // Fall back to rule-based routing
+      }
+    }
     const handler = this.rules.get(intent.action);
     if (handler) {
       return handler(intent);

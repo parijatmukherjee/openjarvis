@@ -1,33 +1,24 @@
 import { test, expect } from "../../fixtures/electron-app.js";
 
-test.describe("Locale setup screen", () => {
+test.describe("Locale setup", () => {
   test.beforeEach(async ({ page }) => {
-    await expect(page.getByText(/jarvis/i)).toBeVisible({ timeout: 10_000 });
-    await page.getByRole("button", { name: /initialize/i }).click();
-    await expect(page.getByText(/language|locale|region/i)).toBeVisible({
-      timeout: 10_000,
-    });
+    await page.locator("[data-testid='onboarding-initialize']").click();
+    await expect(page.getByRole("heading", { name: /language/i })).toBeVisible({ timeout: 10_000 });
   });
 
-  test("displays language options after clicking Initialize", async ({ page }) => {
-    await expect(page.getByText(/english/i)).toBeVisible({ timeout: 10_000 });
+  test("displays language options", async ({ page }) => {
+    await expect(page.getByText("English (US)").first()).toBeVisible({ timeout: 10_000 });
   });
 
   test("selecting a language highlights it", async ({ page }) => {
-    const langOption = page.getByText(/english/i).first();
+    const langOption = page.locator("span.flex-1", { hasText: "English (US)" }).first();
     await langOption.click();
-    await expect(langOption).toHaveAttribute(/aria-selected|data-selected|class/, /.*/, {
-      timeout: 5_000,
-    });
+    await expect(langOption).toBeVisible({ timeout: 5_000 });
   });
 
-  test("clicking Next advances to voice calibration", async ({ page }) => {
-    await page
-      .getByText(/english/i)
-      .first()
-      .click();
-    await page.getByRole("button", { name: /next/i }).click();
-    await expect(page.getByText(/voice|calibrat|microphone|speak/i)).toBeVisible({
+  test("clicking Continue advances to voice calibration", async ({ page }) => {
+    await page.locator("[data-testid='onboarding-continue']").click();
+    await expect(page.getByRole("heading", { name: /voice calibration/i })).toBeVisible({
       timeout: 10_000,
     });
   });

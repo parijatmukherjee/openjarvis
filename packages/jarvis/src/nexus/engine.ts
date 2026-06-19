@@ -23,7 +23,7 @@ export class NexusEngine {
     const sessionId = context.sessionId;
 
     // 1. Route intent to agents
-    const plan = this.cfg.intentRouter.route(intent, context);
+    const plan = await this.cfg.intentRouter.route(intent, context);
     await this.emit({ type: "intent_routed", intent, plan, sessionId, at: Date.now() });
 
     // 2. Dispatch agents
@@ -33,7 +33,7 @@ export class NexusEngine {
     // Parallel dispatch
     if (plan.parallel.length > 0) {
       const parallelResults = await Promise.all(
-        plan.parallel.map((route) => this.dispatchAgent(route, context)),
+        plan.parallel.map((route) => this.dispatchAgent(route, context, intent)),
       );
       for (const result of parallelResults) {
         results.push(result);
@@ -46,7 +46,7 @@ export class NexusEngine {
 
     for (const route of plan.sequential) {
       const input = pipeFrom ?? route.input;
-      const result = await this.dispatchAgent({ ...route, input }, context);
+      const result = await this.dispatchAgent({ ...route, input }, context, intent);
       results.push(result);
       if (!result.success) failed.push(result.agentId);
       pipeFrom = result.success ? result.output : undefined;
@@ -54,7 +54,7 @@ export class NexusEngine {
 
     // Primary agent
     if (plan.primary) {
-      const result = await this.dispatchAgent(plan.primary, context);
+      const result = await this.dispatchAgent(plan.primary, context, intent);
       results.push(result);
       if (!result.success) failed.push(result.agentId);
     }
@@ -68,7 +68,7 @@ export class NexusEngine {
     return synthesis;
   }
 
-  private async dispatchAgent(route: AgentRoute, context: JarvisContext): Promise<AgentResult> {
+  private async dispatchAgent(route: AgentRoute, context: JarvisContext, intent: Intent): Promise<AgentResult> {
     const sessionId = context.sessionId;
     const taskId = `${sessionId}-${route.agentId}-${randomUUID()}`;
 
@@ -91,12 +91,7 @@ export class NexusEngine {
 
     const agentContext = {
       sessionId,
-      intent: context.recentIntents[context.recentIntents.length - 1] ?? {
-        action: "unknown",
-        params: {},
-        confidence: 0,
-        ambiguous: true,
-      },
+      intent,
       memory: undefined,
     };
 
