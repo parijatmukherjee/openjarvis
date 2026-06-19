@@ -13,6 +13,8 @@ import type { AppSettings } from "./schemas.js";
 
 type MinimalIpcMain = Pick<IpcMain, "handle">;
 
+const activeChatStreams = new Map<string, AbortController>();
+
 let engine: NexusEngine | null = null;
 let taskBoard: TaskBoard | null = null;
 let agentPool: InProcessAgentPool | null = null;
@@ -214,6 +216,70 @@ export function registerIpcHandlers(
       }
     },
   );
+
+  ipcMain.handle("nexus:chatStream", async (_event, text: string) => {
+    const sessionId = randomUUID();
+    const now = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    await store.appendMessage({
+      id: randomUUID(),
+      type: "user",
+      text,
+      timestamp: now(),
+    });
+    const abort = new AbortController();
+    activeChatStreams.set(sessionId, abort);
+    void (async () => {
+      const bus = (() => {
+        getEngine();
+        return eventBus;
+      })();
+      if (!bus) {
+        activeChatStreams.delete(sessionId);
+        return;
+      }
+      try {
+        const { engine: eng } = getEngine();
+        await eng.executeChatStream(
+          text,
+          (chunk) => {
+            void bus.publish({
+              topic: `nexus:chat:${sessionId}:chunk`,
+              payload: {
+                sessionId,
+                content: chunk.text,
+                done: chunk.done,
+                error: chunk.error,
+              },
+              timestamp: Date.now(),
+              source: "nexus:chatStream",
+            });
+          },
+          abort.signal,
+        );
+      } catch (err) {
+        await bus.publish({
+          topic: `nexus:chat:${sessionId}:chunk`,
+          payload: {
+            sessionId,
+            content: "",
+            done: true,
+            error: err instanceof Error ? err.message : String(err),
+          },
+          timestamp: Date.now(),
+          source: "nexus:chatStream",
+        });
+      } finally {
+        activeChatStreams.delete(sessionId);
+      }
+    })();
+    return { sessionId };
+  });
+
+  ipcMain.handle("nexus:cancelChatStream", (_event, sessionId: string) => {
+    const c = activeChatStreams.get(sessionId);
+    if (c) c.abort();
+    activeChatStreams.delete(sessionId);
+  });
 
   ipcMain.handle("nexus:subscribeToEvents", async () => {
     if (!eventBus) return [];
