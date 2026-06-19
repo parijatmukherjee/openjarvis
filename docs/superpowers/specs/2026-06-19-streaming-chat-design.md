@@ -85,18 +85,15 @@ events to the renderer. We just add a new topic namespace
 ```ts
 // packages/jarvis/src/model/types.ts
 export interface ModelResponseChunk {
-  content: string;          // incremental text for this chunk
-  done: boolean;            // true on the final chunk
-  model?: string;           // present on the final chunk
-  error?: ModelErrorCode;   // present if the stream errored
+  content: string; // incremental text for this chunk
+  done: boolean; // true on the final chunk
+  model?: string; // present on the final chunk
+  error?: ModelErrorCode; // present if the stream errored
 }
 
 export interface ModelClient {
   chat(prompt: string, system?: string): Promise<ModelResponse>;
-  chatStream(
-    prompt: string,
-    system?: string,
-  ): AsyncIterable<ModelResponseChunk>;
+  chatStream(prompt: string, system?: string): AsyncIterable<ModelResponseChunk>;
   isAvailable(): Promise<boolean>;
 }
 ```
@@ -163,7 +160,7 @@ export interface NexusBridge {
 - `DesktopStore.appendMessage` / `loadMessages` / `clearMessages` (we still persist the user message synchronously and the assistant message once at the end of the stream).
 - `nexus:executeIntent` (older non-streaming entry point). `chat()` is the non-streaming wrapper; `executeIntent` callers keep working.
 - The event bus. We use the existing `SimpleEventBus` with a new topic namespace.
-- `nexus:subscribeToEvents` / `onNexusEvent` plumbing. We add a new event *type* but the channel is unchanged.
+- `nexus:subscribeToEvents` / `onNexusEvent` plumbing. We add a new event _type_ but the channel is unchanged.
 - The `^C` cleanup flow. The `nexus:chatStream` handler registers a cleanup hook that aborts the active model request when the renderer disconnects.
 - All existing test files. The `MockClient.chatStream` returns the full response as one chunk, which means `MockClient.chat()` (the non-streaming version) keeps working unchanged. The non-streaming `RuleBasedSynthesizer.synthesize()` is unchanged.
 

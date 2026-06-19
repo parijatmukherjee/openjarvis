@@ -53,9 +53,11 @@
 ### Task 1: Add `ModelResponseChunk` and `chatStream` to the model interface
 
 **Files:**
+
 - Modify: `packages/jarvis/src/model/types.ts`
 
 **Interfaces:**
+
 - Produces: `ModelResponseChunk` shape; `chatStream` on `ModelClient`. Downstream tasks use these.
 
 - [ ] **Step 1: Write the failing test**
@@ -90,10 +92,7 @@ export interface ModelResponseChunk {
 
 export interface ModelClient {
   chat(prompt: string, system?: string): Promise<ModelResponse>;
-  chatStream(
-    prompt: string,
-    system?: string,
-  ): AsyncIterable<ModelResponseChunk>;
+  chatStream(prompt: string, system?: string): AsyncIterable<ModelResponseChunk>;
   isAvailable(): Promise<boolean>;
 }
 ```
@@ -115,9 +114,11 @@ git commit -m "feat(model): add ModelResponseChunk and chatStream to interface"
 ### Task 2: Add `chatStream` to `MockClient` (single-chunk stub)
 
 **Files:**
+
 - Modify: `packages/jarvis/src/model/mock-client.ts`
 
 **Interfaces:**
+
 - Consumes: `ModelResponseChunk` from Task 1.
 - Produces: `MockClient.chatStream()` — returns one chunk with the full response, `done: true`.
 
@@ -169,10 +170,12 @@ git commit -m "feat(mock-client): implement chatStream as single-chunk stub"
 ### Task 3: Implement `OllamaClient.chatStream` (NDJSON parser)
 
 **Files:**
+
 - Modify: `packages/jarvis/src/model/ollama-client.ts`
 - Modify: `packages/jarvis/test/model/ollama-client.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ModelResponseChunk` from Task 1.
 - Produces: `OllamaClient.chatStream()` that yields one `ModelResponseChunk` per token from the upstream NDJSON response.
 
@@ -192,7 +195,12 @@ describe("OllamaClient.chatStream", () => {
         { model: "llama3", message: { role: "assistant", content: "The" }, done: false },
         { model: "llama3", message: { role: "assistant", content: " sky" }, done: false },
         { model: "llama3", message: { role: "assistant", content: " is" }, done: false },
-        { model: "llama3", message: { role: "assistant", content: " blue" }, done: true, total_duration: 100 },
+        {
+          model: "llama3",
+          message: { role: "assistant", content: " blue" },
+          done: true,
+          total_duration: 100,
+        },
       ]),
     );
     const client = new OllamaClient(defaultConfig, fetchMock as unknown as typeof fetch);
@@ -218,7 +226,9 @@ describe("OllamaClient.chatStream", () => {
     const fetchMock = vi.fn(async () => makeNDJSONResponse([{ done: true }]));
     const client = new OllamaClient(defaultConfig, fetchMock as unknown as typeof fetch);
     const ctrl = new AbortController();
-    for await (const _ of client.chatStream("hi", undefined, ctrl.signal)) { /* noop */ }
+    for await (const _ of client.chatStream("hi", undefined, ctrl.signal)) {
+      /* noop */
+    }
     expect(fetchMock).toHaveBeenCalledOnce();
     const call = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(call?.signal).toBe(ctrl.signal);
@@ -353,10 +363,12 @@ git commit -m "feat(ollama-client): stream chat responses via NDJSON"
 ### Task 4: Implement `OpenAICompatClient.chatStream` (SSE parser)
 
 **Files:**
+
 - Modify: `packages/jarvis/src/model/openai-compat-client.ts`
 - Modify: `packages/jarvis/test/model/openai-compat-client.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ModelResponseChunk` from Task 1.
 - Produces: `OpenAICompatClient.chatStream()` that yields one `ModelResponseChunk` per `data:` SSE line.
 
@@ -367,8 +379,7 @@ Append to `packages/jarvis/test/model/openai-compat-client.test.ts`:
 ```ts
 describe("OpenAICompatClient.chatStream", () => {
   function makeSSEResponse(events: object[]): Response {
-    const body =
-      events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("") + "data: [DONE]\n\n";
+    const body = events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("") + "data: [DONE]\n\n";
     return new Response(body, {
       status: 200,
       headers: { "content-type": "text/event-stream" },
@@ -406,7 +417,9 @@ describe("OpenAICompatClient.chatStream", () => {
     const fetchMock = vi.fn(async () => makeSSEResponse([{ choices: [{ delta: {} }] }]));
     const client = new OpenAICompatClient(defaultConfig, fetchMock as unknown as typeof fetch);
     const ctrl = new AbortController();
-    for await (const _ of client.chatStream("hi", undefined, ctrl.signal)) { /* noop */ }
+    for await (const _ of client.chatStream("hi", undefined, ctrl.signal)) {
+      /* noop */
+    }
     const call = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(call?.signal).toBe(ctrl.signal);
   });
@@ -538,11 +551,13 @@ git commit -m "feat(openai-compat): stream chat responses via SSE"
 ### Task 5: Add `executeChatStream` to the engine
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/types.ts`
 - Modify: `packages/jarvis/src/nexus/engine.ts`
 - Modify: `packages/jarvis/test/nexus/engine.test.ts` (or new file `engine-stream.test.ts`)
 
 **Interfaces:**
+
 - Consumes: `ModelClient.chatStream` (Task 1-4).
 - Produces: `NexusEngine.executeChatStream(text, onChunk, abort?)` — runs the existing intent → pool → synthesizer pipeline, but calls `onChunk(text)` for each chunk from the model client, and yields a final "done" call when the synthesis is complete.
 
@@ -698,10 +713,12 @@ git commit -m "feat(engine): executeChatStream emits model chunks via callback"
 ### Task 6: Add `nexus:chatStream` and `nexus:cancelChatStream` IPC handlers
 
 **Files:**
+
 - Modify: `packages/desktop/src/main/ipc.ts`
 - Modify: `packages/desktop/test/ipc.test.ts`
 
 **Interfaces:**
+
 - Consumes: `NexusEngine.executeChatStream` from Task 5.
 - Produces: `nexus:chatStream` handler that returns `{ sessionId }` and publishes each chunk to the event bus under `nexus:chat:<sessionId>:chunk`. `nexus:cancelChatStream` aborts the in-flight request.
 
@@ -813,6 +830,7 @@ git commit -m "feat(ipc): add nexus:chatStream and nexus:cancelChatStream handle
 ### Task 7: Expose the new channels in preload + typed surface
 
 **Files:**
+
 - Modify: `packages/desktop/src/preload.ts`
 - Modify: `packages/desktop/src/renderer/types/electron.d.ts`
 
@@ -857,11 +875,13 @@ git commit -m "feat(preload): expose nexusChatStream and nexusCancelChatStream"
 ### Task 8: Implement `executeIntentStream` and `cancelChatStream` on the bridge
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/lib/nexus-types.ts`
 - Modify: `packages/desktop/src/renderer/lib/ipc-nexus-bridge.ts`
 - Modify: `packages/desktop/test/nexus-bridge.test.ts`
 
 **Interfaces:**
+
 - Consumes: `nexusChatStream` from Task 7, `onNexusEvent` from existing bridge.
 - Produces: `NexusBridge.executeIntentStream(action, params, onChunk)` — kicks off the IPC call and subscribes to the event bus, calling `onChunk` for each published chunk. `cancelChatStream(sessionId)` aborts the in-flight request.
 
@@ -883,7 +903,10 @@ describe("createIpcNexusBridge().executeIntentStream", () => {
 
     // Simulate the main process publishing a chunk.
     bus.handlers.forEach((h) =>
-      h({ topic: "nexus:chat:s1:chunk", payload: { sessionId: "s1", content: "Hel", done: false } }),
+      h({
+        topic: "nexus:chat:s1:chunk",
+        payload: { sessionId: "s1", content: "Hel", done: false },
+      }),
     );
     expect(chunks).toEqual([{ sessionId: "s1", content: "Hel", done: false }]);
   });
@@ -983,9 +1006,11 @@ git commit -m "feat(bridge): add executeIntentStream and cancelChatStream"
 ### Task 9: Update Chatbox to optimistically append and stream chunks
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/components/ui/Chatbox.tsx`
 
 **Interfaces:**
+
 - Consumes: `executeIntentStream` from Task 8.
 - Produces: A chat panel that shows the user message immediately, the "thinking…" indicator, then streams the jarvis response token-by-token.
 
@@ -1026,41 +1051,25 @@ const handleSend = useCallback(async () => {
   ]);
 
   try {
-    await nexus.executeIntentStream(
-      "chat",
-      { text },
-      (chunk) => {
-        if (chunk.done) {
-          setIsProcessing(false);
-          return;
-        }
-        if (chunk.error) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === localJarvisId
-                ? { ...m, text: `Error: ${chunk.error}` }
-                : m,
-            ),
-          );
-          setIsProcessing(false);
-          return;
-        }
+    await nexus.executeIntentStream("chat", { text }, (chunk) => {
+      if (chunk.done) {
+        setIsProcessing(false);
+        return;
+      }
+      if (chunk.error) {
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === localJarvisId
-              ? { ...m, text: m.text + chunk.content }
-              : m,
-          ),
+          prev.map((m) => (m.id === localJarvisId ? { ...m, text: `Error: ${chunk.error}` } : m)),
         );
-      },
-    );
+        setIsProcessing(false);
+        return;
+      }
+      setMessages((prev) =>
+        prev.map((m) => (m.id === localJarvisId ? { ...m, text: m.text + chunk.content } : m)),
+      );
+    });
   } catch {
     setMessages((prev) =>
-      prev.map((m) =>
-        m.id === localJarvisId
-          ? { ...m, text: "Command processing failed." }
-          : m,
-      ),
+      prev.map((m) => (m.id === localJarvisId ? { ...m, text: "Command processing failed." } : m)),
     );
     setIsProcessing(false);
   }
@@ -1092,9 +1101,11 @@ git commit -m "feat(chatbox): optimistically append user message + stream jarvis
 ### Task 10: Update ConversationPanel to follow the same pattern
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/components/dashboard/ConversationPanel.tsx`
 
 **Interfaces:**
+
 - Consumes: `executeIntentStream` from Task 8.
 - Produces: The dashboard's collapsible conversation panel renders the same optimistic-append + streaming behaviour as `Chatbox`.
 
@@ -1137,20 +1148,28 @@ export function ConversationPanel() {
       { id: localJarvisId, type: "jarvis", text: "", timestamp: now() },
     ]);
     try {
-      await nexus.executeIntentStream(
-        "chat",
-        { text },
-        (chunk) => {
-          if (chunk.done) { setIsProcessing(false); return; }
-          if (chunk.error) {
-            setMessages((prev) => prev.map((m) => m.id === localJarvisId ? { ...m, text: `Error: ${chunk.error}` } : m));
-            setIsProcessing(false); return;
-          }
-          setMessages((prev) => prev.map((m) => m.id === localJarvisId ? { ...m, text: m.text + chunk.content } : m));
-        },
-      );
+      await nexus.executeIntentStream("chat", { text }, (chunk) => {
+        if (chunk.done) {
+          setIsProcessing(false);
+          return;
+        }
+        if (chunk.error) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === localJarvisId ? { ...m, text: `Error: ${chunk.error}` } : m)),
+          );
+          setIsProcessing(false);
+          return;
+        }
+        setMessages((prev) =>
+          prev.map((m) => (m.id === localJarvisId ? { ...m, text: m.text + chunk.content } : m)),
+        );
+      });
     } catch {
-      setMessages((prev) => prev.map((m) => m.id === localJarvisId ? { ...m, text: "Command processing failed." } : m));
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === localJarvisId ? { ...m, text: "Command processing failed." } : m,
+        ),
+      );
       setIsProcessing(false);
     }
   };
@@ -1183,6 +1202,7 @@ git commit -m "feat(conversation-panel): mirror chatbox streaming + optimistic f
 ### Task 11: Final gate and CHECKPOINT update
 
 **Files:**
+
 - Modify: `CHECKPOINT.md`
 
 - [ ] **Step 1: Run the full gate**
@@ -1204,10 +1224,11 @@ jarvis will start thinking and responding."
 
 **Root cause.** The desktop chat panel was waiting for the full
 nexus:executeIntent round-trip (IPC + engine + model + persistence
-+ re-fetch) before showing either the user message or the jarvis
-response. On Ollama Cloud, time-to-first-token is the bottleneck
-(the model is being cold-loaded server-side) and the user had no
-feedback during the wait.
+
+- re-fetch) before showing either the user message or the jarvis
+  response. On Ollama Cloud, time-to-first-token is the bottleneck
+  (the model is being cold-loaded server-side) and the user had no
+  feedback during the wait.
 
 **Fix.** Added streaming model calls + optimistic UI:
 
@@ -1233,6 +1254,7 @@ natural time-to-first-token (1-3s on Ollama Cloud after warmup,
 longer on cold start). Subsequent tokens stream in every ~100-300ms.
 
 **Known-good invariants (re-verified by tests):**
+
 - All existing tests pass (1379 unit + 6 functional). The MockClient
   returns the full response as one chunk, so every test that uses
   the mock keeps working without changes.
