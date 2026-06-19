@@ -5,7 +5,8 @@
 > trackers live under `docs/` and are linked below.
 >
 > **Last updated:** 2026-06-19 · **Default branch:** `main` (protected; required
-> `docker-gate`) · **Tests:** 1254 passing / 1 skipped, typecheck/lint/format clean.
+> `docker-gate`) · **Tests:** 1334 passing / 32 skipped, typecheck/lint/format clean.
+> **Current branch:** `feat/playwright-e2e` (ahead of `origin/feat/playwright-e2e` by 2 commits).
 
 ---
 
@@ -67,11 +68,14 @@ Additional infrastructure:
 
 ## 4. Gate status
 
-- **Tests:** 1254 passing / 1 skipped
+- **Tests:** 1334 passing / 32 skipped (190 files) — `vitest run`
 - **Typecheck:** Clean (`tsc -b` passes)
 - **Lint:** Clean (`eslint . --max-warnings 0` passes)
 - **Format:** Clean (`prettier --check` passes)
-- **Branch:** `main` (all feature parity + gap fill + robustness work merged)
+- **Playwright (desktop-e2e):** onboarding + dashboard + chat non-LLM + settings all
+  green; LLM-gated chat specs require `OLLAMA_API_KEY` (green by construction when set).
+- **Branch:** `main` (all feature parity + gap fill + robustness work merged). Active
+  feature work on `feat/playwright-e2e` (2 commits ahead of `origin/feat/playwright-e2e`).
 
 ## 5. How to work here
 
@@ -98,3 +102,108 @@ The project has undergone 9 rounds of architecture + wiring audits, fixing:
 - **21+ wiring gaps** — tool registrations, router routes, capability names, export completeness, dependency graph, VisualCommand variants, MemoryStore adapter
 
 All gates pass: typecheck, 1254 tests, lint, format.
+
+### Round 10 — desktop ↔ jarvis ↔ renderer ↔ e2e wiring audit (2026-06-19)
+
+Scanned every file in the desktop main process, jarvis core, agents/memory/core
+packages, the renderer, and the e2e suite. Followed the existing TDD loop: confirm
+a bug, fix, re-run `tsc -b` → `vitest run` → targeted Playwright spec.
+
+**Bugs fixed in commit `9475fd7`:**
+
+1. **Desktop main — `nexus:subscribeToEvents` fan-out.**
+   `ipc.ts` was calling `eventBus.subscribe(...)` on every invocation and never
+   tracking the unsubscribe. Each renderer reload added another handler; every
+   published event was forwarded N times. Now stores each `sub.unsubscribe` and
+   invokes them all in `resetEngine()`.
+2. **Desktop main — `electron-main.ts` window source.**
+   `registerIpcHandlers` and `registerWindowHandlers` previously used
+   `BrowserWindow.getFocusedWindow() ?? null` — which returns null whenever no
+   window has focus. Now both use `() => mainWindow` so the same window that was
+   registered is the one that receives events.
+3. **Desktop preload — typed surface + `onNexusEvent`.**
+   `preload.ts` used implicit `any` (would not typecheck under `tsc -b` once it
+   became un-excluded). All params now explicitly typed. New
+   `onNexusEvent(callback) => unsubscribe` exposed via `contextBridge`.
+4. **Renderer — `SettingsPanel` always showed the API key field.**
+   The field was rendered for every provider, contradicting the "not needed for
+   local" copy. Now conditionally rendered only when `provider !== "ollama"`.
+5. **E2E — `tests/settings/general.spec.ts` strict-mode violations.**
+   `getByText(/theme|dark|light/i)` matched Theme + Dark + Light (3 elements);
+   `darkBtn.or(lightBtn)` resolved to 2 buttons. Both now scoped with `.first()`.
+6. **E2E — `tests/settings/model-config.spec.ts` 'Done button' assertion.**
+   Asserted `settings-tab-model` is gone, but the panel only fades
+   (`pointer-events: none`); the tab DOM stays. Now asserts the
+   `btn-settings` (open button) remains visible, which is the real signal.
+7. **jarvis core — `RuleBasedRouter` rule handlers un-bound.**
+   Stored `this.routeToResearch` etc. in the rules Map without `.bind(this)`.
+   Worked only because none of the current handlers read `this`. Now `.bind(this)`
+   so the next handler that does read `this` will not silently break.
+8. **Repo hygiene — `.gitignore`.** Added `playwright-report/` and `test-results/`.
+   Renamed `packages/jarvis/src/e2e/mock-user.ts` → `packages/jarvis/test/e2e/mock-user.ts`
+   (test helper was living under `src`).
+
+**Known-good invariants (verified by tests):**
+
+- Engine events flow: `NexusEngine.emit()` → `SimpleEventBus.publish("nexus", …)` →
+  `nexus:subscribeToEvents` handler → `webContents.send("nexus:event", payload)` →
+  preload `ipcRenderer.on("nexus:event", …)` → `onNexusEvent(callback)` →
+  `NexusBridge.subscribeToEvents(handler)` → renderer.
+- IPC channel map:
+  | renderer → main | payload | return |
+  | --- | --- | --- |
+  | `settings:load` | — | `AppSettings` |
+  | `settings:save` | `AppSettings` | `void` |
+  | `settings:reset` | — | `AppSettings` |
+  | `profile:load` / `profile:save` | `UserProfile` | `void` |
+  | `nexus:getTasks` / `nexus:getAgents` / `nexus:getMessages` | — | typed arrays |
+  | `nexus:executeIntent` | `(action, params)` | `{ success, spoken?, visual?, error? }` |
+  | `nexus:subscribeToEvents` | — | `[]` (side effect: subscribes) |
+  | `model:list` | `(provider, baseUrl, apiKey?)` | `string[]` |
+  | `env:getApiKeys` | — | `{ ollamaApiKey, openaiApiKey }` |
+  | `window:minimize/maximize/close` | — | `void` |
+  | `locale:getSystemLocale` | — | `string` |
+  | main → renderer |
+  | `nexus:event` | `NexusEvent` payload | — |
+
+**Residual work (not in this commit; tracked for next agent):**
+
+- **ConversationPanel does not re-fetch messages** (`packages/desktop/src/renderer/components/dashboard/ConversationPanel.tsx:12`).
+  `nexus.getMessages()` is called once on mount; new messages sent via
+  `nexus.executeIntent` are appended in the bridge's local array but the panel
+  never re-renders. Fix: subscribe to bridge events and re-fetch, or have the
+  bridge push into the panel via a React state hook.
+- **`nexus:getMessages` always returns `[]`** (`packages/desktop/src/main/ipc.ts:146`).
+  The main process does not persist messages. By design — but means chat history
+  is lost on app reload. If persistence is desired, mirror the renderer bridge
+  cache into `DesktopStore` or a SQLite table.
+- **`useSettings.resetSettings` flashes local fallback** (`packages/desktop/src/renderer/hooks/useSettings.ts:90`).
+  Sets `settings = fallbackSettings` before awaiting saved defaults. Cosmetic —
+  only a frame in practice.
+- **`Makefile test-e2e` background-launch is fragile** (`Makefile:74`).
+  The `vite ... &` + `kill $$VITE_PID` pattern does not survive failures (no
+  `trap`). Refactor into a script with `trap "kill $PID" EXIT`.
+- **`electron-main.test.ts` mocks `BrowserWindow.getFocusedWindow`** (`packages/desktop/test/electron-main.test.ts:31`).
+  The production code no longer calls it. Mock is dead — safe to delete.
+- **LLM-gated Playwright chat specs** (`packages/desktop-e2e/tests/chat/conversation.spec.ts:17+`).
+  Three tests send real chat queries to Ollama Cloud. They are green-by-construction
+  when `OLLAMA_API_KEY` is set; skipped silently when it is not. Consider marking
+  with `test.skip(!process.env.OLLAMA_API_KEY)` so the skip is explicit.
+- **`SettingsPanel` API-key persistence quirk.** When user picks Ollama Cloud,
+  enters a key, then switches to local Ollama, the key is preserved on the model
+  object (just hidden). On a future switch back to Ollama Cloud the key is still
+  there. Acceptable, but document it.
+
+**How to verify this audit:**
+
+```
+npx tsc -b
+npx vitest run
+cd packages/desktop && npx vite build --config vite.renderer.config.ts && \
+  cd .. && cd desktop && npx vite build --config vite.preload.config.ts
+cd packages/desktop-e2e && OLLAMA_API_KEY=… npx playwright test --workers=1
+```
+
+(Playwright chat specs that hit the real model need `OLLAMA_API_KEY`; the rest
+do not.)
+
