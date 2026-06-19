@@ -10,6 +10,7 @@ interface RateBucket {
 export class DiscordRest {
   private readonly baseUrl = "https://discord.com/api/v10";
   private readonly buckets = new Map<string, RateBucket>();
+  private readonly pathToBucket = new Map<string, string>();
   private readonly fetchImpl: FetchImpl;
 
   constructor(
@@ -73,52 +74,67 @@ export class DiscordRest {
     return data;
   }
 
-  private async request<T>(path: string, method: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    path: string,
+    method: string,
+    body?: unknown,
+    timeoutMs = 30000,
+  ): Promise<T> {
     const maxAttempts = 4;
     let attempt = 0;
 
     while (true) {
       attempt++;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      await this.waitForBucket(path);
+      try {
+        await this.waitForBucket(path);
 
-      const headers: Record<string, string> = {
-        Authorization: `Bot ${this.token}`,
-      };
-      if (body !== undefined) {
-        headers["Content-Type"] = "application/json";
+        const headers: Record<string, string> = {
+          Authorization: `Bot ${this.token}`,
+        };
+        if (body !== undefined) {
+          headers["Content-Type"] = "application/json";
+        }
+
+        const init: RequestInit = {
+          method,
+          headers,
+          signal: controller.signal,
+        };
+        if (body !== undefined) {
+          init.body = JSON.stringify(body);
+        }
+
+        const res = await this.fetchImpl(`${this.baseUrl}${path}`, init);
+
+        this.updateBucket(path, res);
+
+        if (res.status === 429) {
+          if (attempt >= maxAttempts) {
+            throw new Error(`Discord REST ${method} ${path}: too many 429 responses`);
+          }
+          const retryAfter = this.parseRetryAfter(res);
+          await this.sleep(retryAfter);
+          continue;
+        }
+
+        if (res.status >= 500 && attempt < maxAttempts) {
+          const backoff = Math.pow(2, attempt - 1) * 1000;
+          await this.sleep(backoff);
+          continue;
+        }
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Discord REST ${method} ${path} failed: ${res.status} ${text}`);
+        }
+
+        return (await res.json()) as T;
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const init: RequestInit = {
-        method,
-        headers,
-      };
-      if (body !== undefined) {
-        init.body = JSON.stringify(body);
-      }
-
-      const res = await this.fetchImpl(`${this.baseUrl}${path}`, init);
-
-      this.updateBucket(path, res);
-
-      if (res.status === 429) {
-        const retryAfter = this.parseRetryAfter(res);
-        await this.sleep(retryAfter * 1000);
-        continue;
-      }
-
-      if (res.status >= 500 && attempt < maxAttempts) {
-        const backoff = Math.pow(2, attempt - 1) * 1000;
-        await this.sleep(backoff);
-        continue;
-      }
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Discord REST ${method} ${path} failed: ${res.status} ${text}`);
-      }
-
-      return (await res.json()) as T;
     }
   }
 
@@ -126,26 +142,32 @@ export class DiscordRest {
     const header = res.headers.get("Retry-After");
     if (header) {
       const parsed = Number(header);
-      if (!Number.isNaN(parsed)) return parsed;
+      if (!Number.isNaN(parsed)) {
+        return parsed > 1000 ? parsed : parsed * 1000;
+      }
     }
-    return 1;
+    return 1000;
   }
 
-  private updateBucket(_path: string, res: Response): void {
+  private updateBucket(path: string, res: Response): void {
     const bucketId = res.headers.get("X-RateLimit-Bucket");
     if (bucketId) {
+      this.pathToBucket.set(path, bucketId);
       const remaining = Number(res.headers.get("X-RateLimit-Remaining") ?? "1");
       const reset = Number(res.headers.get("X-RateLimit-Reset") ?? "0");
       this.buckets.set(bucketId, { remaining, resetAt: reset * 1000 });
     }
   }
 
-  private async waitForBucket(_path: string): Promise<void> {
-    for (const bucket of this.buckets.values()) {
-      if (bucket.remaining <= 0 && Date.now() < bucket.resetAt) {
-        await this.sleep(bucket.resetAt - Date.now());
-      }
+  private async waitForBucket(path: string): Promise<void> {
+    const bucketId = this.pathToBucket.get(path);
+    if (!bucketId) return;
+    const bucket = this.buckets.get(bucketId);
+    if (!bucket) return;
+    if (bucket.remaining <= 0 && Date.now() < bucket.resetAt) {
+      await this.sleep(bucket.resetAt - Date.now());
     }
+    bucket.remaining = Math.max(0, bucket.remaining - 1);
   }
 
   private sleep(ms: number): Promise<void> {

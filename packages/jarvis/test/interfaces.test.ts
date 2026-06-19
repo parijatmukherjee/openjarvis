@@ -4,7 +4,7 @@ import type {
   Intent,
   JarvisContext,
   Delegator,
-  AgentResult,
+  DelegatorResult,
   AgentPool,
   AgentHandle,
   AgentInfo,
@@ -57,8 +57,8 @@ describe("jarvis interface compilation", () => {
     expectTypeOf<Delegator>().toBeObject();
   });
 
-  it("AgentResult compiles", () => {
-    expectTypeOf<AgentResult>().toBeObject();
+  it("DelegatorResult compiles", () => {
+    expectTypeOf<DelegatorResult>().toBeObject();
   });
 
   it("AgentPool compiles", () => {

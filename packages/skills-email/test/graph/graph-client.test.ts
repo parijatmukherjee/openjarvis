@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GraphEmailClient } from "../../src/graph/graph-client.js";
-import type { EmailFolder, EmailMessage, EmailDraft } from "../../src/types.js";
+import type { EmailMessage, EmailDraft } from "../../src/types.js";
 
 const mockGetToken = vi.fn<() => Promise<string>>().mockResolvedValue("tok-123");
 const mockFetch = vi.fn();
@@ -240,7 +240,7 @@ describe("GraphEmailClient", () => {
       };
 
       const client = createClient();
-      await expect(client.send(draft)).rejects.toThrow("Graph API 403");
+      await expect(client.send(draft)).rejects.toThrow("Graph API POST /me/sendMail failed: 403");
     });
   });
 
@@ -343,19 +343,33 @@ describe("GraphEmailClient", () => {
         .mockResolvedValueOnce(rateLimitedResponse);
 
       const client = createClient();
-      await expect(client.listFolders()).rejects.toThrow("Max retries exceeded for 429");
+      await expect(client.listFolders()).rejects.toThrow("too many 429 responses");
     });
 
     it("handles API error without error.message", async () => {
-      mockFetch.mockResolvedValueOnce({
+      vi.useFakeTimers();
+
+      const serverErrorResponse = {
         ok: false,
         status: 500,
         statusText: "Internal Server Error",
         json: async () => ({}),
-      });
+      };
+
+      mockFetch
+        .mockResolvedValueOnce(serverErrorResponse)
+        .mockResolvedValueOnce(serverErrorResponse)
+        .mockResolvedValueOnce(serverErrorResponse)
+        .mockResolvedValueOnce(serverErrorResponse);
 
       const client = createClient();
-      await expect(client.listFolders()).rejects.toThrow("Graph API 500: Internal Server Error");
+      const promise = client.listFolders();
+      const assertion = expect(promise).rejects.toThrow("500 server error after 3 retries");
+
+      await vi.runAllTimersAsync();
+      await assertion;
+
+      vi.useRealTimers();
     });
 
     it("handles folder without unreadItemCount", async () => {

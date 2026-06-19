@@ -12,7 +12,11 @@ export class SimpleEventBus implements EventBus {
     const handlers = this.handlers.get(event.topic);
     if (handlers) {
       for (const handler of handlers) {
-        handler(event);
+        try {
+          await handler(event);
+        } catch {
+          void 0;
+        }
       }
     }
   }

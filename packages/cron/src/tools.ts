@@ -70,6 +70,7 @@ export function createCronScheduleTool(
     description: "Create a scheduled cron job",
     args: CronScheduleArgsSchema as unknown as z.ZodType<CronScheduleArgs>,
     result: CronScheduleResultSchema as unknown as z.ZodType<CronScheduleResult>,
+    approvalRequired: true,
     capabilities: [{ name: "cron:manage" as const }],
     handler: async (args: CronScheduleArgs): Promise<CronScheduleResult> => {
       const input: CronJobCreate = {
@@ -111,6 +112,7 @@ export function createCronCancelTool(
     description: "Cancel a scheduled cron job",
     args: CronCancelArgsSchema as unknown as z.ZodType<CronCancelArgs>,
     result: CronCancelResultSchema as unknown as z.ZodType<CronCancelResult>,
+    approvalRequired: true,
     capabilities: [{ name: "cron:manage" as const }],
     handler: async (args: CronCancelArgs): Promise<CronCancelResult> => {
       const cancelled = await scheduler.cancel(args.id);

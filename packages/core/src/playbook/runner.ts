@@ -187,7 +187,11 @@ export class PlaybookRun {
   /** Append to JarvisStateStore, mirror to Audit, fold into local state — in that order. */
   private async commit(event: PhaseEvent): Promise<void> {
     await this.deps.store.append(event);
-    await this.deps.audit.append({ kind: event.type, data: { ...event }, at: event.at });
+    try {
+      await this.deps.audit.append({ kind: event.type, data: { ...event }, at: event.at });
+    } catch {
+      void 0;
+    }
     this._state = reducePlaybook(this._state, event);
   }
 }

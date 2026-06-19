@@ -108,6 +108,7 @@ export function createCalendarCreateTool(
     description: "Create a calendar event",
     args: CalendarCreateArgsSchema as unknown as z.ZodType<CalendarCreateArgs>,
     result: CalendarCreateResultSchema as unknown as z.ZodType<{ eventId: string }>,
+    approvalRequired: true,
     capabilities: [{ name: "calendar:write" as const }],
     handler: async (args) => {
       const input: CreateEventInput = {
@@ -170,6 +171,7 @@ export function createCalendarUpdateTool(
     description: "Update a calendar event",
     args: CalendarUpdateArgsSchema as unknown as z.ZodType<CalendarUpdateArgs>,
     result: CalendarUpdateResultSchema as unknown as z.ZodType<{ eventId: string }>,
+    approvalRequired: true,
     capabilities: [{ name: "calendar:write" as const }],
     handler: async (args) => {
       const input: Partial<CreateEventInput> = {};

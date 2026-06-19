@@ -38,6 +38,8 @@ export class TelegramBot {
   private pollAbort: AbortController | null = null;
   private readonly fetchFn: FetchLike;
   private sessionMapper: TelegramSessionMapper;
+  private backoffMs = 1000;
+  private static readonly MAX_BACKOFF_MS = 60000;
 
   constructor(config: TelegramBotConfig, fetchFn?: FetchLike) {
     this.baseUrl = `https://api.telegram.org/bot${config.token}`;
@@ -47,7 +49,9 @@ export class TelegramBot {
 
   async start(): Promise<void> {
     this.polling = true;
-    this.pollLoop();
+    this.pollLoop().catch((err: unknown) => {
+      console.error("Telegram bot poll loop failed:", err);
+    });
   }
 
   async stop(): Promise<void> {
@@ -81,36 +85,53 @@ export class TelegramBot {
     };
   }
 
-  private async getUpdates(): Promise<TelegramUpdate[]> {
-    const res = await this.callApi("getUpdates", {
-      offset: this.offset,
-      timeout: 30,
-    });
+  private async getUpdates(signal?: AbortSignal): Promise<TelegramUpdate[]> {
+    const res = await this.callApi(
+      "getUpdates",
+      {
+        offset: this.offset,
+        timeout: 30,
+      },
+      signal,
+    );
     return res as TelegramUpdate[];
   }
 
-  private async callApi(method: string, params: Record<string, unknown>): Promise<unknown> {
+  private async callApi(
+    method: string,
+    params: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<unknown> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60_000);
     const url = `${this.baseUrl}/${method}`;
-    const res = await this.fetchFn(url, {
+    const init: RequestInit = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
-    });
-    if (!res.ok) {
-      throw new Error(`Telegram API ${method} failed: ${res.status} ${await res.text()}`);
+      signal: signal ?? controller.signal,
+    };
+    try {
+      const res = await this.fetchFn(url, init);
+      if (!res.ok) {
+        throw new Error(`Telegram API ${method} failed: ${res.status} ${await res.text()}`);
+      }
+      const json = (await res.json()) as TelegramApiResponse;
+      if (!json.ok) {
+        throw new Error(`Telegram API ${method} error: ${json.description ?? "unknown"}`);
+      }
+      return json.result;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    const json = (await res.json()) as TelegramApiResponse;
-    if (!json.ok) {
-      throw new Error(`Telegram API ${method} error: ${json.description ?? "unknown"}`);
-    }
-    return json.result;
   }
 
   private async pollLoop(): Promise<void> {
     while (this.polling) {
       try {
         this.pollAbort = new AbortController();
-        const updates = await this.getUpdates();
+        const updates = await this.getUpdates(this.pollAbort.signal);
+        this.backoffMs = 1000;
         for (const update of updates) {
           this.offset = update.update_id + 1;
           if (update.message) {
@@ -120,9 +141,17 @@ export class TelegramBot {
             }
           }
         }
-      } catch {
+      } catch (err: unknown) {
         if (!this.polling) return;
-        await new Promise((r) => setTimeout(r, 1000));
+        if (err instanceof Error && err.message?.includes("401")) {
+          console.error("Telegram bot: unauthorized, stopping poll loop");
+          this.polling = false;
+          return;
+        }
+        console.error("Telegram bot poll error:", err);
+        const delay = Math.min(this.backoffMs, TelegramBot.MAX_BACKOFF_MS);
+        this.backoffMs = Math.min(this.backoffMs * 2, TelegramBot.MAX_BACKOFF_MS);
+        await new Promise((r) => setTimeout(r, delay));
       }
     }
   }

@@ -1,6 +1,16 @@
 import { z } from "zod";
 import type { ToolDefinition, ToolContext, ToolRegistry } from "@openjarvis/core";
-import type { BrowserAutomation, TabInfo } from "./browser.js";
+import type { BrowserAutomation, AccessibilityNode, TabInfo } from "./browser.js";
+
+function mapAccessibilityNode(node: AccessibilityNode): BrowserAccessibilityResult {
+  return {
+    role: node.role,
+    name: node.name,
+    value: node.value,
+    description: node.description,
+    children: node.children?.map(mapAccessibilityNode),
+  };
+}
 
 const BrowserNavigateArgs = z.object({
   url: z.string().url(),
@@ -111,6 +121,7 @@ export function createBrowserNavigateTool(
     description: "Navigate the browser to a URL and return the page title and final URL",
     args: BrowserNavigateArgs,
     result: BrowserNavigateResult,
+    approvalRequired: true,
     capabilities: [{ name: "web:browse" as const }],
     handler: async (
       args: BrowserNavigateArgs,
@@ -129,6 +140,7 @@ export function createBrowserClickTool(
     description: "Click an element in the browser by CSS selector",
     args: BrowserClickArgs,
     result: BrowserClickResult,
+    approvalRequired: true,
     capabilities: [{ name: "web:browse" as const }],
     handler: async (args: BrowserClickArgs, _ctx: ToolContext): Promise<BrowserClickResult> => {
       return browserAutomation.click(args.selector);
@@ -144,6 +156,7 @@ export function createBrowserTypeTool(
     description: "Type text into an element in the browser by CSS selector",
     args: BrowserTypeArgs,
     result: BrowserTypeResult,
+    approvalRequired: true,
     capabilities: [{ name: "web:browse" as const }],
     handler: async (args: BrowserTypeArgs, _ctx: ToolContext): Promise<BrowserTypeResult> => {
       return browserAutomation.type(args.selector, args.text);
@@ -182,7 +195,8 @@ export function createBrowserAccessibilityTool(
       _args: BrowserAccessibilityArgs,
       _ctx: ToolContext,
     ): Promise<BrowserAccessibilityResult> => {
-      return browserAutomation.accessibility() as unknown as Promise<BrowserAccessibilityResult>;
+      const node = await browserAutomation.accessibility();
+      return mapAccessibilityNode(node);
     },
   };
 }
@@ -232,6 +246,7 @@ export function createBrowserCloseTabTool(
     description: "Close a browser tab by its ID",
     args: BrowserCloseTabArgs,
     result: BrowserCloseTabResult,
+    approvalRequired: true,
     capabilities: [{ name: "web:browse" as const }],
     handler: async (
       args: BrowserCloseTabArgs,

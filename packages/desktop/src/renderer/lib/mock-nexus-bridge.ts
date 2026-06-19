@@ -1,3 +1,4 @@
+import type { CapabilityName } from "@openjarvis/core";
 import type { NexusBridge, Task, AgentView, MessageView } from "./nexus-types.js";
 
 // Mock bridge that returns the same data currently hardcoded in components.
@@ -11,7 +12,7 @@ const mockAgents: AgentView[] = [
     role: "Research",
     status: "active",
     description: "Web search and information gathering",
-    capabilities: ["search", "browse", "summarize"],
+    capabilities: ["web_search", "summarize"] as CapabilityName[],
     lastActivity: "2m ago",
     tasksCompleted: 142,
   },
@@ -21,7 +22,7 @@ const mockAgents: AgentView[] = [
     role: "System",
     status: "busy",
     description: "System operations and file management",
-    capabilities: ["shell", "fs:read", "fs:write"],
+    capabilities: ["shell", "fs:read", "fs:write"] as CapabilityName[],
     lastActivity: "now",
     tasksCompleted: 89,
   },
@@ -31,7 +32,7 @@ const mockAgents: AgentView[] = [
     role: "Data",
     status: "active",
     description: "Weather data retrieval and forecasts",
-    capabilities: ["weather:fetch", "location"],
+    capabilities: ["weather:read"] as CapabilityName[],
     lastActivity: "5m ago",
     tasksCompleted: 256,
   },
@@ -41,7 +42,7 @@ const mockAgents: AgentView[] = [
     role: "Data",
     status: "idle",
     description: "Calendar events and scheduling",
-    capabilities: ["calendar:read", "calendar:write", "reminder"],
+    capabilities: ["calendar:read", "calendar:write"] as CapabilityName[],
     lastActivity: "1h ago",
     tasksCompleted: 67,
   },
@@ -51,7 +52,7 @@ const mockAgents: AgentView[] = [
     role: "Browser",
     status: "failed",
     description: "Web browser automation",
-    capabilities: ["browse", "click", "screenshot"],
+    capabilities: ["web:browse"] as CapabilityName[],
     lastActivity: "3h ago",
     tasksCompleted: 34,
   },
@@ -61,7 +62,7 @@ const mockAgents: AgentView[] = [
     role: "Vision",
     status: "active",
     description: "Visual recognition and screen analysis",
-    capabilities: ["detect", "ocr", "classify"],
+    capabilities: ["detect_humans", "detect_emotion"] as CapabilityName[],
     lastActivity: "1m ago",
     tasksCompleted: 198,
   },

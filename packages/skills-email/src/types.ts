@@ -79,23 +79,27 @@ export interface AuthResult {
 }
 
 export interface EmailToolClients {
-  gmail?: {
-    listFolders(): Promise<EmailFolder[]>;
-    listMessages(folder: string, opts?: ListOptions): Promise<EmailMessage[]>;
-    getMessage(id: string): Promise<EmailMessage>;
-    send(draft: EmailDraft): Promise<string>;
-    search(query: string): Promise<EmailMessage[]>;
-  };
-  graph?: {
-    listFolders(): Promise<EmailFolder[]>;
-    listMessages(folder: string, opts?: ListOptions): Promise<EmailMessage[]>;
-    getMessage(id: string): Promise<EmailMessage>;
-    send(draft: EmailDraft): Promise<string>;
-    search(query: string): Promise<EmailMessage[]>;
-    startDeviceCodeAuth(): Promise<DeviceCodeInfo>;
-    waitForAuth(deviceCode: string): Promise<AuthResult>;
-    refreshToken(): Promise<AuthResult>;
-  };
+  gmail?:
+    | {
+        listFolders(): Promise<EmailFolder[]>;
+        listMessages(folder: string, opts?: ListOptions): Promise<EmailMessage[]>;
+        getMessage(id: string): Promise<EmailMessage>;
+        send(draft: EmailDraft): Promise<string>;
+        search(query: string): Promise<EmailMessage[]>;
+      }
+    | undefined;
+  graph?:
+    | {
+        listFolders(): Promise<EmailFolder[]>;
+        listMessages(folder: string, opts?: ListOptions): Promise<EmailMessage[]>;
+        getMessage(id: string): Promise<EmailMessage>;
+        send(draft: EmailDraft): Promise<string>;
+        search(query: string): Promise<EmailMessage[]>;
+        startDeviceCodeAuth(): Promise<DeviceCodeInfo>;
+        waitForAuth(deviceCode: string): Promise<AuthResult>;
+        refreshToken(): Promise<AuthResult>;
+      }
+    | undefined;
 }
 
 export const EmailFolderSchema = z.object({

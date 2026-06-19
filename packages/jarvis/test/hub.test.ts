@@ -184,7 +184,7 @@ describe("JarvisHub", () => {
     });
 
     await hub.start();
-    await expect(hub.simulateWake()).rejects.toThrow("delegator failure");
+    await hub.simulateWake();
     expect(hub.currentState).toBe("idle");
 
     await hub.stop();

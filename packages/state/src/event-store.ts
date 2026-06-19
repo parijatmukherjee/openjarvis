@@ -35,7 +35,7 @@ export class SqliteEventStore implements EventStore {
     sessionId: string,
     opts?: { limit?: number; afterSeq?: number },
   ): Promise<DomainEvent[]> {
-    let sql = "SELECT payload FROM events WHERE session_id = ?";
+    let sql = "SELECT seq, payload FROM events WHERE session_id = ?";
     const params: unknown[] = [sessionId];
     if (opts?.afterSeq !== undefined) {
       sql += " AND seq > ?";
@@ -47,8 +47,12 @@ export class SqliteEventStore implements EventStore {
       params.push(opts.limit);
     }
     const stmt = this.db.prepare(sql);
-    const rows = stmt.all(...params) as { payload: string }[];
-    return rows.map((r) => parseJsonOrThrow<DomainEvent>(r.payload, "SqliteEventStore", 200));
+    const rows = stmt.all(...params) as { seq: number; payload: string }[];
+    return rows.map((r) => {
+      const event = parseJsonOrThrow<DomainEvent>(r.payload, "SqliteEventStore", 200);
+      event.seq = r.seq;
+      return event;
+    });
   }
 
   close(): void {

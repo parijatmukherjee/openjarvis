@@ -17,6 +17,11 @@
     "start": "electron .",
     "pack": "npm run build && npm run build:renderer && electron-builder"
   },
+  "dependencies": {
+    "@openjarvis/core": "*",
+    "@openjarvis/jarvis": "*",
+    "zod": "^3.23.0"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@vitejs/plugin-react": "^4.3.4",

@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
+import { readFile, open, mkdir, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import { configDir } from "@openjarvis/core";
@@ -36,7 +36,8 @@ export class DesktopStore {
       const parsed = JSON.parse(text) as unknown;
       const result = schema.safeParse(parsed);
       if (result.success) return result.data;
-      return schema.parse({ ...fallback, ...(parsed as Record<string, unknown>) });
+      console.warn(`[DesktopStore] Schema validation failed for ${file}, using defaults`);
+      return fallback;
     } catch (err) {
       if (this.isEnoent(err)) return fallback;
       return fallback;
@@ -50,7 +51,13 @@ export class DesktopStore {
   private async writeJson(file: string, data: unknown): Promise<void> {
     await this.ensureDir();
     const temp = `${this.path(file)}.tmp`;
-    await writeFile(temp, JSON.stringify(data, null, 2), "utf-8");
+    const handle = await open(temp, "w", 0o600);
+    try {
+      await handle.writeFile(JSON.stringify(data, null, 2), "utf8");
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
     await rename(temp, this.path(file));
   }
 

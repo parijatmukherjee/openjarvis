@@ -74,4 +74,20 @@ describe("Vault Sync", () => {
     const merged = mergeVaultEntries(a, b);
     expect(merged.conflictTombstone).toBe(true);
   });
+
+  it("handles b having keys a does not (bWins with missing keys)", () => {
+    const a: VaultEntry = { key: "k", value: "a", vectorClock: { d1: 1 } };
+    const b: VaultEntry = { key: "k", value: "b", vectorClock: { d1: 2, d2: 1 } };
+    const merged = mergeVaultEntries(a, b);
+    expect(merged.value).toBe("b");
+    expect(merged.conflictTombstone).toBeUndefined();
+  });
+
+  it("handles a having keys b does not (aWins with missing keys)", () => {
+    const a: VaultEntry = { key: "k", value: "a", vectorClock: { d1: 2, d2: 1 } };
+    const b: VaultEntry = { key: "k", value: "b", vectorClock: { d1: 1 } };
+    const merged = mergeVaultEntries(a, b);
+    expect(merged.value).toBe("a");
+    expect(merged.conflictTombstone).toBeUndefined();
+  });
 });

@@ -23,7 +23,13 @@ export type CapabilityName =
   | "cron:read"
   | "cron:manage"
   | "telegram:message"
-  | "telegram:read";
+  | "telegram:read"
+  | "detect_humans"
+  | "detect_emotion"
+  | "open_app"
+  | "list_apps"
+  | "web_search"
+  | "summarize";
 
 export interface Capability {
   name: CapabilityName;

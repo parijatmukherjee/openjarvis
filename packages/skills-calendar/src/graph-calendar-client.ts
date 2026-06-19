@@ -53,19 +53,33 @@ export class GraphCalendarClient {
       const res = await this.fetchImpl(url, init);
 
       if (res.status === 429) {
+        if (attempt >= maxRetries) {
+          throw new Error(`Graph Calendar API ${method} ${path}: too many 429 responses`);
+        }
         const retryAfter = res.headers.get("Retry-After");
         const delay = retryAfter ? Number(retryAfter) * 1000 : 1000;
         await new Promise((r) => setTimeout(r, delay));
         continue;
       }
 
+      if (res.status >= 500 && attempt < maxRetries) {
+        const backoff = Math.pow(2, attempt) * 100;
+        await new Promise((r) => setTimeout(r, backoff));
+        continue;
+      }
+
       if (!res.ok) {
         if (res.status === 404) {
-          throw new Error(`Graph API 404: Not found`);
+          throw new Error(`Graph Calendar API ${method} ${path} failed: 404 Not found`);
         }
-        const resBody = (await res.json()) as { error?: { message?: string } };
-        const msg = resBody?.error?.message ?? res.statusText;
-        throw new Error(`Graph API ${res.status}: ${msg}`);
+        let msg: string;
+        try {
+          const resBody = (await res.json()) as { error?: { message?: string } };
+          msg = resBody?.error?.message ?? res.statusText;
+        } catch {
+          msg = res.statusText;
+        }
+        throw new Error(`Graph Calendar API ${method} ${path} failed: ${res.status} ${msg}`);
       }
 
       if (res.status === 204) {
@@ -74,8 +88,6 @@ export class GraphCalendarClient {
 
       return res.json();
     }
-
-    throw new Error("Max retries exceeded for 429");
   }
 
   private mapCalendar(raw: Record<string, unknown>): CalendarInfo {

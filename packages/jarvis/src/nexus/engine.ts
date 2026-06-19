@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { EventBus } from "../event-bus.js";
 import type { Intent, JarvisContext, Synthesis, AgentResult, AgentRoute } from "./types.js";
 import type { IntentRouter } from "./router.js";
@@ -41,13 +42,14 @@ export class NexusEngine {
     }
 
     // Sequential dispatch
+    let pipeFrom: unknown;
+
     for (const route of plan.sequential) {
-      const result = await this.dispatchAgent(route, context);
+      const input = pipeFrom ?? route.input;
+      const result = await this.dispatchAgent({ ...route, input }, context);
       results.push(result);
       if (!result.success) failed.push(result.agentId);
-      if (result.success && results.length > 0) {
-        route.input = result.output;
-      }
+      pipeFrom = result.success ? result.output : undefined;
     }
 
     // Primary agent
@@ -68,7 +70,7 @@ export class NexusEngine {
 
   private async dispatchAgent(route: AgentRoute, context: JarvisContext): Promise<AgentResult> {
     const sessionId = context.sessionId;
-    const taskId = `${sessionId}-${route.agentId}-${Date.now()}`;
+    const taskId = `${sessionId}-${route.agentId}-${randomUUID()}`;
 
     await this.emit({
       type: "task_started",

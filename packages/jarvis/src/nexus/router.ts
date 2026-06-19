@@ -34,6 +34,13 @@ export class RuleBasedRouter implements IntentRouter {
       ["get_notion", this.routeToNotion],
       ["create_notion", this.routeToNotion],
       ["update_notion", this.routeToNotion],
+      ["cron_schedule", this.routeToCron],
+      ["cron_list", this.routeToCron],
+      ["cron_cancel", this.routeToCron],
+      ["secret_get", this.routeToSecrets],
+      ["search_discord", this.routeToDiscord],
+      ["get_calendar", this.routeToCalendar],
+      ["set_reminder", this.routeToCron],
     ]);
   }
 
@@ -148,6 +155,22 @@ export class RuleBasedRouter implements IntentRouter {
       parallel: [],
       sequential: [],
       primary: { agentId: "notion", confidence: intent.confidence, required: false },
+    };
+  }
+
+  private routeToCron(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "cron", confidence: intent.confidence, required: false },
+    };
+  }
+
+  private routeToSecrets(intent: Intent): DispatchPlan {
+    return {
+      parallel: [],
+      sequential: [],
+      primary: { agentId: "secrets", confidence: intent.confidence, required: true },
     };
   }
 }

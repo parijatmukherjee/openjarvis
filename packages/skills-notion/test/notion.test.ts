@@ -320,7 +320,11 @@ describe("error handling", () => {
   });
 
   it("handles 429 rate limiting", async () => {
-    const { fetch } = mockNotionFetch([{ status: 429, body: { message: "rate limited" } }]);
+    const { fetch } = mockNotionFetch([
+      { status: 429, body: { message: "rate limited" } },
+      { status: 429, body: { message: "rate limited" } },
+      { status: 429, body: { message: "rate limited" } },
+    ]);
     const registry = new ToolRegistry();
     registerNotionTools(registry, { fetch, token: "test-token" });
     const result = await registry.invoke(
@@ -333,7 +337,11 @@ describe("error handling", () => {
   });
 
   it("handles generic HTTP error with response text", async () => {
-    const { fetch } = mockNotionFetch([{ status: 500, body: { message: "server error" } }]);
+    const { fetch } = mockNotionFetch([
+      { status: 500, body: { message: "server error" } },
+      { status: 500, body: { message: "server error" } },
+      { status: 500, body: { message: "server error" } },
+    ]);
     const registry = new ToolRegistry();
     registerNotionTools(registry, { fetch, token: "test-token" });
     const result = await registry.invoke(
@@ -558,20 +566,44 @@ describe("NotionClient direct", () => {
   });
 
   it("handles 429 rate limited error", async () => {
-    const { fetch } = mockNotionFetch([{ status: 429, body: { message: "rate limited" } }]);
+    const { fetch } = mockNotionFetch([
+      { status: 429, body: { message: "rate limited" } },
+      { status: 429, body: { message: "rate limited" } },
+      { status: 429, body: { message: "rate limited" } },
+    ]);
     const client = new NotionClient({ fetch, token: "test-token" });
     await expect(client.getPage("p1")).rejects.toThrow("rate limited");
   });
 
   it("handles generic HTTP error with fallback text", async () => {
-    const fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-      headers: new Headers({ "content-type": "application/json" }),
-      json: async () => ({}),
-      text: async () => "Internal Server Error",
-    });
+    const responses = [
+      {
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({}),
+        text: async () => "Internal Server Error",
+      },
+      {
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({}),
+        text: async () => "Internal Server Error",
+      },
+      {
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => ({}),
+        text: async () => "Internal Server Error",
+      },
+    ];
+    let callIdx = 0;
+    const fetch = vi.fn().mockImplementation(async () => responses[callIdx++]);
     const client = new NotionClient({ fetch, token: "test-token" });
     await expect(client.getPage("p1")).rejects.toThrow("HTTP 500");
   });

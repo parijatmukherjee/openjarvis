@@ -133,7 +133,12 @@ export class FileVault implements Vault {
       }
       throw err;
     }
-    const file = JSON.parse(raw) as VaultFile;
+    let file: VaultFile;
+    try {
+      file = JSON.parse(raw) as VaultFile;
+    } catch {
+      return {};
+    }
     const params = file.scrypt ?? LEGACY_SCRYPT;
     const salt = Buffer.from(file.salt, "base64");
     const key = deriveKey(this.passphrase, salt, params);

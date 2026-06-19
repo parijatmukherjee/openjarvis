@@ -79,7 +79,7 @@ describe("DiscordGateway", () => {
     expect(identifyMsg).toBeDefined();
     const parsed = JSON.parse(identifyMsg!);
     expect(parsed.d.token).toBe("test-token");
-    expect(parsed.d.intents).toBe(32767);
+    expect(parsed.d.intents).toBe((1 << 0) | (1 << 9) | (1 << 12) | (1 << 15));
   });
 
   it("sends HEARTBEAT after HELLO", async () => {

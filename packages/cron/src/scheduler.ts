@@ -40,10 +40,14 @@ export class CronScheduler {
         if (!updated) return;
         updated.lastRun = new Date().toISOString();
         if (this.store) {
-          this.store.update(updated);
+          await this.store.update(updated);
         }
         if (this.onTick) {
-          await this.onTick(updated);
+          try {
+            await this.onTick(updated);
+          } catch {
+            void 0;
+          }
         }
       });
       this.tasks.set(id, task);
@@ -51,7 +55,7 @@ export class CronScheduler {
 
     this.jobs.set(id, job);
     if (this.store) {
-      this.store.save(job);
+      await this.store.save(job);
     }
     return { ...job };
   }
@@ -77,20 +81,32 @@ export class CronScheduler {
     if (!this.store) return;
     const jobs = this.store.loadAll();
     for (const job of jobs) {
+      const existing = this.tasks.get(job.id);
+      if (existing) {
+        existing.stop();
+      }
       this.jobs.set(job.id, job);
       if (job.enabled) {
-        const task = cron.schedule(job.cron, async () => {
-          const updated = this.jobs.get(job.id);
-          if (!updated) return;
-          updated.lastRun = new Date().toISOString();
-          if (this.store) {
-            this.store.update(updated);
-          }
-          if (this.onTick) {
-            await this.onTick(updated);
-          }
-        });
-        this.tasks.set(job.id, task);
+        try {
+          const task = cron.schedule(job.cron, async () => {
+            const updated = this.jobs.get(job.id);
+            if (!updated) return;
+            updated.lastRun = new Date().toISOString();
+            if (this.store) {
+              await this.store.update(updated);
+            }
+            if (this.onTick) {
+              try {
+                await this.onTick(updated);
+              } catch {
+                void 0;
+              }
+            }
+          });
+          this.tasks.set(job.id, task);
+        } catch {
+          continue;
+        }
       }
     }
   }

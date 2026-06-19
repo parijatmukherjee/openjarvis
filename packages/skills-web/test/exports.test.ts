@@ -5,7 +5,7 @@ describe("@openjarvis/skills-web exports", () => {
     const mod = await import("../src/index.js");
     expect(mod.createWebFetchTool).toBeTypeOf("function");
     expect(mod.registerWebFetchTools).toBeTypeOf("function");
-    expect(mod.WebFetchConfig).toBeUndefined();
+    expect("WebFetchConfig" in mod).toBe(false);
   });
 
   it("exports browser automation tools and types", async () => {

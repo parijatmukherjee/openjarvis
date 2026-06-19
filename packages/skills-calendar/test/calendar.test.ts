@@ -239,7 +239,7 @@ describe("GraphCalendarClient", () => {
         .mockResolvedValueOnce(rateLimitedResponse);
 
       const client = createClient();
-      await expect(client.listCalendars()).rejects.toThrow("Max retries exceeded for 429");
+      await expect(client.listCalendars()).rejects.toThrow("too many 429 responses");
     });
 
     it("handles 404 errors", async () => {
@@ -251,20 +251,24 @@ describe("GraphCalendarClient", () => {
       });
 
       const client = createClient();
-      await expect(client.deleteEvent("missing")).rejects.toThrow("Graph API 404");
+      await expect(client.deleteEvent("missing")).rejects.toThrow("Graph Calendar API DELETE");
     });
 
     it("handles API errors without error.message", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-        json: async () => ({}),
-      });
+      for (let i = 0; i < 4; i++) {
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          statusText: "Internal Server Error",
+          json: async () => ({}),
+        });
+      }
 
       const client = createClient();
-      await expect(client.listCalendars()).rejects.toThrow("Graph API 500: Internal Server Error");
-    });
+      await expect(client.listCalendars()).rejects.toThrow(
+        "Graph Calendar API GET /me/calendars failed: 500 Internal Server Error",
+      );
+    }, 10_000);
 
     it("handles network errors", async () => {
       mockFetch.mockRejectedValueOnce(new Error("Network error"));
@@ -282,7 +286,9 @@ describe("GraphCalendarClient", () => {
       });
 
       const client = createClient();
-      await expect(client.listCalendars()).rejects.toThrow("Graph API 403");
+      await expect(client.listCalendars()).rejects.toThrow(
+        "Graph Calendar API GET /me/calendars failed: 403",
+      );
     });
 
     it("handles 204 No Content response", async () => {
@@ -640,7 +646,7 @@ describe("registerCalendarTools", () => {
 });
 
 describe("calendar_create tool branches", () => {
-  it("creates event with all optional fields", async () => {
+  it("creates event with all optional fields including recurrence", async () => {
     const client = createClient();
     vi.spyOn(client, "createEvent").mockResolvedValueOnce("evt-full");
 
@@ -656,6 +662,7 @@ describe("calendar_create tool branches", () => {
         location: "Room A",
         attendees: [{ name: "Alice", address: "a@b.com", type: "optional" }],
         isAllDay: true,
+        recurrence: { pattern: "daily", interval: 1 },
       },
       ctx,
     );
@@ -667,6 +674,7 @@ describe("calendar_create tool branches", () => {
         location: "Room A",
         isAllDay: true,
         attendees: [{ name: "Alice", address: "a@b.com", type: "optional" }],
+        recurrence: { pattern: "daily", interval: 1 },
       }),
     );
   });

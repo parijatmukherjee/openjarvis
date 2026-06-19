@@ -140,4 +140,18 @@ describe("Gate Checks", () => {
     );
     expect(result.logs).toContain("all gates passed");
   });
+
+  it("validatePhase passes when phase has no gateChecks (undefined)", async () => {
+    const result = await gate.validatePhase(
+      {
+        currentPhase: "",
+        completedPhases: [],
+        phaseResults: {},
+        startTime: 0,
+        metadata: { phaseId: "research" },
+      },
+      {},
+    );
+    expect(result.logs).toContain("all gates passed");
+  });
 });

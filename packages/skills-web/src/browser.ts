@@ -37,18 +37,26 @@ export class PlaywrightBrowserAutomation implements BrowserAutomation {
   private pages = new Map<string, import("playwright").Page>();
   private activeTabId: string | undefined;
   private readonly launchOptions: LaunchOptions | undefined;
+  private initPromise: Promise<import("playwright").Browser> | undefined;
 
   constructor(options?: { launchOptions?: LaunchOptions }) {
     this.launchOptions = options?.launchOptions;
   }
 
   private async ensureBrowser(tabId?: string): Promise<import("playwright").Page> {
-    if (!this.browser) {
+    if (!this.browser && !this.initPromise) {
       const { chromium } = await import("playwright");
-      this.browser = await chromium.launch(this.launchOptions);
+      this.initPromise = chromium.launch(this.launchOptions);
     }
+    try {
+      this.browser = await this.initPromise;
+    } catch {
+      this.initPromise = undefined;
+      throw new Error("Failed to launch browser");
+    }
+    this.initPromise = undefined;
     if (!this.context) {
-      this.context = await this.browser.newContext();
+      this.context = await this.browser!.newContext();
     }
     if (tabId !== undefined) {
       const page = this.pages.get(tabId);
@@ -66,10 +74,28 @@ export class PlaywrightBrowserAutomation implements BrowserAutomation {
   }
 
   async navigate(url: string, tabId?: string): Promise<{ title: string; url: string }> {
+    const resolvedTabId = tabId ?? this.activeTabId;
     const page = await this.ensureBrowser(tabId);
-    const response = await page.goto(url);
-    if (!response) {
-      throw new Error(`failed to navigate to ${url}`);
+    try {
+      const response = await page.goto(url, { waitUntil: "domcontentloaded" });
+      if (!response) {
+        if (resolvedTabId === undefined) {
+          this.pages.delete(this.activeTabId!);
+          await page.close().catch(() => {});
+          this.activeTabId = undefined;
+        }
+        throw new Error(`failed to navigate to ${url}`);
+      }
+    } catch (err) {
+      const currentTabId = resolvedTabId ?? this.activeTabId;
+      if (currentTabId !== undefined && this.pages.get(currentTabId) === page) {
+        this.pages.delete(currentTabId);
+        await page.close().catch(() => {});
+        if (this.activeTabId === currentTabId) {
+          this.activeTabId = undefined;
+        }
+      }
+      throw err;
     }
     const title = await page.title();
     return { title, url: page.url() };
@@ -96,7 +122,31 @@ export class PlaywrightBrowserAutomation implements BrowserAutomation {
   async accessibility(tabId?: string): Promise<AccessibilityNode> {
     const page = await this.ensureBrowser(tabId);
     const snapshot = await page.ariaSnapshot();
-    return { role: "page", value: snapshot };
+    return this.parseAriaSnapshot(snapshot);
+  }
+
+  private parseAriaSnapshot(snapshot: string): AccessibilityNode {
+    const lines = snapshot.split("\n");
+    const root: AccessibilityNode = { role: "page", children: [] };
+    const stack: { node: AccessibilityNode; indent: number }[] = [{ node: root, indent: -1 }];
+
+    for (const line of lines) {
+      const indent = line.search(/\S/);
+      if (indent === -1) continue;
+      const text = line.trimStart();
+      const match = text.match(/^(\S+)\s+"(.*)"/u);
+      if (!match) continue;
+      const node: AccessibilityNode = { role: match[1], name: match[2] };
+      while (stack.length > 1 && stack[stack.length - 1]!.indent >= indent) {
+        stack.pop();
+      }
+      const parent = stack[stack.length - 1]!;
+      if (!parent.node.children) parent.node.children = [];
+      parent.node.children.push(node);
+      stack.push({ node, indent });
+    }
+
+    return root;
   }
 
   async getCookies(): Promise<
@@ -164,6 +214,9 @@ export class PlaywrightBrowserAutomation implements BrowserAutomation {
     if (this.activeTabId === tabId) {
       const remaining = [...this.pages.keys()];
       this.activeTabId = remaining[0];
+      if (this.activeTabId && this.pages.has(this.activeTabId)) {
+        await this.pages.get(this.activeTabId)!.bringToFront();
+      }
     }
   }
 

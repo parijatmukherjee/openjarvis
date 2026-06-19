@@ -23,7 +23,13 @@ export class ProcessEventBus {
   emit(event: ProcessEvent): void {
     this.eventLog.push(event);
     const list = this.listeners.get(event.type) ?? [];
-    for (const handler of list) handler(event);
+    for (const handler of list) {
+      try {
+        handler(event);
+      } catch {
+        void 0;
+      }
+    }
   }
 
   replay(type?: string): ProcessEvent[] {

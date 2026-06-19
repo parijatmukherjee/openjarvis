@@ -121,6 +121,10 @@ const STOPWORDS = new Set<string>([
  * drop stopwords, dedupe, and OR the rest so any content term can match. Returns
  * null if no usable token remains — the caller then skips the FTS query.
  */
+export function escapeFts5Token(token: string): string {
+  return `"${token.replace(/"/g, '""')}"`;
+}
+
 export function toMatchQuery(text: string): string | null {
   const seen = new Set<string>();
   const tokens: string[] = [];
@@ -130,7 +134,7 @@ export function toMatchQuery(text: string): string | null {
       continue;
     }
     seen.add(tok);
-    tokens.push(tok);
+    tokens.push(escapeFts5Token(tok));
   }
   return tokens.length > 0 ? tokens.join(" OR ") : null;
 }

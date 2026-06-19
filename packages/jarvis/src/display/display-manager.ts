@@ -10,6 +10,8 @@ export interface DisplayManager {
   showAgentOutput?(agentId: string, displayId?: string): Promise<void>;
   /** Show a context card overlay (v1.1). */
   showContextCard?(title: string, body: string, displayId?: string): Promise<void>;
+  /** Highlight a UI element (v1.1). */
+  highlight?(element: string, displayId?: string): Promise<void>;
 }
 
 export interface DisplayInfo {

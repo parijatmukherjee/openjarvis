@@ -1,4 +1,4 @@
-import type { Delegator, AgentResult } from "./delegator.js";
+import type { Delegator, DelegatorResult } from "./delegator.js";
 import type { Intent } from "../intent.js";
 import type { JarvisContext } from "../context.js";
 
@@ -9,7 +9,7 @@ import type { JarvisContext } from "../context.js";
  * v1.1: Replace with real agent pool + process spawning.
  */
 export class MockDelegator implements Delegator {
-  async delegate(intent: Intent, _context: JarvisContext): Promise<AgentResult[]> {
+  async delegate(intent: Intent, _context: JarvisContext): Promise<DelegatorResult[]> {
     switch (intent.action) {
       case "open_app": {
         const app = String(intent.params.app || "unknown");

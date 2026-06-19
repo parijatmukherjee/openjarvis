@@ -59,15 +59,19 @@ export class JsonLogger implements Logger {
   }
 
   private writeToFile(line: string): void {
-    const data = `${line}\n`;
-    if (this.maxSizeBytes !== Infinity) {
-      const size = existsSync(this.path!) ? statSync(this.path!).size : 0;
-      if (size + Buffer.byteLength(data) > this.maxSizeBytes) {
-        this.rotate();
+    try {
+      const data = `${line}\n`;
+      if (this.maxSizeBytes !== Infinity) {
+        const size = existsSync(this.path!) ? statSync(this.path!).size : 0;
+        if (size + Buffer.byteLength(data) > this.maxSizeBytes) {
+          this.rotate();
+        }
       }
+      mkdirSync(dirname(this.path!), { recursive: true });
+      appendFileSync(this.path!, data);
+    } catch {
+      void 0;
     }
-    mkdirSync(dirname(this.path!), { recursive: true });
-    appendFileSync(this.path!, data);
   }
 
   private rotate(): void {

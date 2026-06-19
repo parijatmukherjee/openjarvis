@@ -53,7 +53,7 @@ export class InProcessAgentPool implements AgentPool {
           id: "weather",
           name: "Weather Agent",
           role: "data",
-          capabilities: ["fetch_weather"],
+          capabilities: ["weather:read"],
           active: true,
         },
       ],
@@ -73,7 +73,7 @@ export class InProcessAgentPool implements AgentPool {
           id: "browser",
           name: "Browser Agent",
           role: "browser",
-          capabilities: ["navigate", "click", "scroll"],
+          capabilities: ["web:browse"],
           active: true,
         },
       ],
@@ -113,7 +113,7 @@ export class InProcessAgentPool implements AgentPool {
           id: "web",
           name: "Web Agent",
           role: "web",
-          capabilities: ["web:fetch", "document:convert"],
+          capabilities: ["web:fetch", "web:browse", "document:convert"],
           active: true,
         },
       ],
@@ -153,7 +153,7 @@ export class InProcessAgentPool implements AgentPool {
           id: "cron",
           name: "Cron Agent",
           role: "scheduling",
-          capabilities: ["cron:schedule", "cron:list", "cron:cancel"],
+          capabilities: ["cron:manage", "cron:read"],
           active: true,
         },
       ],
@@ -163,7 +163,17 @@ export class InProcessAgentPool implements AgentPool {
           id: "secrets",
           name: "Secrets Agent",
           role: "security",
-          capabilities: ["secrets:read", "secrets:write", "secrets:delete"],
+          capabilities: ["secrets:read"],
+          active: true,
+        },
+      ],
+      [
+        "slow",
+        {
+          id: "slow",
+          name: "Slow Agent",
+          role: "test",
+          capabilities: [],
           active: true,
         },
       ],
@@ -207,18 +217,21 @@ export class InProcessAgentPool implements AgentPool {
     }
 
     const start = Date.now();
+    const timeoutMs = route.timeoutMs ?? 30000;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
-      const timeoutMs = route.timeoutMs ?? 30000;
       const output = await Promise.race([
         factory(context),
-        new Promise((_resolve, reject) =>
-          setTimeout(() => reject(new Error("timeout")), timeoutMs),
-        ),
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error("timeout")), timeoutMs);
+        }),
       ]);
       return { agentId: route.agentId, success: true, output, durationMs: Date.now() - start };
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
       return { agentId: route.agentId, success: false, error, durationMs: Date.now() - start };
+    } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
     }
   }
 

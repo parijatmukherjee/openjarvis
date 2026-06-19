@@ -27,7 +27,7 @@ export interface WSLike {
 
 const CLOSED = 3;
 const DEFAULT_GATEWAY_URL = "wss://gateway.discord.gg/?v=10&encoding=json";
-const INTENTS = 32767;
+const INTENTS = (1 << 0) | (1 << 9) | (1 << 12) | (1 << 15);
 const INITIAL_BACKOFF_MS = 1000;
 const MAX_BACKOFF_MS = 60000;
 const JITTER_FACTOR = 0.25;
@@ -46,6 +46,7 @@ export class DiscordGateway {
   private gatewayUrl: string | null = null;
   private reconnecting = false;
   private stopped = false;
+  private heartbeatAcked = false;
   private messageHandlers: Set<MessageHandler> = new Set();
   private dispatchHandlers: Set<DispatchHandler> = new Set();
 
@@ -63,6 +64,7 @@ export class DiscordGateway {
 
   async start(): Promise<void> {
     this.stopped = false;
+    this.reconnecting = false;
     this.gatewayUrl = await this.urlResolver();
     this.connect(this.gatewayUrl);
   }
@@ -91,9 +93,12 @@ export class DiscordGateway {
   }
 
   private async fetchGatewayUrl(): Promise<string> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
     try {
       const res = await fetch("https://discord.com/api/v10/gateway/bot", {
         headers: { Authorization: `Bot ${this.config.token}` },
+        signal: controller.signal,
       });
       if (res.ok) {
         const body = (await res.json()) as { url?: string };
@@ -103,6 +108,8 @@ export class DiscordGateway {
       }
     } catch {
       void 0;
+    } finally {
+      clearTimeout(timeoutId);
     }
     return DEFAULT_GATEWAY_URL;
   }
@@ -113,11 +120,16 @@ export class DiscordGateway {
 
     this.ws.on("open", () => {
       this.backoffMs = INITIAL_BACKOFF_MS;
+      this.reconnecting = false;
     });
 
     this.ws.on("message", (data: Buffer) => {
-      const payload: GatewayPayload = JSON.parse(data.toString());
-      this.handlePayload(payload);
+      try {
+        const payload: GatewayPayload = JSON.parse(data.toString());
+        this.handlePayload(payload);
+      } catch {
+        void 0;
+      }
     });
 
     this.ws.on("close", () => {
@@ -142,8 +154,14 @@ export class DiscordGateway {
         this.handleHello(payload.d as HelloData);
         break;
       case GatewayOP.HEARTBEAT_ACK:
+        this.heartbeatAcked = true;
         break;
       case GatewayOP.RECONNECT:
+        this.scheduleReconnect();
+        break;
+      case GatewayOP.INVALID_SESSION:
+        this.sessionId = null;
+        this.sequence = null;
         this.scheduleReconnect();
         break;
       case GatewayOP.HEARTBEAT:
@@ -170,10 +188,11 @@ export class DiscordGateway {
 
     if (type === "MESSAGE_CREATE") {
       const raw = payload.d as DiscordRawMessage;
-      if (raw.author?.bot) return;
-      const msg = this.mapMessage(raw);
-      for (const handler of this.messageHandlers) {
-        handler(msg);
+      if (!raw.author?.bot) {
+        const msg = this.mapMessage(raw);
+        for (const handler of this.messageHandlers) {
+          handler(msg);
+        }
       }
     }
 
@@ -193,7 +212,13 @@ export class DiscordGateway {
 
   private startHeartbeat(intervalMs: number): void {
     this.stopHeartbeat();
+    this.heartbeatAcked = true;
     this.heartbeatTimer = setInterval(() => {
+      if (!this.heartbeatAcked) {
+        this.scheduleReconnect();
+        return;
+      }
+      this.heartbeatAcked = false;
       this.sendHeartbeat();
     }, intervalMs);
   }
@@ -239,6 +264,10 @@ export class DiscordGateway {
 
   private scheduleReconnect(): void {
     if (this.reconnecting) return;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     this.reconnecting = true;
     this.stopHeartbeat();
     if (this.ws) {
@@ -261,13 +290,14 @@ export class DiscordGateway {
     this.reconnectTimer = setTimeout(() => {
       if (!this.stopped) {
         this.reconnectSync();
+      } else {
+        this.reconnecting = false;
       }
     }, delay);
-    this.reconnecting = false;
   }
 
   private reconnectSync(): void {
-    const url = this.gatewayUrl ?? this.resumeUrl ?? DEFAULT_GATEWAY_URL;
+    const url = this.resumeUrl ?? this.gatewayUrl ?? DEFAULT_GATEWAY_URL;
     this.connect(url);
   }
 

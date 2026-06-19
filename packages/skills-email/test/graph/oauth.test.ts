@@ -91,7 +91,7 @@ describe("GraphOAuth", () => {
       const result = await oauth.waitForAuth("dc-123");
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("authorization_pending");
+      expect(result.error).toContain("Authorization pending");
     });
   });
 
@@ -143,7 +143,7 @@ describe("GraphOAuth", () => {
       const result = await oauth.refreshToken();
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("invalid_grant");
+      expect(result.error).toContain("Token expired or revoked");
     });
   });
 
@@ -206,7 +206,7 @@ describe("GraphOAuth", () => {
       });
 
       const oauth = new GraphOAuth(config, vault, mockFetch);
-      await expect(oauth.getAccessToken()).rejects.toThrow("invalid_grant");
+      await expect(oauth.getAccessToken()).rejects.toThrow("Token expired");
     });
 
     it("throws error message from refresh failure in getAccessToken", async () => {
@@ -219,7 +219,7 @@ describe("GraphOAuth", () => {
       });
 
       const oauth = new GraphOAuth(config, vault, mockFetch);
-      await expect(oauth.getAccessToken()).rejects.toThrow("server_error: try again");
+      await expect(oauth.getAccessToken()).rejects.toThrow("try again");
     });
   });
 });

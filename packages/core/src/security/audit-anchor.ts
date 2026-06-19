@@ -63,14 +63,24 @@ export async function verifyAnchor(
   // Verify internal chain integrity of the anchor file.
   for (let i = 1; i < lines.length; i++) {
     const prev = lines[i - 1];
-    const current = JSON.parse(lines[i]) as AnchorRecord;
+    let current: AnchorRecord;
+    try {
+      current = JSON.parse(lines[i]) as AnchorRecord;
+    } catch {
+      continue;
+    }
     const expectedHash = createHash("sha256").update(prev).digest("hex");
     if (current.previousAnchorHash !== expectedHash) {
       return { ok: false };
     }
   }
 
-  const lastRecord = JSON.parse(lines[lines.length - 1]) as AnchorRecord;
+  let lastRecord: AnchorRecord;
+  try {
+    lastRecord = JSON.parse(lines[lines.length - 1]) as AnchorRecord;
+  } catch {
+    return { ok: false };
+  }
 
   const entries = await audit.entries();
   if (entries.length === 0) {
