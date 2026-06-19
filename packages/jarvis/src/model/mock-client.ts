@@ -32,9 +32,22 @@ export class MockModelClient implements ModelClient {
     return this.response;
   }
 
-  // Stub; the real single-chunk implementation lives in Task 2.
-  async *chatStream(_prompt: string, _system?: string): AsyncIterable<ModelResponseChunk> {
-    yield { content: "", done: true };
+  async *chatStream(prompt: string, system?: string): AsyncIterable<ModelResponseChunk> {
+    const call: { prompt: string; system?: string } = { prompt };
+    if (system !== undefined) {
+      call.system = system;
+    }
+    this.chatCalls.push(call);
+    if (this.error !== undefined) {
+      yield {
+        content: this.error.message,
+        done: true,
+        model: this.response.model,
+        error: this.error.code,
+      };
+      return;
+    }
+    yield { content: this.response.content, done: true, model: this.response.model };
   }
 
   async isAvailable(): Promise<boolean> {
