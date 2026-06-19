@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { OpenAICompatClient } from "../../src/model/openai-compat-client.js";
 import { ModelError } from "../../src/model/error.js";
-import type { ModelConfig } from "../../src/model/types.js";
+import type { ModelConfig, ModelResponseChunk } from "../../src/model/types.js";
 
 function mockFetch(
   fn: (url: string | URL | Request, init?: RequestInit) => Promise<Response>,
@@ -349,5 +349,56 @@ describe("OpenAICompatClient", () => {
       const client = new OpenAICompatClient(defaultConfig, mockFetch(fn));
       await client.isAvailable();
     });
+  });
+});
+
+describe("OpenAICompatClient.chatStream", () => {
+  function makeSSEResponse(events: object[]): Response {
+    const body = events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("") + "data: [DONE]\n\n";
+    return new Response(body, {
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+    });
+  }
+  it("yields one chunk per SSE data line", async () => {
+    const fetchMock = vi.fn(async () =>
+      makeSSEResponse([
+        { choices: [{ delta: { content: "The" } }] },
+        { choices: [{ delta: { content: " sky" } }] },
+        { choices: [{ delta: { content: " is" } }] },
+        { choices: [{ delta: {}, finish_reason: "stop" }], model: "gpt-4" },
+      ]),
+    );
+    const client = new OpenAICompatClient(defaultConfig, fetchMock as unknown as typeof fetch);
+    const chunks: ModelResponseChunk[] = [];
+    for await (const chunk of client.chatStream("hi")) chunks.push(chunk);
+    expect(chunks).toEqual([
+      { content: "The", done: false },
+      { content: " sky", done: false },
+      { content: " is", done: false },
+      { content: "", done: true, model: "gpt-4" },
+    ]);
+  });
+
+  it("yields a final error chunk on HTTP 5xx", async () => {
+    const fetchMock = vi.fn(async () => new Response("server error", { status: 503 }));
+    const client = new OpenAICompatClient(defaultConfig, fetchMock as unknown as typeof fetch);
+    const chunks: ModelResponseChunk[] = [];
+    for await (const chunk of client.chatStream("hi")) chunks.push(chunk);
+    expect(chunks[0]?.error).toBe("unavailable");
+  });
+
+  it("passes AbortSignal to fetch", async () => {
+    const fetchMock = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit) =>
+        makeSSEResponse([{ choices: [{ delta: {} }] }]),
+    );
+    const client = new OpenAICompatClient(defaultConfig, fetchMock as unknown as typeof fetch);
+    const ctrl = new AbortController();
+    for await (const _ of client.chatStream("hi", undefined, ctrl.signal)) {
+      /* noop */
+    }
+    const call = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(call?.signal).toBe(ctrl.signal);
   });
 });
