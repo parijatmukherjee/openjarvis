@@ -8,6 +8,7 @@
 ## Core Runtime (`@openjarvis/core`)
 
 ### Agent Loop & Model Adapters
+
 1. Event-sourced session core — durable `DomainEvent` log, single-writer serialized turns, reducer-based state, deterministic replay
 2. Agent loop — native tool-calling round-trip with model-call budget
 3. Ollama model adapter — local + cloud, one code path
@@ -16,6 +17,7 @@
 6. `HttpModelClient` — injectable HTTP seam for model requests
 
 ### The Lab — Capability-Gated Tool Registry
+
 7. Default-deny `ToolRegistry` — tools must be explicitly registered
 8. Never-throws tool execution — all tool errors caught and returned as `ToolResult`
 9. Confused-deputy guard — capability grants checked before tool invocation
@@ -25,11 +27,13 @@
 13. `disk_free` tool — disk space and platform info
 
 ### GroundingEngine
+
 14. Four grounding modes: `off`, `preferred`, `required`, `cited`
 15. `required` mode — rejects answers before a successful qualifying tool call
 16. `cited` mode — verifies citations and numeric claims against tool results
 
 ### Security
+
 17. The Vault — encrypted `FileVault` with crash-safe atomic writes
 18. The Gate — taint levels, provenance tracking, `approvalRequired` on high-risk tools
 19. Secret redaction — redacts secret-shaped values from events, audit, and prompts
@@ -37,12 +41,14 @@
 21. Audit — keyed HMAC hash chain (tamper-evident), durable in SQLite, verified across restarts
 
 ### Observability & Utilities
+
 22. Structured, redacted logging (`JsonLogger`)
 23. Metrics — observability counters
 24. Rate limiter — token bucket with cleanup
 25. Clock abstraction, ID generation, OS platform detection
 
 ### Playbook Process Engine
+
 26. ProcessEngine — phase-based execution with dependency gates
 27. Gate checks — process gate validation
 28. Lifecycle hooks — pre/post hooks for process stages
@@ -50,6 +56,7 @@
 30. ProcessManifest — process definition schema
 
 ### Memory
+
 31. `MemoryStore` interface — core adapter for memory recall
 32. Session & replay — `InMemoryEventStore`, `SqliteEventStore`, `rebuildStateStreaming`
 
@@ -92,35 +99,42 @@
 ## Nexus Orchestrator (`@openjarvis/jarvis`)
 
 ### Intent & Routing
+
 52. `RuleBasedRouter` — 30+ intent actions mapped to 14 specialist agents
 53. `IntentRouter` interface — pluggable routing strategy
 
 ### Agent Management
+
 54. `InProcessAgentPool` — 14 agents (general, research, system, weather, calendar, browser, vision, discord, telegram, web, email, notion, cron, secrets, slow)
 55. `AgentSession` — sub-agent spawning with timeout enforcement
 56. Capability matching — agents declare `CapabilityName[]`, tools declare required capabilities
 
 ### Orchestration
+
 57. `NexusEngine` — parallel/sequential dispatch, result synthesis
 58. `TaskBoard` — task tracking with LRU eviction (max 1000)
 59. `ReplayEngine` — orchestration session replay
 
 ### Tools & Composition
+
 60. `ToolComposition` — compose multiple skill packages into a single registry
 61. 30+ tools registered: discord (3), telegram (2), web fetch, browser (8), email (4), calendar (5), notion (4), weather (2), secrets (1), cron (3), disk_free, document_convert
 
 ### Voice
+
 62. `OllamaSttEngine` — voice transcription via Ollama Whisper
 63. `AmplitudeWakeWordEngine` — amplitude-based wake word detection with cooldown
 64. `AudioRecorder` — browser-based audio recording with PCM capture
 65. `useVoicePipeline` — React hook for voice pipeline state management
 
 ### Vision & Display
+
 66. `VisionEngine` — detection, presence, events
 67. `DisplayManager` interface — openApp, openUrl, showText, clear, highlight, openVisionFeed, showAgentOutput, showContextCard
 68. Visual command dispatch — 8 visual command types routed through display manager
 
 ### Hub & Events
+
 69. `JarvisHub` — main hub composition with wake word → speak flow
 70. `SimpleEventBus` — pub/sub event bus with error isolation
 
@@ -147,6 +161,7 @@
 ## Channels (`@openjarvis/channels`)
 
 ### Discord
+
 79. Raw WebSocket gateway — direct Discord WS connection with heartbeat + reconnection + INVALID_SESSION handling
 80. Rate-limited REST client — per-bucket rate limiting, Retry-After, 429 retry, path-specific buckets
 81. Session mapper — `channelToSession` / `sessionToChannel` mapping
@@ -157,6 +172,7 @@
 86. `discord_search` tool
 
 ### Telegram
+
 87. Telegram Bot — long-polling with exponential backoff, AbortController timeout
 88. Session mapper — chat-to-session routing with LRU eviction
 89. `telegram_send` tool
@@ -180,14 +196,14 @@
 
 98. `web_fetch` tool — URL to Markdown with rate limiting
 99. `browser_navigate` tool (approval-gated)
-100. `browser_click` tool (approval-gated)
-101. `browser_type` tool (approval-gated)
-102. `browser_screenshot` tool
-103. `browser_accessibility` tool — accessibility tree extraction with `parseAriaSnapshot`
-104. `browser_list_tabs` tool
-105. `browser_switch_tab` tool
-106. `browser_close_tab` tool (approval-gated)
-107. `PlaywrightBrowserAutomation` — concurrent-init serialization, page leak prevention, bringToFront on tab switch
+100.  `browser_click` tool (approval-gated)
+101.  `browser_type` tool (approval-gated)
+102.  `browser_screenshot` tool
+103.  `browser_accessibility` tool — accessibility tree extraction with `parseAriaSnapshot`
+104.  `browser_list_tabs` tool
+105.  `browser_switch_tab` tool
+106.  `browser_close_tab` tool (approval-gated)
+107.  `PlaywrightBrowserAutomation` — concurrent-init serialization, page leak prevention, bringToFront on tab switch
 
 ---
 
@@ -286,6 +302,8 @@
 158. Embedded SQLite — no external DB requirement
 159. Single self-contained binary — via Bun `--compile`
 160. Production-readiness hardening — 9 rounds of architecture + wiring audits with all issues resolved:
+
+
     - 3 CRITICAL bugs fixed (vault parse, 429 loops, event-store pagination)
     - 28 HIGH bugs fixed (timer leaks, timeouts, rejections, error handling, capability mismatches)
     - 33 MEDIUM bugs fixed (mutations, concurrency, persistence, routing, type safety)

@@ -114,26 +114,26 @@ how we kill the hallucination problem at the root.
 
 All 18 packages are built and tested:
 
-| Package                | Role                                                                                                 |
-| ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| `core`                 | Runtime: agent loop, model adapters, native tool-calling, **GroundingEngine**, capability sandbox     |
-| `state`                | Durable orchestration state (JarvisStateStore reborn) — runtime-owned, SQLite-default                 |
-| `memory`               | Decay-aware shared memory (JarvisMemoryStore reborn) — auto-injected, SQLite-default                |
-| `markdownify`          | Document → Markdown converters (CSV/HTML/JSON/XML/text) for token reduction — never-throws registry |
-| `jarvis`               | The Nexus — routing, dispatch, synthesis, voice, vision, display, hub                               |
-| `agents`               | Built-in specialist agents (vision, mock)                                                             |
-| `desktop`              | Electron desktop app with voice pipeline and op:// resolution                                        |
-| `track-b`              | Multi-device sync: device identity, CRDT, Noise protocol, task router, vault sync                     |
-| `process`              | Process Enforcement: AGENT.md loop runtime enforcement                                                |
-| `channels`             | Telegram + Discord native gateways with tools                                                         |
-| `skills-web`           | Web fetch + browser automation tools                                                                  |
-| `skills-email`         | Gmail + Graph email tools                                                                            |
-| `skills-calendar`      | Microsoft Graph Calendar tools                                                                        |
-| `skills-notion`        | Notion API tools                                                                                     |
-| `skills-weather`       | wttr.in weather tools                                                                                |
-| `skills-secrets`       | 1Password secrets tools                                                                              |
-| `cron`                 | Cron scheduler with SQLite persistence                                                                |
-| `skills`               | Skill manifest, loader, and sandbox infrastructure (plugin SDK foundation)                            |
+| Package           | Role                                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| `core`            | Runtime: agent loop, model adapters, native tool-calling, **GroundingEngine**, capability sandbox   |
+| `state`           | Durable orchestration state (JarvisStateStore reborn) — runtime-owned, SQLite-default               |
+| `memory`          | Decay-aware shared memory (JarvisMemoryStore reborn) — auto-injected, SQLite-default                |
+| `markdownify`     | Document → Markdown converters (CSV/HTML/JSON/XML/text) for token reduction — never-throws registry |
+| `jarvis`          | The Nexus — routing, dispatch, synthesis, voice, vision, display, hub                               |
+| `agents`          | Built-in specialist agents (vision, mock)                                                           |
+| `desktop`         | Electron desktop app with voice pipeline and op:// resolution                                       |
+| `track-b`         | Multi-device sync: device identity, CRDT, Noise protocol, task router, vault sync                   |
+| `process`         | Process Enforcement: AGENT.md loop runtime enforcement                                              |
+| `channels`        | Telegram + Discord native gateways with tools                                                       |
+| `skills-web`      | Web fetch + browser automation tools                                                                |
+| `skills-email`    | Gmail + Graph email tools                                                                           |
+| `skills-calendar` | Microsoft Graph Calendar tools                                                                      |
+| `skills-notion`   | Notion API tools                                                                                    |
+| `skills-weather`  | wttr.in weather tools                                                                               |
+| `skills-secrets`  | 1Password secrets tools                                                                             |
+| `cron`            | Cron scheduler with SQLite persistence                                                              |
+| `skills`          | Skill manifest, loader, and sandbox infrastructure (plugin SDK foundation)                          |
 
 ## Stack
 
