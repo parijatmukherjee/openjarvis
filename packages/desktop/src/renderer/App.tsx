@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NexusProvider } from "./contexts/NexusContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { createMockNexusBridge } from "./lib/mock-nexus-bridge";
+import type { NexusBridge } from "./lib/nexus-types";
 import { OnboardingFlow } from "./components/onboarding/OnboardingFlow";
 import { DashboardLayout } from "./components/dashboard/DashboardLayout";
 import { WindowControls } from "./components/WindowControls";
@@ -10,7 +11,11 @@ import { SettingsPanel } from "./components/SettingsPanel";
 export function App() {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const bridge = useState(() => createMockNexusBridge())[0];
+  const bridge = useState(
+    () =>
+      (window as unknown as { __testBridge?: NexusBridge }).__testBridge ??
+      createMockNexusBridge(),
+  )[0];
 
   return (
     <SettingsProvider>
