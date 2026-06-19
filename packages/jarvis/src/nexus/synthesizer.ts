@@ -1,5 +1,13 @@
-import type { AgentResult, Intent, JarvisContext, Synthesis, Synthesizer } from "./types.js";
+import type {
+  AgentResult,
+  Intent,
+  JarvisContext,
+  Synthesis,
+  SynthesizeHooks,
+  Synthesizer,
+} from "./types.js";
 import type { ModelClient } from "../model/types.js";
+import { ModelError } from "../model/error.js";
 
 export type { Synthesizer };
 
@@ -14,7 +22,37 @@ export class RuleBasedSynthesizer implements Synthesizer {
     results: AgentResult[],
     _originalIntent: Intent,
     _context: JarvisContext,
+    hooks?: SynthesizeHooks,
   ): Promise<Synthesis> {
+    if (this.client && hooks?.onChunk) {
+      try {
+        const available = await this.client.isAvailable();
+        if (available) {
+          const resultsPrompt = results
+            .map(
+              (r) => `${r.agentId}: ${r.success ? JSON.stringify(r.output) : `error: ${r.error}`}`,
+            )
+            .join("\n");
+          let assembled = "";
+          for await (const chunk of this.client.chatStream(
+            resultsPrompt,
+            "You are JARVIS, a helpful AI assistant. Synthesize the following agent results into a concise, natural response for the user. Do not mention agent IDs or internal details.",
+            hooks.abort,
+          )) {
+            if (chunk.error) {
+              hooks.onChunk({ text: chunk.content, done: true, error: chunk.error });
+              throw new ModelError(chunk.error, chunk.content);
+            }
+            assembled += chunk.content;
+            hooks.onChunk({ text: chunk.content, done: false });
+          }
+          return { spoken: assembled };
+        }
+      } catch {
+        // Fall back to rule-based synthesis
+      }
+    }
+
     if (this.client) {
       try {
         const available = await this.client.isAvailable();

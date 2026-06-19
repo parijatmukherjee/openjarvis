@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import type { EventBus } from "../event-bus.js";
-import type { Intent, JarvisContext, Synthesis, AgentResult, AgentRoute } from "./types.js";
+import type {
+  Intent,
+  JarvisContext,
+  Synthesis,
+  AgentResult,
+  AgentRoute,
+  SynthesizeChunk,
+  SynthesizeHooks,
+} from "./types.js";
 import type { IntentRouter } from "./router.js";
 import type { AgentPool } from "./pool.js";
 import type { Synthesizer } from "./synthesizer.js";
@@ -19,7 +27,11 @@ export interface NexusConfig {
 export class NexusEngine {
   constructor(private cfg: NexusConfig) {}
 
-  async execute(intent: Intent, context: JarvisContext): Promise<Synthesis> {
+  async execute(
+    intent: Intent,
+    context: JarvisContext,
+    hooks?: SynthesizeHooks,
+  ): Promise<Synthesis> {
     const sessionId = context.sessionId;
 
     // 1. Route intent to agents
@@ -62,10 +74,32 @@ export class NexusEngine {
     await this.emit({ type: "results_collected", results, failed, sessionId, at: Date.now() });
 
     // 3. Synthesize results
-    const synthesis = await this.cfg.synthesizer.synthesize(results, intent, context);
+    const synthesis = await this.cfg.synthesizer.synthesize(results, intent, context, hooks);
     await this.emit({ type: "synthesis_complete", synthesis, sessionId, at: Date.now() });
 
     return synthesis;
+  }
+
+  async executeChatStream(
+    text: string,
+    onChunk: (chunk: SynthesizeChunk) => void,
+    abort?: AbortSignal,
+  ): Promise<void> {
+    const hooks: SynthesizeHooks = { onChunk };
+    if (abort !== undefined) {
+      hooks.abort = abort;
+    }
+    const synthesis = await this.execute(
+      { action: "chat", params: { text }, confidence: 1, ambiguous: false },
+      {
+        sessionId: randomUUID(),
+        userId: "desktop-stream",
+        recentIntents: [],
+        currentTime: new Date(),
+      },
+      hooks,
+    );
+    onChunk({ text: synthesis.spoken ?? "", done: true });
   }
 
   private async dispatchAgent(
