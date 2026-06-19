@@ -2,7 +2,7 @@
 # Single entrypoint for all dev, test, and build commands
 # Usage: make dev | make test | make build | make lint | make format
 
-.PHONY: dev test build lint format format-check coverage install clean docker-test help
+.PHONY: dev test build lint format format-check coverage install clean docker-test test-e2e help
 
 # Default target
 .DEFAULT_GOAL := help
@@ -26,6 +26,7 @@ help: ## Show this help message
 	@echo "  $(YELLOW)make test$(RESET)      Run all unit tests"
 	@echo "  $(YELLOW)make test-watch$(RESET) Run tests in watch mode"
 	@echo "  $(YELLOW)make test-functional$(RESET) Run functional/e2e tests"
+	@echo "  $(YELLOW)make test-e2e$(RESET)       Run Playwright E2E tests"
 	@echo "  $(YELLOW)make coverage$(RESET)  Run tests with coverage report"
 	@echo ""
 	@echo "$(GREEN)Quality:$(RESET)"
@@ -51,7 +52,7 @@ install: ## Install dependencies
 
 dev: install build ## Start the full application (Electron + backend)
 	@echo "$(GREEN)Starting OpenJarvis Desktop...$(RESET)"
-	cd packages/desktop && npm run electron:dev
+	cd packages/desktop && npm run dev
 
 build: ## Build all packages
 	@echo "$(GREEN)Building all packages...$(RESET)"
@@ -69,6 +70,10 @@ test-watch: ## Run tests in watch mode
 test-functional: build ## Run functional/e2e tests
 	@echo "$(GREEN)Running functional tests...$(RESET)"
 	npm run test:functional
+
+test-e2e: build ## Run Playwright E2E tests
+	@echo "$(GREEN)Running E2E tests...$(RESET)"
+	npm run test:e2e
 
 coverage: build ## Run tests with coverage report
 	@echo "$(GREEN)Running tests with coverage...$(RESET)"
@@ -99,15 +104,15 @@ docker-build: ## Build Docker test image
 # Electron Desktop
 electron-dev: build ## Start Electron app in dev mode
 	@echo "$(GREEN)Starting Electron in dev mode...$(RESET)"
-	cd packages/desktop && npx electron . --dev
+	cd packages/desktop && npm run dev
 
 electron-build: build ## Build Electron app for current platform
 	@echo "$(GREEN)Building Electron app...$(RESET)"
-	cd packages/desktop && npm run electron:build
+	cd packages/desktop && npm run build
 
 electron-pack: build ## Package Electron app for distribution
 	@echo "$(GREEN)Packaging Electron app...$(RESET)"
-	cd packages/desktop && npm run electron:pack
+	cd packages/desktop && npm run pack
 
 # Cleanup
 clean: ## Remove build artifacts and node_modules
@@ -117,5 +122,5 @@ clean: ## Remove build artifacts and node_modules
 	@echo "$(GREEN)Clean complete. Run 'make install' to reinstall.$(RESET)"
 
 # Full CI Gate (runs everything)
-gate: lint format-check test coverage test-functional ## Run full CI gate locally
+gate: lint format-check test coverage test-functional test-e2e ## Run full CI gate locally
 	@echo "$(GREEN)✅ All gates passed!$(RESET)"
