@@ -11,10 +11,7 @@ test.describe("notion skill (via bridge)", () => {
         | undefined;
       if (b) {
         b.executeIntent("notion_query", { database: "tasks", filter: {} });
-        b.simulateIntentResponse(
-          "notion_query",
-          "5 results from Notion database"
-        );
+        b.simulateIntentResponse("notion_query", "5 results from Notion database");
       }
     });
     await expect(page.getByText(/notion|result/i)).toBeVisible({

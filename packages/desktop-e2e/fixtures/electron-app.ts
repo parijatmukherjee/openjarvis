@@ -28,36 +28,39 @@ export const test = base.extend<ElectronFixture>({
 
   bridge: async ({ page }, use) => {
     const bridge = new PlaywrightTestBridge();
-    await page.evaluate((bridgeData) => {
-      const { tasks, agents, messages } = bridgeData;
-      const handlers = new Set<(event: unknown) => void>();
+    await page.evaluate(
+      (bridgeData) => {
+        const { tasks, agents, messages } = bridgeData;
+        const handlers = new Set<(event: unknown) => void>();
 
-      const win = window as unknown as { __testBridge?: unknown };
-      win.__testBridge = {
-        async getTasks() {
-          return tasks;
-        },
-        async getAgents() {
-          return agents;
-        },
-        async getMessages() {
-          return messages;
-        },
-        async executeIntent(_action: string, _params: Record<string, unknown>) {
-          return;
-        },
-        subscribeToEvents(handler: (event: unknown) => void) {
-          handlers.add(handler);
-          return () => {
-            handlers.delete(handler);
-          };
-        },
-      };
-    }, {
-      tasks: await bridge.getTasks(),
-      agents: await bridge.getAgents(),
-      messages: await bridge.getMessages(),
-    });
+        const win = window as unknown as { __testBridge?: unknown };
+        win.__testBridge = {
+          async getTasks() {
+            return tasks;
+          },
+          async getAgents() {
+            return agents;
+          },
+          async getMessages() {
+            return messages;
+          },
+          async executeIntent(_action: string, _params: Record<string, unknown>) {
+            return;
+          },
+          subscribeToEvents(handler: (event: unknown) => void) {
+            handlers.add(handler);
+            return () => {
+              handlers.delete(handler);
+            };
+          },
+        };
+      },
+      {
+        tasks: await bridge.getTasks(),
+        agents: await bridge.getAgents(),
+        messages: await bridge.getMessages(),
+      },
+    );
     await use(bridge);
   },
 });

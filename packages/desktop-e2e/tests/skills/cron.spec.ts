@@ -14,10 +14,7 @@ test.describe("cron skill (via bridge)", () => {
           schedule: "0 9 * * *",
           task: "weather_current",
         });
-        b.simulateIntentResponse(
-          "cron_schedule",
-          "Scheduled weather_current at 0 9 * * *"
-        );
+        b.simulateIntentResponse("cron_schedule", "Scheduled weather_current at 0 9 * * *");
       }
     });
     await expect(page.getByText(/scheduled|cron/i)).toBeVisible({

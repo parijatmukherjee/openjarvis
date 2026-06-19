@@ -17,10 +17,7 @@ test.describe("Nexus bridge integration", () => {
         | undefined;
       if (b) {
         b.executeIntent("weather_current", { location: "NYC" });
-        b.simulateIntentResponse(
-          "weather_current",
-          "65°F and cloudy in NYC"
-        );
+        b.simulateIntentResponse("weather_current", "65°F and cloudy in NYC");
       }
     });
     await expect(page.getByText(/65°F|NYC/i)).toBeVisible({ timeout: 5_000 });

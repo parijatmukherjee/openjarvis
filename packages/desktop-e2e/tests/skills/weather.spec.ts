@@ -11,14 +11,9 @@ test.describe("weather skill (via bridge)", () => {
         | undefined;
       if (b) {
         b.executeIntent("weather_current", { location: "San Francisco" });
-        b.simulateIntentResponse(
-          "weather_current",
-          "It's 72°F and sunny in San Francisco."
-        );
+        b.simulateIntentResponse("weather_current", "It's 72°F and sunny in San Francisco.");
       }
     });
-    await expect(
-      page.getByText(/72°F|sunny|San Francisco/i)
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/72°F|sunny|San Francisco/i)).toBeVisible({ timeout: 5_000 });
   });
 });

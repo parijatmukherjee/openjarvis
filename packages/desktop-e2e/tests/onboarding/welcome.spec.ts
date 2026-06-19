@@ -6,9 +6,9 @@ test.describe("Welcome screen", () => {
   });
 
   test("renders the Initialize button", async ({ page }) => {
-    await expect(
-      page.getByRole("button", { name: /initialize/i })
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: /initialize/i })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("clicking Initialize advances to locale setup", async ({ page }) => {

@@ -14,10 +14,7 @@ test.describe("Telegram channel (via bridge)", () => {
           chat: "12345",
           message: "Hello from JARVIS",
         });
-        b.simulateIntentResponse(
-          "telegram_send",
-          "Message sent to Telegram chat 12345"
-        );
+        b.simulateIntentResponse("telegram_send", "Message sent to Telegram chat 12345");
       }
     });
     await expect(page.getByText(/telegram|sent/i)).toBeVisible({

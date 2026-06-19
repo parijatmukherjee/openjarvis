@@ -14,10 +14,7 @@ test.describe("Discord channel (via bridge)", () => {
           channel: "general",
           message: "Hello from JARVIS",
         });
-        b.simulateIntentResponse(
-          "discord_send",
-          "Message sent to #general"
-        );
+        b.simulateIntentResponse("discord_send", "Message sent to #general");
       }
     });
     await expect(page.getByText(/sent to.*general|#general/i)).toBeVisible({
@@ -35,15 +32,10 @@ test.describe("Discord channel (via bridge)", () => {
         | undefined;
       if (b) {
         b.executeIntent("discord_read", { channel: "general", limit: 10 });
-        b.simulateIntentResponse(
-          "discord_read",
-          "3 messages read from #general"
-        );
+        b.simulateIntentResponse("discord_read", "3 messages read from #general");
       }
     });
-    await expect(
-      page.getByText(/messages read from.*general/i)
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/messages read from.*general/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test("executes discord_search intent", async ({ page }) => {
@@ -56,10 +48,7 @@ test.describe("Discord channel (via bridge)", () => {
         | undefined;
       if (b) {
         b.executeIntent("discord_search", { query: "deploy" });
-        b.simulateIntentResponse(
-          "discord_search",
-          'Found 2 results for "deploy"'
-        );
+        b.simulateIntentResponse("discord_search", 'Found 2 results for "deploy"');
       }
     });
     await expect(page.getByText(/found.*result/i)).toBeVisible({

@@ -11,10 +11,7 @@ test.describe("calendar skill (via bridge)", () => {
         | undefined;
       if (b) {
         b.executeIntent("calendar_list", { date: "2025-01-15" });
-        b.simulateIntentResponse(
-          "calendar_list",
-          "3 events on January 15, 2025"
-        );
+        b.simulateIntentResponse("calendar_list", "3 events on January 15, 2025");
       }
     });
     await expect(page.getByText(/event/i)).toBeVisible({ timeout: 5_000 });
@@ -33,10 +30,7 @@ test.describe("calendar skill (via bridge)", () => {
           title: "Team standup",
           date: "2025-01-16T10:00:00",
         });
-        b.simulateIntentResponse(
-          "calendar_create",
-          'Event "Team standup" created'
-        );
+        b.simulateIntentResponse("calendar_create", 'Event "Team standup" created');
       }
     });
     await expect(page.getByText(/team standup|event.*created/i)).toBeVisible({

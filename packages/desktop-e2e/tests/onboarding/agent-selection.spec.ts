@@ -7,7 +7,10 @@ test.describe("Agent selection screen", () => {
     await expect(page.getByText(/language|locale/i)).toBeVisible({
       timeout: 10_000,
     });
-    await page.getByText(/english/i).first().click();
+    await page
+      .getByText(/english/i)
+      .first()
+      .click();
     await page.getByRole("button", { name: /next/i }).click();
     await expect(page.getByText(/voice|calibrat/i)).toBeVisible({
       timeout: 10_000,

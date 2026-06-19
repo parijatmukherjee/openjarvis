@@ -9,27 +9,26 @@ test.describe("Locale setup screen", () => {
     });
   });
 
-  test("displays language options after clicking Initialize", async ({
-    page,
-  }) => {
+  test("displays language options after clicking Initialize", async ({ page }) => {
     await expect(page.getByText(/english/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test("selecting a language highlights it", async ({ page }) => {
     const langOption = page.getByText(/english/i).first();
     await langOption.click();
-    await expect(langOption).toHaveAttribute(
-      /aria-selected|data-selected|class/,
-      /.*/,
-      { timeout: 5_000 }
-    );
+    await expect(langOption).toHaveAttribute(/aria-selected|data-selected|class/, /.*/, {
+      timeout: 5_000,
+    });
   });
 
   test("clicking Next advances to voice calibration", async ({ page }) => {
-    await page.getByText(/english/i).first().click();
+    await page
+      .getByText(/english/i)
+      .first()
+      .click();
     await page.getByRole("button", { name: /next/i }).click();
-    await expect(
-      page.getByText(/voice|calibrat|microphone|speak/i)
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/voice|calibrat|microphone|speak/i)).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });

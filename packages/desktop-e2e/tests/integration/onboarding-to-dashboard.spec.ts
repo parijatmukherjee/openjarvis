@@ -7,7 +7,10 @@ test.describe("Onboarding-to-dashboard full flow", () => {
     await expect(page.getByText(/language|locale/i)).toBeVisible({
       timeout: 10_000,
     });
-    await page.getByText(/english/i).first().click();
+    await page
+      .getByText(/english/i)
+      .first()
+      .click();
     await page.getByRole("button", { name: /next/i }).click();
     await expect(page.getByText(/voice|calibrat/i)).toBeVisible({
       timeout: 10_000,
@@ -16,17 +19,13 @@ test.describe("Onboarding-to-dashboard full flow", () => {
     await expect(page.getByText(/agent|select/i)).toBeVisible({
       timeout: 10_000,
     });
-    await page
-      .getByRole("button", { name: /next|continue|finish/i })
-      .click();
+    await page.getByRole("button", { name: /next|continue|finish/i }).click();
     await expect(page.getByText(/ready|complete|all set/i)).toBeVisible({
       timeout: 10_000,
     });
-    await page
-      .getByRole("button", { name: /launch|dashboard|start|go/i })
-      .click();
-    await expect(
-      page.getByText(/task|agent|conversation|dashboard/i)
-    ).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: /launch|dashboard|start|go/i }).click();
+    await expect(page.getByText(/task|agent|conversation|dashboard/i)).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });

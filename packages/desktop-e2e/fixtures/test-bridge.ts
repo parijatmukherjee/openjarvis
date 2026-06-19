@@ -1,9 +1,4 @@
-import type {
-  NexusBridge,
-  Task,
-  AgentView,
-  MessageView,
-} from "./test-data.js";
+import type { NexusBridge, Task, AgentView, MessageView } from "./test-data.js";
 import {
   createTask,
   createAgent,

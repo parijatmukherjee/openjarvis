@@ -11,10 +11,7 @@ test.describe("email skill (via bridge)", () => {
         | undefined;
       if (b) {
         b.executeIntent("email_search", { query: "meeting" });
-        b.simulateIntentResponse(
-          "email_search",
-          'Found 3 emails matching "meeting"'
-        );
+        b.simulateIntentResponse("email_search", 'Found 3 emails matching "meeting"');
       }
     });
     await expect(page.getByText(/found.*email/i)).toBeVisible({

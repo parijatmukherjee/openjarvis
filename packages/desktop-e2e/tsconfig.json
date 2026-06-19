@@ -7,5 +7,5 @@
     "lib": ["ES2023", "DOM"],
     "jsx": "react-jsx"
   },
-  "include": ["tests/**/*.ts", "tests/**/*.tsx", "fixtures/**/*.ts"]
+  "include": ["tests/**/*.ts", "tests/**/*.tsx", "fixtures/**/*.ts", "playwright.config.ts"]
 }

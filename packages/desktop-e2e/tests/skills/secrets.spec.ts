@@ -13,10 +13,7 @@ test.describe("secrets skill (via bridge)", () => {
         b.executeIntent("secrets_get", {
           reference: "op://vault/item/field",
         });
-        b.simulateIntentResponse(
-          "secrets_get",
-          "Secret resolved from 1Password"
-        );
+        b.simulateIntentResponse("secrets_get", "Secret resolved from 1Password");
       }
     });
     await expect(page.getByText(/secret|1password|resolved/i)).toBeVisible({

@@ -11,10 +11,7 @@ test.describe("web_fetch skill (via bridge)", () => {
         | undefined;
       if (b) {
         b.executeIntent("web_fetch", { url: "https://example.com" });
-        b.simulateIntentResponse(
-          "web_fetch",
-          "Fetched content from https://example.com"
-        );
+        b.simulateIntentResponse("web_fetch", "Fetched content from https://example.com");
       }
     });
     await expect(page.getByText(/fetched|example\.com/i)).toBeVisible({

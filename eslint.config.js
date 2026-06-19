@@ -42,4 +42,10 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ["packages/desktop-e2e/**/*.ts"],
+    rules: {
+      "no-empty-pattern": "off",
+    },
+  },
 );
