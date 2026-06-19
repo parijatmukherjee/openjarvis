@@ -23,6 +23,18 @@ describe("tokenBucket", () => {
     expect(a.allow()).toBe(true);
     expect(b.allow()).toBe(true);
   });
+
+  it("cleans up expired buckets", () => {
+    const limiter = tokenBucket("expire-key", { capacity: 1, refillRate: 1, maxAgeMs: 1 });
+    expect(limiter.allow()).toBe(true);
+    const freshLimiter = tokenBucket("expire-key", { capacity: 1, refillRate: 1, maxAgeMs: 1 });
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        expect(freshLimiter.allow()).toBe(true);
+        resolve();
+      }, 5);
+    });
+  });
 });
 
 describe("calculateBackoff", () => {

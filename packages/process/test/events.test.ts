@@ -86,4 +86,17 @@ describe("ProcessEventBus", () => {
     bus.clear();
     expect(bus.replay()).toHaveLength(0);
   });
+
+  it("catches handler errors without crashing", () => {
+    const bus = new ProcessEventBus();
+    const goodHandler = vi.fn();
+    bus.on("phase-started", () => {
+      throw new Error("boom");
+    });
+    bus.on("phase-started", goodHandler);
+
+    bus.emit({ id: "1", type: "phase-started", phaseId: "research", timestamp: 1 });
+
+    expect(goodHandler).toHaveBeenCalled();
+  });
 });

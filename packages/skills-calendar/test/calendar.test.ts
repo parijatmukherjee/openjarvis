@@ -646,7 +646,7 @@ describe("registerCalendarTools", () => {
 });
 
 describe("calendar_create tool branches", () => {
-  it("creates event with all optional fields", async () => {
+  it("creates event with all optional fields including recurrence", async () => {
     const client = createClient();
     vi.spyOn(client, "createEvent").mockResolvedValueOnce("evt-full");
 
@@ -662,6 +662,7 @@ describe("calendar_create tool branches", () => {
         location: "Room A",
         attendees: [{ name: "Alice", address: "a@b.com", type: "optional" }],
         isAllDay: true,
+        recurrence: { pattern: "daily", interval: 1 },
       },
       ctx,
     );
@@ -673,6 +674,7 @@ describe("calendar_create tool branches", () => {
         location: "Room A",
         isAllDay: true,
         attendees: [{ name: "Alice", address: "a@b.com", type: "optional" }],
+        recurrence: { pattern: "daily", interval: 1 },
       }),
     );
   });

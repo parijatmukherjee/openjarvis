@@ -90,6 +90,22 @@ describe("OpClient", () => {
     const client = new OpClient({ exec });
     await expect(client.read("op://vault/item/field")).rejects.toThrow("something else went wrong");
   });
+
+  it("uses default exec when no config provided", () => {
+    const client = new OpClient();
+    expect(client).toBeInstanceOf(OpClient);
+  });
+
+  it("uses default exec when config has no exec", () => {
+    const client = new OpClient({});
+    expect(client).toBeInstanceOf(OpClient);
+  });
+
+  it("rethrows non-Error thrown values", async () => {
+    const exec = vi.fn().mockRejectedValue("string error");
+    const client = new OpClient({ exec });
+    await expect(client.read("op://vault/item/field")).rejects.toBe("string error");
+  });
 });
 
 describe("secrets_get", () => {

@@ -69,7 +69,7 @@ export function createWebFetchTool(
             format: result.format,
           };
         } catch {
-          const text = typeof data === "object" ? new TextDecoder().decode(data) : String(data);
+          const text = new TextDecoder().decode(data);
           return { markdown: text, title: undefined, url: args.url, format: "text" };
         }
       } finally {
