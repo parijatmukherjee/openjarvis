@@ -15,8 +15,13 @@ jobs:
           node-version: 22.x
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps electron
+      # The Playwright Electron API launches the project's bundled `electron`
+      # binary; it doesn't need a Playwright browser install. We only need
+      # the system dependencies (libgtk, libnss, etc.) that Electron's
+      # Chromium runtime needs on Linux.
+      - run: npx playwright install-deps
       - run: npm run build -w @openjarvis/desktop
+      - run: npm run build:preload -w @openjarvis/desktop
       - run: npm run build:renderer -w @openjarvis/desktop
       - run: npx playwright test -c packages/desktop-e2e
       - uses: actions/upload-artifact@v4

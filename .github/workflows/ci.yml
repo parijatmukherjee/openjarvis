@@ -19,6 +19,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # The Electron preload is a CJS bundle emitted by Vite, not by `tsc -b`.
+      # `preload.smoke.test.ts` reads it directly; build it before vitest.
+      - run: npm run build:preload -w @openjarvis/desktop
       - run: npm run lint
       - run: npm run format:check
       - run: npm test
@@ -34,6 +37,7 @@ jobs:
         with: { node-version: 24, cache: npm }
       - run: npm ci
       - run: npm run build
+      - run: npm run build:preload -w @openjarvis/desktop
       - run: npm run coverage
       - uses: codecov/codecov-action@v4
         with:
@@ -55,6 +59,8 @@ jobs:
       # Build first so cross-package imports (e.g. @openhawkins/state -> core)
       # resolve to each package's dist the same way the node job does.
       - run: bun run build
+      # See node job: vitest's preload.smoke test reads dist/preload.js.
+      - run: cd packages/desktop && bunx vite build --config vite.preload.config.ts
       - run: bunx vitest run
       - run: bun build packages/core/src/bin/probe.ts --compile --outfile probe-bin
 
