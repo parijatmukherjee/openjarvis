@@ -1,4 +1,4 @@
-import type { ModelClient, ModelResponse } from "./types.js";
+import type { ModelClient, ModelResponse, ModelResponseChunk } from "./types.js";
 import { ModelError } from "./error.js";
 
 export interface MockModelClientConfig {
@@ -30,6 +30,11 @@ export class MockModelClient implements ModelClient {
       throw this.error;
     }
     return this.response;
+  }
+
+  // Stub; the real single-chunk implementation lives in Task 2.
+  async *chatStream(_prompt: string, _system?: string): AsyncIterable<ModelResponseChunk> {
+    yield { content: "", done: true };
   }
 
   async isAvailable(): Promise<boolean> {

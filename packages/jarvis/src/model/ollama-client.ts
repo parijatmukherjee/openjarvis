@@ -1,4 +1,4 @@
-import type { ModelConfig, ModelClient, ModelResponse } from "./types.js";
+import type { ModelConfig, ModelClient, ModelResponse, ModelResponseChunk } from "./types.js";
 import { ModelError } from "./error.js";
 
 export class OllamaClient implements ModelClient {
@@ -82,5 +82,10 @@ export class OllamaClient implements ModelClient {
     } catch {
       return false;
     }
+  }
+
+  // Stub; the real NDJSON implementation lives in Task 3.
+  async *chatStream(_prompt: string, _system?: string): AsyncIterable<ModelResponseChunk> {
+    yield { content: "", done: true };
   }
 }

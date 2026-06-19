@@ -201,3 +201,11 @@ describe("OllamaClient", () => {
     });
   });
 });
+
+describe("ModelClient interface (chatStream)", () => {
+  it("OllamaClient has a chatStream method declared by the interface", () => {
+    // Stub implementation is added in Task 1; real NDJSON parser arrives in Task 3.
+    const client = new OllamaClient(defaultConfig);
+    expect(typeof client.chatStream).toBe("function");
+  });
+});

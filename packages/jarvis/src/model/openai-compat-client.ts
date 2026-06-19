@@ -1,4 +1,4 @@
-import type { ModelConfig, ModelClient, ModelResponse } from "./types.js";
+import type { ModelConfig, ModelClient, ModelResponse, ModelResponseChunk } from "./types.js";
 import { ModelError } from "./error.js";
 
 export class OpenAICompatClient implements ModelClient {
@@ -89,5 +89,10 @@ export class OpenAICompatClient implements ModelClient {
     } catch {
       return false;
     }
+  }
+
+  // Stub; the real SSE implementation lives in Task 4.
+  async *chatStream(_prompt: string, _system?: string): AsyncIterable<ModelResponseChunk> {
+    yield { content: "", done: true };
   }
 }

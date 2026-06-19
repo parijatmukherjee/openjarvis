@@ -15,7 +15,15 @@ export interface ModelResponse {
   done: boolean;
 }
 
+export interface ModelResponseChunk {
+  content: string;
+  done: boolean;
+  model?: string;
+  error?: ModelErrorCode;
+}
+
 export interface ModelClient {
   chat(prompt: string, system?: string): Promise<ModelResponse>;
+  chatStream(prompt: string, system?: string): AsyncIterable<ModelResponseChunk>;
   isAvailable(): Promise<boolean>;
 }
