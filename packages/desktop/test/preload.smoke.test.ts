@@ -36,6 +36,8 @@ describe("preload smoke", () => {
       "nexus:getMessages",
       "nexus:clearMessages",
       "nexus:executeIntent",
+      "nexus:chatStream",
+      "nexus:cancelChatStream",
       "model:list",
       "env:getApiKeys",
       "window:minimize",

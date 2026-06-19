@@ -24,6 +24,8 @@ export interface ElectronAPI {
     visual?: unknown[];
     error?: string;
   }>;
+  nexusChatStream: (text: string) => Promise<{ sessionId: string }>;
+  nexusCancelChatStream: (sessionId: string) => Promise<void>;
   modelList: (provider: string, baseUrl: string, apiKey?: string) => Promise<string[]>;
   getEnvApiKeys: () => Promise<{ ollamaApiKey: string | null; openaiApiKey: string | null }>;
   onNexusEvent: (callback: (payload: unknown) => void) => () => void;

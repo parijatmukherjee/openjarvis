@@ -16,6 +16,10 @@ const api = {
   nexusClearMessages: () => ipcRenderer.invoke("nexus:clearMessages"),
   nexusExecuteIntent: (action: string, params: Record<string, unknown>) =>
     ipcRenderer.invoke("nexus:executeIntent", action, params),
+  nexusChatStream: (text: string) =>
+    ipcRenderer.invoke("nexus:chatStream", text) as Promise<{ sessionId: string }>,
+  nexusCancelChatStream: (sessionId: string) =>
+    ipcRenderer.invoke("nexus:cancelChatStream", sessionId) as Promise<void>,
   modelList: (provider: string, baseUrl: string, apiKey?: string) =>
     ipcRenderer.invoke("model:list", provider, baseUrl, apiKey),
   getEnvApiKeys: () => ipcRenderer.invoke("env:getApiKeys"),
