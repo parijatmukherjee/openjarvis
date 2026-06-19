@@ -7,7 +7,7 @@
 > **Last updated:** 2026-06-19 · **Default branch:** `main` (protected; required
 > `docker-gate`) · **Tests:** 1379 passing / 7 skipped, typecheck/lint/format clean,
 > coverage 99.62% (≥99% gate). **Current branch:** `feat/playwright-e2e` (with
-> Round-14 `make dev` ^C cleanup; uncommitted at the time of writing).
+> Round-15 display-priority fix; uncommitted at the time of writing).
 
 ---
 
@@ -589,3 +589,65 @@ electron .` directly. The signal-handling pattern is the same —
   browser" message. The `kill_tree` recursive kill still works in
   MSYS / Git Bash (no real pgroup, but `pgrep -P` does process-tree
   walking in the MSYS PGROUP emulation).
+
+### Round 15 — display-priority fix (2026-06-19)
+
+**User report:** "It is still not launching using make dev." Round 14
+verified the script's signal handling on this machine, but the actual
+user scenario was different: this machine has a real display
+(`DISPLAY=:1`), so the app should run against that display, not
+under Xvfb. The user said "This machine has a display. I don't know
+what is the problem here."
+
+**Root cause.** The Round 11/13/14 priority was:
+
+1. xvfb-run available → use it
+2. DISPLAY set → use it
+3. neither → renderer only
+
+That was wrong. On a workstation with both `xvfb-run` (installed
+for CI / headless dev) AND a real display (the workstation's X
+server), the script would always go down path 1 and launch under
+a hidden Xvfb display. The user would see "no window" because the
+visible window is on `:1` but the app is on `:99` (or whatever
+xvfb-run picked).
+
+**Fix.** `scripts/dev.sh` now checks `display_reachable` _first_:
+
+1. `DISPLAY` is set and the X server is reachable (tries
+   `xdpyinfo`, falls back to checking the X11 socket at
+   `/tmp/.X11-unix/X$displaynum`) → use the existing display.
+2. `DISPLAY` not set / not reachable, `xvfb-run` available →
+   wrap Electron in a virtual Xvfb display.
+3. neither → renderer only (the helpful "open
+   http://localhost:5173 in a browser" message).
+
+The `display_reachable` helper uses `xdpyinfo` when present (the
+most reliable check — it actually talks to the X server) and falls
+back to checking the X11 Unix-domain socket. Both work on macOS
+(Quartz doesn't expose `xdpyinfo` but has XQuartz's socket
+directory) and on Windows Git Bash (DISPLAY branch is not taken
+when DISPLAY is unset, so the no-display path triggers).
+
+**Verified on this machine** (`DISPLAY=:1`):
+
+```
+$ make dev
+...
+==> vite is up
+==> launching electron against DISPLAY=:1
+...
+```
+
+The app now actually targets the visible X server. `^C` from the
+terminal still cleans up cleanly (the same pgroup-kill trap
+Round 14 added; it works the same regardless of which launch
+branch was taken).
+
+**Unrelated side effect of this fix:** the Round 14 "stuck on
+launching electron under xvfb-run" hang that the user reported is
+the same root cause. With the priority fix, this machine goes down
+the DISPLAY branch, so the hang on `xvfb-run` no longer happens
+for workstations with a real display. Headless CI / containers
+without DISPLAY still go down the xvfb-run path and benefit from
+the Round 14 trap.

@@ -5,9 +5,13 @@
 # still be opened in a browser at http://localhost:5173.
 #
 # Modes (in order of preference):
-#   1. xvfb-run is installed          → wrap electron in a virtual display
-#   2. DISPLAY is set                  → run electron directly
-#   3. neither                          → run vite only; print a clear message
+#   1. DISPLAY is set and reachable → run Electron against the existing
+#      display (the normal case on a workstation).
+#   2. DISPLAY is not set, xvfb-run is installed → wrap Electron in a
+#      virtual display (headless dev boxes).
+#   3. neither → run the renderer only and print a clear message
+#      ("no display server detected, open http://localhost:5173 in a
+#      browser to see the UI").
 #
 # The previous Makefile version used `concurrently` which sent SIGTERM to
 # the renderer the moment electron failed (e.g. on a headless server). This
@@ -78,7 +82,43 @@ until curl -sf "http://localhost:$VITE_PORT/" >/dev/null 2>&1; do
 done
 echo "==> vite is up"
 
-if command -v xvfb-run >/dev/null 2>&1; then
+# Determine which display mode to use. Priority:
+#
+#   1. DISPLAY is set and reachable → run Electron against the existing
+#      display (this is the normal case on a workstation or a host
+#      that exports DISPLAY=:1 or similar).
+#   2. xvfb-run is on PATH and no usable DISPLAY → run Electron under
+#      a fresh Xvfb display (headless / no DISPLAY).
+#   3. neither → run the renderer only and print a clear message.
+#
+# `xvfb-run` is NOT preferred over a real DISPLAY. The previous version
+# of this script checked xvfb-run first, which meant a workstation
+# with `xvfb-run` installed would always get a hidden Xvfb window
+# even though a real display was available.
+
+# Check if DISPLAY points to a reachable X server.
+display_reachable() {
+  [ -n "${DISPLAY:-}" ] || return 1
+  if command -v xdpyinfo >/dev/null 2>&1; then
+    xdpyinfo >/dev/null 2>&1
+  else
+    # Fall back to checking the X11 socket directory.
+    local sock_dir="/tmp/.X11-unix"
+    local display_num="${DISPLAY#:}"
+    display_num="${display_num%%.*}"
+    [ -S "${sock_dir}/X${display_num}" ]
+  fi
+}
+
+if display_reachable; then
+  echo "==> launching electron against DISPLAY=${DISPLAY}"
+  npx electron . \
+    --no-sandbox \
+    --disable-gpu \
+    --disable-software-rasterizer \
+    --disable-dev-shm-usage \
+    --disable-features=Autofill
+elif command -v xvfb-run >/dev/null 2>&1; then
   echo "==> launching electron under xvfb-run (virtual display)"
   # --no-sandbox: the SUID chrome-sandbox helper requires root:4755, which
   # we cannot assume on every dev machine. Skipping the sandbox is safe
@@ -113,14 +153,6 @@ if command -v xvfb-run >/dev/null 2>&1; then
   done
   XVFB_RC=0
   wait "$XVFB_PID" 2>/dev/null || XVFB_RC=$?
-elif [ -n "${DISPLAY:-}" ]; then
-  echo "==> launching electron against DISPLAY=${DISPLAY}"
-  npx electron . \
-    --no-sandbox \
-    --disable-gpu \
-    --disable-software-rasterizer \
-    --disable-dev-shm-usage \
-    --disable-features=Autofill
 else
   cat <<EOF
 ==> no display server detected and xvfb-run is not installed.
