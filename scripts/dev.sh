@@ -62,11 +62,27 @@ if command -v xvfb-run >/dev/null 2>&1; then
   # --no-sandbox: the SUID chrome-sandbox helper requires root:4755, which
   # we cannot assume on every dev machine. Skipping the sandbox is safe
   # for dev (not for production) because the renderer is just localhost.
+  #
+  # --disable-gpu / --disable-software-rasterizer: the virtual Xvfb display
+  # has no GPU; without these, Electron logs harmless "Failed to send
+  # GpuControl.CreateCommandBuffer" and "Exiting GPU process" errors at
+  # startup. The renderer still works (software path).
+  #
+  # --disable-dev-shm-usage: /dev/shm is small in many containers; tells
+  # Chromium to use /tmp instead so we don't run out of shared memory.
   exec xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24" \
-    npx electron . --no-sandbox
+    npx electron . \
+      --no-sandbox \
+      --disable-gpu \
+      --disable-software-rasterizer \
+      --disable-dev-shm-usage
 elif [ -n "${DISPLAY:-}" ]; then
   echo "==> launching electron against DISPLAY=${DISPLAY}"
-  exec npx electron . --no-sandbox
+  exec npx electron . \
+    --no-sandbox \
+    --disable-gpu \
+    --disable-software-rasterizer \
+    --disable-dev-shm-usage
 else
   cat <<EOF
 ==> no display server detected and xvfb-run is not installed.

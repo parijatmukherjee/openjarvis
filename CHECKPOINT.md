@@ -470,7 +470,11 @@ pattern from Round 11). The new script:
    `chrome-sandbox` helper requires `root:4755` ownership, which we cannot
    assume on every dev machine. This is safe for dev (the renderer is just
    `localhost`); production builds are unaffected (they use the packaged
-   binary, not this dev script).
+   binary, not this dev script). Also passes `--disable-gpu`,
+   `--disable-software-rasterizer`, and `--disable-dev-shm-usage` so the
+   headless / Xvfb / small-`/dev/shm` path is silent — without these,
+   Electron logs harmless "Failed to send GpuControl.CreateCommandBuffer"
+   and "Exiting GPU process" errors at every startup.
 4. Uses `trap cleanup EXIT INT TERM` to always tear the Vite child down,
    the same way `scripts/test-e2e.sh` does — the previous Makefile version
    never reaped Vite on early exit, leaking the process.
