@@ -19,7 +19,11 @@ describe("registerIpcHandlers", () => {
   beforeEach(() => {
     handlers.clear();
     vi.clearAllMocks();
-    registerIpcHandlers(mockStore as unknown as Parameters<typeof registerIpcHandlers>[0], ipcMain, () => null);
+    registerIpcHandlers(
+      mockStore as unknown as Parameters<typeof registerIpcHandlers>[0],
+      ipcMain,
+      () => null,
+    );
   });
 
   it("registers settings and profile handlers", () => {

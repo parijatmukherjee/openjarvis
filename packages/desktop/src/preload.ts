@@ -21,7 +21,9 @@ const api = {
   onNexusEvent: (callback: (payload: unknown) => void) => {
     const handler = (_event: unknown, payload: unknown) => callback(payload);
     ipcRenderer.on("nexus:event", handler);
-    return () => { ipcRenderer.removeListener("nexus:event", handler as (...args: unknown[]) => void); };
+    return () => {
+      ipcRenderer.removeListener("nexus:event", handler as (...args: unknown[]) => void);
+    };
   },
 };
 

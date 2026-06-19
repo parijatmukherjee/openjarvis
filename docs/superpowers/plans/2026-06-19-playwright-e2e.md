@@ -13,6 +13,7 @@
 ## Task 1: Create the desktop-e2e package scaffold
 
 **Files:**
+
 - Create: `packages/desktop-e2e/package.json`
 - Create: `packages/desktop-e2e/tsconfig.json`
 - Create: `packages/desktop-e2e/playwright.config.ts`
@@ -66,9 +67,7 @@ export default defineConfig({
   timeout: 30_000,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI
-    ? [["list"], ["html", { open: "never" }]]
-    : [["list"]],
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
   use: {
     headed: !process.env.CI,
     trace: "on-first-retry",
@@ -107,6 +106,7 @@ git commit -m "feat(desktop-e2e): scaffold Playwright E2E test package"
 ## Task 2: Create test data factories
 
 **Files:**
+
 - Create: `packages/desktop-e2e/fixtures/test-data.ts`
 
 - [ ] **Step 1: Create `packages/desktop-e2e/fixtures/test-data.ts`**
@@ -201,27 +201,127 @@ export function createMessage(overrides: Partial<MessageView> = {}): MessageView
 }
 
 export const sampleAgents: AgentView[] = [
-  createAgent({ id: "research", name: "Research", role: "Research", status: "active", description: "Web search and information gathering", capabilities: ["web_search" as CapabilityName, "summarize" as CapabilityName], lastActivity: "2m ago", tasksCompleted: 142 }),
-  createAgent({ id: "system", name: "System", role: "System", status: "busy", description: "System operations and file management", capabilities: ["shell" as CapabilityName, "fs:read" as CapabilityName, "fs:write" as CapabilityName], lastActivity: "now", tasksCompleted: 89 }),
-  createAgent({ id: "weather", name: "Weather", role: "Data", status: "active", description: "Weather data retrieval and forecasts", capabilities: ["weather:read" as CapabilityName], lastActivity: "5m ago", tasksCompleted: 256 }),
-  createAgent({ id: "calendar", name: "Calendar", role: "Data", status: "idle", description: "Calendar events and scheduling", capabilities: ["calendar:read" as CapabilityName, "calendar:write" as CapabilityName], lastActivity: "1h ago", tasksCompleted: 67 }),
-  createAgent({ id: "browser", name: "Browser", role: "Browser", status: "failed", description: "Web browser automation", capabilities: ["web:browse" as CapabilityName], lastActivity: "3h ago", tasksCompleted: 34 }),
-  createAgent({ id: "vision", name: "Vision", role: "Vision", status: "active", description: "Visual recognition and screen analysis", capabilities: ["detect_humans" as CapabilityName, "detect_emotion" as CapabilityName], lastActivity: "1m ago", tasksCompleted: 198 }),
+  createAgent({
+    id: "research",
+    name: "Research",
+    role: "Research",
+    status: "active",
+    description: "Web search and information gathering",
+    capabilities: ["web_search" as CapabilityName, "summarize" as CapabilityName],
+    lastActivity: "2m ago",
+    tasksCompleted: 142,
+  }),
+  createAgent({
+    id: "system",
+    name: "System",
+    role: "System",
+    status: "busy",
+    description: "System operations and file management",
+    capabilities: [
+      "shell" as CapabilityName,
+      "fs:read" as CapabilityName,
+      "fs:write" as CapabilityName,
+    ],
+    lastActivity: "now",
+    tasksCompleted: 89,
+  }),
+  createAgent({
+    id: "weather",
+    name: "Weather",
+    role: "Data",
+    status: "active",
+    description: "Weather data retrieval and forecasts",
+    capabilities: ["weather:read" as CapabilityName],
+    lastActivity: "5m ago",
+    tasksCompleted: 256,
+  }),
+  createAgent({
+    id: "calendar",
+    name: "Calendar",
+    role: "Data",
+    status: "idle",
+    description: "Calendar events and scheduling",
+    capabilities: ["calendar:read" as CapabilityName, "calendar:write" as CapabilityName],
+    lastActivity: "1h ago",
+    tasksCompleted: 67,
+  }),
+  createAgent({
+    id: "browser",
+    name: "Browser",
+    role: "Browser",
+    status: "failed",
+    description: "Web browser automation",
+    capabilities: ["web:browse" as CapabilityName],
+    lastActivity: "3h ago",
+    tasksCompleted: 34,
+  }),
+  createAgent({
+    id: "vision",
+    name: "Vision",
+    role: "Vision",
+    status: "active",
+    description: "Visual recognition and screen analysis",
+    capabilities: ["detect_humans" as CapabilityName, "detect_emotion" as CapabilityName],
+    lastActivity: "1m ago",
+    tasksCompleted: 198,
+  }),
 ];
 
 export const sampleTasks: Task[] = [
-  createTask({ id: "1", agentId: "weather", description: "Fetching weather data", status: "running", startedAt: Date.now() - 1200, durationMs: 1200 }),
-  createTask({ id: "2", agentId: "calendar", description: "Loading calendar events", status: "completed", startedAt: Date.now() - 800, durationMs: 800 }),
-  createTask({ id: "3", agentId: "research", description: "Web search: AI trends 2025", status: "pending", startedAt: Date.now() }),
-  createTask({ id: "4", agentId: "system", description: "Opening Calendar app", status: "completed", startedAt: Date.now() - 300, durationMs: 300 }),
+  createTask({
+    id: "1",
+    agentId: "weather",
+    description: "Fetching weather data",
+    status: "running",
+    startedAt: Date.now() - 1200,
+    durationMs: 1200,
+  }),
+  createTask({
+    id: "2",
+    agentId: "calendar",
+    description: "Loading calendar events",
+    status: "completed",
+    startedAt: Date.now() - 800,
+    durationMs: 800,
+  }),
+  createTask({
+    id: "3",
+    agentId: "research",
+    description: "Web search: AI trends 2025",
+    status: "pending",
+    startedAt: Date.now(),
+  }),
+  createTask({
+    id: "4",
+    agentId: "system",
+    description: "Opening Calendar app",
+    status: "completed",
+    startedAt: Date.now() - 300,
+    durationMs: 300,
+  }),
 ];
 
 export const sampleMessages: MessageView[] = [
   createMessage({ id: "1", type: "user", text: "What's the weather like?", timestamp: ts(-60000) }),
-  createMessage({ id: "2", type: "jarvis", text: "It's 72°F and sunny. Would you like me to open the weather app?", timestamp: ts(-58000) }),
-  createMessage({ id: "3", type: "system", text: "Agent 'weather' dispatched", timestamp: ts(-55000) }),
+  createMessage({
+    id: "2",
+    type: "jarvis",
+    text: "It's 72°F and sunny. Would you like me to open the weather app?",
+    timestamp: ts(-58000),
+  }),
+  createMessage({
+    id: "3",
+    type: "system",
+    text: "Agent 'weather' dispatched",
+    timestamp: ts(-55000),
+  }),
   createMessage({ id: "4", type: "user", text: "Yes, please", timestamp: ts(-30000) }),
-  createMessage({ id: "5", type: "jarvis", text: "Done. Calendar app opened.", timestamp: ts(-28000) }),
+  createMessage({
+    id: "5",
+    type: "jarvis",
+    text: "Done. Calendar app opened.",
+    timestamp: ts(-28000),
+  }),
 ];
 ```
 
@@ -242,6 +342,7 @@ git commit -m "feat(desktop-e2e): add test data factories for Playwright tests"
 ## Task 3: Create PlaywrightTestBridge
 
 **Files:**
+
 - Create: `packages/desktop-e2e/fixtures/test-bridge.ts`
 
 - [ ] **Step 1: Create `packages/desktop-e2e/fixtures/test-bridge.ts`**
@@ -256,11 +357,7 @@ export class PlaywrightTestBridge implements NexusBridge {
   private eventHandlers: Set<(event: unknown) => void> = new Set();
   private intentLog: Array<{ action: string; params: Record<string, unknown> }> = [];
 
-  constructor(
-    tasks: Task[] = [],
-    agents: AgentView[] = [],
-    messages: MessageView[] = [],
-  ) {
+  constructor(tasks: Task[] = [], agents: AgentView[] = [], messages: MessageView[] = []) {
     this.tasks = [...tasks];
     this.agents = [...agents];
     this.messages = [...messages];
@@ -343,11 +440,7 @@ export class PlaywrightTestBridge implements NexusBridge {
     return this.intentLog;
   }
 
-  reset(
-    tasks: Task[] = [],
-    agents: AgentView[] = [],
-    messages: MessageView[] = [],
-  ): void {
+  reset(tasks: Task[] = [], agents: AgentView[] = [], messages: MessageView[] = []): void {
     this.tasks = [...tasks];
     this.agents = [...agents];
     this.messages = [...messages];
@@ -383,6 +476,7 @@ git commit -m "feat(desktop-e2e): add PlaywrightTestBridge with deterministic te
 ## Task 4: Modify App.tsx to support test bridge injection
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/App.tsx`
 
 - [ ] **Step 1: Update `App.tsx` to check for `window.__testBridge`**
@@ -398,8 +492,7 @@ To:
 ```tsx
 const bridge = useState(
   () =>
-    (window as unknown as { __testBridge?: NexusBridge }).__testBridge ??
-    createMockNexusBridge(),
+    (window as unknown as { __testBridge?: NexusBridge }).__testBridge ?? createMockNexusBridge(),
 )[0];
 ```
 
@@ -421,8 +514,7 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const bridge = useState(
     () =>
-      (window as unknown as { __testBridge?: NexusBridge }).__testBridge ??
-      createMockNexusBridge(),
+      (window as unknown as { __testBridge?: NexusBridge }).__testBridge ?? createMockNexusBridge(),
   )[0];
 
   return (
@@ -465,6 +557,7 @@ git commit -m "feat(desktop): support test bridge injection via window.__testBri
 ## Task 5: Create the Electron app fixture
 
 **Files:**
+
 - Create: `packages/desktop-e2e/fixtures/electron-app.ts`
 
 - [ ] **Step 1: Create `packages/desktop-e2e/fixtures/electron-app.ts`**
@@ -545,9 +638,12 @@ export const test = base.extend<ElectronTestFixture>({
 
   bridge: async ({ page }, use) => {
     const bridge = new PlaywrightTestBridge(sampleTasks, sampleAgents, sampleMessages);
-    await page.evaluate((bridgeData) => {
-      (window as unknown as Record<string, unknown>).__testBridge = bridgeData;
-    }, bridge as unknown as Record<string, unknown>);
+    await page.evaluate(
+      (bridgeData) => {
+        (window as unknown as Record<string, unknown>).__testBridge = bridgeData;
+      },
+      bridge as unknown as Record<string, unknown>,
+    );
     await use(bridge);
   },
 });
@@ -572,6 +668,7 @@ git commit -m "feat(desktop-e2e): add Electron app fixture for Playwright tests"
 ## Task 6: Add dev:renderer script to desktop package
 
 **Files:**
+
 - Modify: `packages/desktop/package.json`
 
 - [ ] **Step 1: Add `dev:renderer` script to desktop package.json**
@@ -607,6 +704,7 @@ git commit -m "feat(desktop): add dev:renderer script for Vite dev server"
 ## Task 7: Write onboarding E2E tests
 
 **Files:**
+
 - Create: `packages/desktop-e2e/tests/onboarding/welcome.spec.ts`
 - Create: `packages/desktop-e2e/tests/onboarding/locale-setup.spec.ts`
 - Create: `packages/desktop-e2e/tests/onboarding/agent-selection.spec.ts`
@@ -623,7 +721,9 @@ test.describe("Welcome screen", () => {
   });
 
   test("renders the Initialize button", async ({ page }) => {
-    await expect(page.getByRole("button", { name: /initialize/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: /initialize/i })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("clicking Initialize advances to locale setup", async ({ page }) => {
@@ -737,6 +837,7 @@ git commit -m "feat(desktop-e2e): add onboarding E2E tests (welcome, locale, age
 ## Task 8: Write dashboard E2E tests
 
 **Files:**
+
 - Create: `packages/desktop-e2e/tests/dashboard/layout.spec.ts`
 - Create: `packages/desktop-e2e/tests/dashboard/task-board.spec.ts`
 - Create: `packages/desktop-e2e/tests/dashboard/agent-status.spec.ts`
@@ -778,12 +879,16 @@ import { createTask } from "../../fixtures/test-data.js";
 
 test.describe("Task board", () => {
   test("renders tasks from the bridge", async ({ page, bridge }) => {
-    await page.evaluate((tasks) => {
-      const b = (window as unknown as { __testBridge?: { addTask: (t: unknown) => void } }).__testBridge;
-      if (b?.addTask) {
-        for (const t of tasks) b.addTask(t);
-      }
-    }, [createTask({ description: "E2E test task", status: "running" })]);
+    await page.evaluate(
+      (tasks) => {
+        const b = (window as unknown as { __testBridge?: { addTask: (t: unknown) => void } })
+          .__testBridge;
+        if (b?.addTask) {
+          for (const t of tasks) b.addTask(t);
+        }
+      },
+      [createTask({ description: "E2E test task", status: "running" })],
+    );
     await page.reload();
     await expect(page.getByText("E2E test task")).toBeVisible({ timeout: 5_000 });
   });
@@ -810,10 +915,14 @@ import { createMessage } from "../../fixtures/test-data.js";
 
 test.describe("Conversation panel", () => {
   test("displays messages from the bridge", async ({ page, bridge }) => {
-    await page.evaluate((msg) => {
-      const b = (window as unknown as { __testBridge?: { addMessage: (m: unknown) => void } }).__testBridge;
-      if (b?.addMessage) b.addMessage(msg);
-    }, createMessage({ text: "E2E test message" }));
+    await page.evaluate(
+      (msg) => {
+        const b = (window as unknown as { __testBridge?: { addMessage: (m: unknown) => void } })
+          .__testBridge;
+        if (b?.addMessage) b.addMessage(msg);
+      },
+      createMessage({ text: "E2E test message" }),
+    );
     await expect(page.getByText("E2E test message")).toBeVisible({ timeout: 5_000 });
   });
 });
@@ -826,7 +935,9 @@ import { test, expect } from "../../fixtures/electron-app.js";
 
 test.describe("Settings panel", () => {
   test("opens settings from window controls", async ({ page }) => {
-    const settingsBtn = page.locator("[data-testid=settings-btn], button[aria-label*=settings], button[aria-label*=gear]");
+    const settingsBtn = page.locator(
+      "[data-testid=settings-btn], button[aria-label*=settings], button[aria-label*=gear]",
+    );
     await settingsBtn.click();
     await expect(page.getByText(/theme|dark|light/i)).toBeVisible({ timeout: 5_000 });
   });
@@ -860,6 +971,7 @@ git commit -m "feat(desktop-e2e): add dashboard E2E tests (layout, tasks, agents
 ## Task 9: Write channel and skill E2E tests
 
 **Files:**
+
 - Create: `packages/desktop-e2e/tests/channels/discord.spec.ts`
 - Create: `packages/desktop-e2e/tests/channels/telegram.spec.ts`
 - Create: `packages/desktop-e2e/tests/skills/web-fetch.spec.ts`
@@ -873,13 +985,20 @@ git commit -m "feat(desktop-e2e): add dashboard E2E tests (layout, tasks, agents
 - [ ] **Step 1: Create channel test files**
 
 `discord.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
 test.describe("Discord channel (via bridge)", () => {
   test("executes discord_send intent through conversation", async ({ page, bridge }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void> } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+          };
+        }
+      ).__testBridge;
       if (b) b.executeIntent("discord_send", { channel: "general", message: "Hello from E2E!" });
     });
     await expect(page.getByText(/discord_send|Hello from E2E/i)).toBeVisible({ timeout: 5_000 });
@@ -887,7 +1006,13 @@ test.describe("Discord channel (via bridge)", () => {
 
   test("executes discord_read intent", async ({ page }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void> } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+          };
+        }
+      ).__testBridge;
       if (b) b.executeIntent("discord_read", { channel: "general" });
     });
     await expect(page.getByText(/discord_read/i)).toBeVisible({ timeout: 5_000 });
@@ -895,7 +1020,13 @@ test.describe("Discord channel (via bridge)", () => {
 
   test("executes discord_search intent", async ({ page }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void> } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+          };
+        }
+      ).__testBridge;
       if (b) b.executeIntent("discord_search", { channel: "general", query: "test" });
     });
     await expect(page.getByText(/discord_search/i)).toBeVisible({ timeout: 5_000 });
@@ -904,13 +1035,20 @@ test.describe("Discord channel (via bridge)", () => {
 ```
 
 `telegram.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
 test.describe("Telegram channel (via bridge)", () => {
   test("executes telegram_send intent through conversation", async ({ page }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void> } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+          };
+        }
+      ).__testBridge;
       if (b) b.executeIntent("telegram_send", { chat: "12345", message: "Hello from E2E!" });
     });
     await expect(page.getByText(/telegram_send|Hello from E2E/i)).toBeVisible({ timeout: 5_000 });
@@ -923,13 +1061,20 @@ test.describe("Telegram channel (via bridge)", () => {
 All skill tests follow the same pattern: send an intent via the bridge and verify the message appears. Create each file:
 
 `web-fetch.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
 test.describe("web_fetch skill (via bridge)", () => {
   test("executes web_fetch intent", async ({ page }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void> } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+          };
+        }
+      ).__testBridge;
       if (b) b.executeIntent("web_fetch", { url: "https://example.com" });
     });
     await expect(page.getByText(/web_fetch|example\.com/i)).toBeVisible({ timeout: 5_000 });
@@ -938,13 +1083,20 @@ test.describe("web_fetch skill (via bridge)", () => {
 ```
 
 `email.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
 test.describe("email skills (via bridge)", () => {
   test("executes email_search intent", async ({ page }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void> } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+          };
+        }
+      ).__testBridge;
       if (b) b.executeIntent("email_search", { query: "inbox" });
     });
     await expect(page.getByText(/email_search/i)).toBeVisible({ timeout: 5_000 });
@@ -952,7 +1104,13 @@ test.describe("email skills (via bridge)", () => {
 
   test("executes email_send intent", async ({ page }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void> } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+          };
+        }
+      ).__testBridge;
       if (b) b.executeIntent("email_send", { to: "test@example.com", subject: "E2E test" });
     });
     await expect(page.getByText(/email_send/i)).toBeVisible({ timeout: 5_000 });
@@ -961,13 +1119,20 @@ test.describe("email skills (via bridge)", () => {
 ```
 
 `calendar.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
 test.describe("calendar skills (via bridge)", () => {
   test("executes calendar_list intent", async ({ page }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void> } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+          };
+        }
+      ).__testBridge;
       if (b) b.executeIntent("calendar_list", {});
     });
     await expect(page.getByText(/calendar_list/i)).toBeVisible({ timeout: 5_000 });
@@ -975,7 +1140,13 @@ test.describe("calendar skills (via bridge)", () => {
 
   test("executes calendar_create intent", async ({ page }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void> } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+          };
+        }
+      ).__testBridge;
       if (b) b.executeIntent("calendar_create", { subject: "E2E test event" });
     });
     await expect(page.getByText(/calendar_create/i)).toBeVisible({ timeout: 5_000 });
@@ -997,6 +1168,7 @@ git commit -m "feat(desktop-e2e): add channel and skill E2E tests (discord, tele
 ## Task 10: Write voice, memory, and integration E2E tests
 
 **Files:**
+
 - Create: `packages/desktop-e2e/tests/voice/wake-word.spec.ts`
 - Create: `packages/desktop-e2e/tests/voice/stt.spec.ts`
 - Create: `packages/desktop-e2e/tests/memory/recall-reinforce.spec.ts`
@@ -1007,6 +1179,7 @@ git commit -m "feat(desktop-e2e): add channel and skill E2E tests (discord, tele
 - [ ] **Step 1: Create voice test files**
 
 `wake-word.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
@@ -1018,6 +1191,7 @@ test.describe("Wake word detection", () => {
 ```
 
 `stt.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
@@ -1031,13 +1205,21 @@ test.describe("Speech-to-text pipeline", () => {
 - [ ] **Step 2: Create memory test file**
 
 `recall-reinforce.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
 test.describe("Memory recall through conversation", () => {
   test("sends a recall intent and displays the response", async ({ page }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>; simulateIntentResponse: (a: string, r: string) => void } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+            simulateIntentResponse: (a: string, r: string) => void;
+          };
+        }
+      ).__testBridge;
       if (b) {
         b.executeIntent("recall", { query: "meeting notes" });
         b.simulateIntentResponse("recall", "I found notes about the Q3 planning meeting.");
@@ -1051,6 +1233,7 @@ test.describe("Memory recall through conversation", () => {
 - [ ] **Step 3: Create integration test files**
 
 `onboarding-to-dashboard.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
@@ -1074,12 +1257,15 @@ test.describe("Full onboarding to dashboard flow", () => {
 ```
 
 `settings-persistence.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 
 test.describe("Settings persistence", () => {
   test("settings modal opens and contains theme toggle", async ({ page }) => {
-    const settingsBtn = page.locator("[data-testid=settings-btn], button[aria-label*=settings], button[aria-label*=gear]");
+    const settingsBtn = page.locator(
+      "[data-testid=settings-btn], button[aria-label*=settings], button[aria-label*=gear]",
+    );
     await settingsBtn.click();
     await expect(page.getByText(/theme|dark|light/i)).toBeVisible({ timeout: 5_000 });
   });
@@ -1087,16 +1273,21 @@ test.describe("Settings persistence", () => {
 ```
 
 `nexus-bridge.spec.ts`:
+
 ```ts
 import { test, expect } from "../../fixtures/electron-app.js";
 import { createTask, createAgent, createMessage } from "../../fixtures/test-data.js";
 
 test.describe("NexusBridge data flow", () => {
   test("bridge data renders in the dashboard", async ({ page, bridge }) => {
-    await page.evaluate((task) => {
-      const b = (window as unknown as { __testBridge?: { addTask: (t: unknown) => void } }).__testBridge;
-      if (b) b.addTask(task);
-    }, createTask({ description: "Bridge data test task", status: "running" }));
+    await page.evaluate(
+      (task) => {
+        const b = (window as unknown as { __testBridge?: { addTask: (t: unknown) => void } })
+          .__testBridge;
+        if (b) b.addTask(task);
+      },
+      createTask({ description: "Bridge data test task", status: "running" }),
+    );
 
     await page.reload();
     await expect(page.getByText("Bridge data test task")).toBeVisible({ timeout: 5_000 });
@@ -1104,7 +1295,14 @@ test.describe("NexusBridge data flow", () => {
 
   test("bridge intent execution logs correctly", async ({ page, bridge }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>; simulateIntentResponse: (a: string, r: string) => void } }).__testBridge;
+      const b = (
+        window as unknown as {
+          __testBridge?: {
+            executeIntent: (a: string, p: Record<string, unknown>) => Promise<void>;
+            simulateIntentResponse: (a: string, r: string) => void;
+          };
+        }
+      ).__testBridge;
       if (b) {
         b.executeIntent("weather_current", { location: "San Francisco" });
         b.simulateIntentResponse("weather_current", "It's 72°F and sunny in San Francisco.");
@@ -1115,7 +1313,8 @@ test.describe("NexusBridge data flow", () => {
 
   test("bridge error handling displays error message", async ({ page, bridge }) => {
     await page.evaluate(() => {
-      const b = (window as unknown as { __testBridge?: { simulateError: (e: string) => void } }).__testBridge;
+      const b = (window as unknown as { __testBridge?: { simulateError: (e: string) => void } })
+        .__testBridge;
       if (b) b.simulateError("Network connection failed");
     });
     await expect(page.getByText(/Network connection failed/i)).toBeVisible({ timeout: 5_000 });
@@ -1135,6 +1334,7 @@ git commit -m "feat(desktop-e2e): add voice, memory, and integration E2E tests"
 ## Task 11: Add E2E scripts to root package.json and update CI
 
 **Files:**
+
 - Modify: `package.json` (root)
 - Create: `.github/workflows/e2e.yml`
 
@@ -1225,6 +1425,7 @@ git commit -m "feat(desktop-e2e): complete Playwright E2E test infrastructure"
 ## Self-Review
 
 **Spec coverage check:**
+
 - Section 1 (Package structure): Tasks 1-2 create the package, test data, and bridge
 - Section 2.1 (playwright.config.ts): Task 1
 - Section 2.2 (electron-app fixture): Task 5

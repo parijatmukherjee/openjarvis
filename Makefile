@@ -72,15 +72,8 @@ test-functional: build ## Run functional/e2e tests
 	npm run test:functional
 
 test-e2e: build renderer-build preload-build ## Run Playwright E2E tests (requires Vite dev server)
-	@echo "$(GREEN)Starting Vite dev server...$(RESET)"
-	@cd packages/desktop && npx vite --config vite.renderer.config.ts --port 5173 &\
-		VITE_PID=$$!; \
-		sleep 3; \
-		echo "$(GREEN)Running E2E tests...$(RESET)"; \
-		cd packages/desktop-e2e && npx playwright test --workers=1; \
-		EXIT_CODE=$$?; \
-		kill $$VITE_PID 2>/dev/null; \
-		exit $$EXIT_CODE
+	@echo "$(GREEN)Running Playwright E2E suite...$(RESET)"
+	./scripts/test-e2e.sh
 
 renderer-build: ## Build the Vite renderer
 	@echo "$(GREEN)Building renderer...$(RESET)"

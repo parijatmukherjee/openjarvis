@@ -3,6 +3,10 @@ import type { NexusBridge, Task, AgentView, MessageView } from "./nexus-types.js
 export function createIpcNexusBridge(): NexusBridge {
   const messages: MessageView[] = [];
   let nextId = 1;
+  const messageSubscribers = new Set<() => void>();
+  const notifyMessages = (): void => {
+    for (const sub of messageSubscribers) sub();
+  };
 
   return {
     async getTasks(): Promise<Task[]> {
@@ -35,6 +39,7 @@ export function createIpcNexusBridge(): NexusBridge {
           text,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         });
+        notifyMessages();
       }
 
       const api = window.electronAPI;
@@ -47,6 +52,7 @@ export function createIpcNexusBridge(): NexusBridge {
             text: result.spoken,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           });
+          notifyMessages();
         } else if (!result.success && result.error) {
           messages.push({
             id: String(nextId++),
@@ -54,6 +60,7 @@ export function createIpcNexusBridge(): NexusBridge {
             text: `Error: ${result.error}`,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           });
+          notifyMessages();
         }
       }
     },
@@ -64,6 +71,13 @@ export function createIpcNexusBridge(): NexusBridge {
         return api.onNexusEvent(handler);
       }
       return () => {};
+    },
+
+    subscribeToMessages(handler: () => void): () => void {
+      messageSubscribers.add(handler);
+      return () => {
+        messageSubscribers.delete(handler);
+      };
     },
   };
 }

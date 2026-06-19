@@ -96,7 +96,12 @@ describe("NexusEngine", () => {
       maxConcurrentAgents: 5,
       defaultTimeoutMs: 30000,
     });
-    const intent: Intent = { action: "unknown_intent", params: {}, confidence: 0.5, ambiguous: true };
+    const intent: Intent = {
+      action: "unknown_intent",
+      params: {},
+      confidence: 0.5,
+      ambiguous: true,
+    };
     const synthesis = await modelEngine.execute(intent, context);
     expect(synthesis.spoken).toBeDefined();
     expect(synthesis.spoken.length).toBeGreaterThan(0);

@@ -38,4 +38,5 @@ export interface NexusBridge {
   getMessages(): Promise<MessageView[]>;
   executeIntent(action: string, params: Record<string, unknown>): Promise<void>;
   subscribeToEvents(handler: (event: unknown) => void): () => void;
+  subscribeToMessages(handler: () => void): () => void;
 }

@@ -5,7 +5,9 @@ test.describe("Completion screen", () => {
     await page.locator("[data-testid='onboarding-initialize']").click();
     await expect(page.getByRole("heading", { name: /language/i })).toBeVisible({ timeout: 10_000 });
     await page.locator("[data-testid='onboarding-continue']").click();
-    await expect(page.getByRole("heading", { name: /voice calibration/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /voice calibration/i })).toBeVisible({
+      timeout: 10_000,
+    });
     await page.locator("[data-testid='voice-start']").click();
     await expect(page.locator("[data-testid='voice-continue']")).toBeVisible({ timeout: 15_000 });
     await page.locator("[data-testid='voice-continue']").click();

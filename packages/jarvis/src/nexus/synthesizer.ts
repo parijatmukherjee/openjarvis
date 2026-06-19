@@ -20,7 +20,9 @@ export class RuleBasedSynthesizer implements Synthesizer {
         const available = await this.client.isAvailable();
         if (available) {
           const resultsPrompt = results
-            .map((r) => `${r.agentId}: ${r.success ? JSON.stringify(r.output) : `error: ${r.error}`}`)
+            .map(
+              (r) => `${r.agentId}: ${r.success ? JSON.stringify(r.output) : `error: ${r.error}`}`,
+            )
             .join("\n");
           const response = await this.client.chat(
             resultsPrompt,
@@ -56,7 +58,10 @@ export class RuleBasedSynthesizer implements Synthesizer {
           break;
         }
         case "calendar": {
-          const output = result.output as { events?: Array<{ title: string; time: string }>; status?: string };
+          const output = result.output as {
+            events?: Array<{ title: string; time: string }>;
+            status?: string;
+          };
           if (output.events?.length) {
             const eventList = output.events.map((e) => `${e.title} at ${e.time}`).join(", ");
             parts.push(`You have ${eventList}.`);

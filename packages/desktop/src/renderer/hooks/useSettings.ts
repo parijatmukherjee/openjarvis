@@ -41,11 +41,12 @@ export function useSettings(): UseSettingsResult {
     Promise.all([api.getSettings(), api.getProfile(), api.getEnvApiKeys()])
       .then(([s, p, envKeys]) => {
         if (!s.model.apiKey) {
-          const envKey = s.model.provider === "ollama-cloud"
-            ? envKeys.ollamaApiKey
-            : s.model.provider === "openai-compat"
-              ? envKeys.openaiApiKey
-              : envKeys.ollamaApiKey;
+          const envKey =
+            s.model.provider === "ollama-cloud"
+              ? envKeys.ollamaApiKey
+              : s.model.provider === "openai-compat"
+                ? envKeys.openaiApiKey
+                : envKeys.ollamaApiKey;
           if (envKey) {
             s.model.apiKey = envKey;
           }

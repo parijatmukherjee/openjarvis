@@ -4,13 +4,14 @@ import { RuleBasedRouter } from "../../src/nexus/router.js";
 import { InProcessAgentPool } from "../../src/nexus/pool.js";
 import { RuleBasedSynthesizer } from "../../src/nexus/synthesizer.js";
 import { SimpleEventBus } from "../../src/event-bus/simple.js";
-import { OpenAICompatClient } from "../../src/model/openai-compat-client.js";
+import { OllamaClient } from "../../src/model/ollama-client.js";
 import { createModelClient } from "../../src/model/factory.js";
 import type { ModelConfig } from "../../src/model/types.js";
 import type { Intent, JarvisContext } from "../../src/nexus/types.js";
 
 const OLLAMA_API_KEY = process.env.OLLAMA_API_KEY;
-const OLLAMA_CLOUD_URL = "https://api.ollama.com/v1";
+const OLLAMA_CLOUD_URL = "https://api.ollama.com";
+const OLLAMA_CLOUD_MODEL = "gemma3:4b";
 
 function makeContext(): JarvisContext {
   return {
@@ -22,18 +23,18 @@ function makeContext(): JarvisContext {
 }
 
 describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
-  let client: OpenAICompatClient;
+  let client: OllamaClient;
   let eventBus: SimpleEventBus;
   let engine: NexusEngine;
 
   beforeAll(() => {
     const config: ModelConfig = {
       provider: "ollama-cloud",
-      model: "llama3.2",
+      model: OLLAMA_CLOUD_MODEL,
       baseUrl: OLLAMA_CLOUD_URL,
       apiKey: OLLAMA_API_KEY!,
     };
-    client = createModelClient(config) as OpenAICompatClient;
+    client = createModelClient(config) as OllamaClient;
     eventBus = new SimpleEventBus();
     engine = new NexusEngine({
       intentRouter: new RuleBasedRouter(client),
@@ -43,7 +44,7 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
       maxConcurrentAgents: 3,
       defaultTimeoutMs: 60000,
     });
-  });
+  }, 60_000);
 
   it("executes a check_weather intent through the full pipeline", async () => {
     const intent: Intent = {
@@ -57,7 +58,7 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
     expect(result).toBeDefined();
     expect(result.spoken).toBeTruthy();
     expect(result.spoken.length).toBeGreaterThan(0);
-  });
+  }, 60_000);
 
   it("executes a search intent through the full pipeline", async () => {
     const intent: Intent = {
@@ -70,7 +71,7 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
 
     expect(result).toBeDefined();
     expect(result.spoken).toBeTruthy();
-  });
+  }, 60_000);
 
   it("executes a get_updates intent with parallel dispatch", async () => {
     const intent: Intent = {
@@ -84,7 +85,7 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
     expect(result).toBeDefined();
     expect(result.spoken).toBeTruthy();
     expect(result.spoken.length).toBeGreaterThan(0);
-  });
+  }, 60_000);
 
   it("emits lifecycle events during execution", async () => {
     const events: string[] = [];
@@ -113,7 +114,7 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
     expect(events).toContain("intent_routed");
     expect(events).toContain("results_collected");
     expect(events).toContain("synthesis_complete");
-  });
+  }, 60_000);
 
   it("handles ambiguous intent gracefully", async () => {
     const intent: Intent = {
@@ -126,12 +127,12 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
 
     expect(result).toBeDefined();
     expect(result.spoken).toBeTruthy();
-  });
+  }, 60_000);
 
   it("falls back gracefully when model is unavailable", async () => {
     const badConfig: ModelConfig = {
       provider: "ollama-cloud",
-      model: "llama3.2",
+      model: "gemma3:4b",
       baseUrl: "https://unreachable.invalid.host.example.com",
       apiKey: "fake-key",
     };
@@ -156,16 +157,16 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
 
     expect(result).toBeDefined();
     expect(result.spoken).toBeTruthy();
-  });
+  }, 60_000);
 
-  it("creates OpenAICompatClient for ollama-cloud provider", () => {
-    expect(client).toBeInstanceOf(OpenAICompatClient);
+  it("creates OllamaClient for ollama-cloud provider (native Ollama API)", () => {
+    expect(client).toBeInstanceOf(OllamaClient);
   });
 
   it("model client is available on Ollama Cloud", async () => {
     const available = await client.isAvailable();
     expect(available).toBe(true);
-  });
+  }, 60_000);
 
   it("model-assisted routing classifies known intents", async () => {
     const available = await client.isAvailable();
@@ -179,7 +180,7 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
 
     expect(plan).toBeDefined();
     expect(plan.primary).toBeDefined();
-  });
+  }, 60_000);
 
   it("model-assisted synthesis produces natural language output", async () => {
     const available = await client.isAvailable();
@@ -202,7 +203,7 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
     expect(synthesis).toBeDefined();
     expect(synthesis.spoken).toBeTruthy();
     expect(synthesis.spoken.length).toBeGreaterThan(0);
-  });
+  }, 60_000);
 
   it("general agent uses model for responses", async () => {
     const intent: Intent = {
@@ -215,5 +216,5 @@ describe.skipIf(!OLLAMA_API_KEY)("NexusEngine with Ollama Cloud model", () => {
 
     expect(result).toBeDefined();
     expect(result.spoken).toBeTruthy();
-  });
+  }, 60_000);
 });

@@ -13,6 +13,7 @@
 ## File Structure
 
 ### New Files
+
 - `packages/jarvis/src/model/client.ts` — `ModelClient` interface, `ModelConfig` type, `ModelResponse` type, `ModelError` class, `createModelClient` factory
 - `packages/jarvis/src/model/ollama-client.ts` — `OllamaClient` implementation
 - `packages/jarvis/src/model/openai-compat-client.ts` — `OpenAICompatClient` implementation
@@ -23,6 +24,7 @@
 - `packages/jarvis/test/model/openai-compat-client.test.ts` — tests for `OpenAICompatClient`
 
 ### Modified Files
+
 - `packages/jarvis/src/nexus/router.ts` — accept optional `ModelClient`, use for intent classification
 - `packages/jarvis/src/nexus/pool.ts` — accept optional `ModelClient`, use for "general" agent
 - `packages/jarvis/src/nexus/synthesizer.ts` — accept optional `ModelClient`, use for synthesis
@@ -39,6 +41,7 @@
 ### Task 1: ModelClient Interface and Factory
 
 **Files:**
+
 - Create: `packages/jarvis/src/model/client.ts`
 - Create: `packages/jarvis/src/model/index.ts`
 - Test: `packages/jarvis/test/model/client.test.ts`
@@ -124,10 +127,14 @@ export interface ModelClient {
 
 export function createModelClient(config: ModelConfig): ModelClient {
   if (config.provider === "ollama") {
-    const { OllamaClient } = require("./ollama-client.js") as { OllamaClient: typeof import("./ollama-client.js").OllamaClient };
+    const { OllamaClient } = require("./ollama-client.js") as {
+      OllamaClient: typeof import("./ollama-client.js").OllamaClient;
+    };
     return new OllamaClient(config);
   }
-  const { OpenAICompatClient } = require("./openai-compat-client.js") as { OpenAICompatClient: typeof import("./openai-compat-client.js").OpenAICompatClient };
+  const { OpenAICompatClient } = require("./openai-compat-client.js") as {
+    OpenAICompatClient: typeof import("./openai-compat-client.js").OpenAICompatClient;
+  };
   return new OpenAICompatClient(config);
 }
 ```
@@ -217,6 +224,7 @@ export function createModelClient(config: ModelConfig): ModelClient {
 That's getting complicated with circular deps. Let me keep it simpler — the factory in `index.ts`, types in `client.ts`, implementations are standalone.
 
 Final structure:
+
 - `packages/jarvis/src/model/types.ts` — `ModelConfig`, `ModelResponse`, `ModelClient`, `ModelErrorCode`
 - `packages/jarvis/src/model/error.ts` — `ModelError` class
 - `packages/jarvis/src/model/ollama-client.ts` — `OllamaClient`
@@ -383,6 +391,7 @@ git commit -m "feat(jarvis): add ModelClient interface, error class, factory, an
 ### Task 2: OllamaClient Implementation
 
 **Files:**
+
 - Modify: `packages/jarvis/src/model/ollama-client.ts`
 - Test: `packages/jarvis/test/model/ollama-client.test.ts`
 
@@ -632,6 +641,7 @@ git commit -m "feat(jarvis): implement OllamaClient with chat and isAvailable"
 ### Task 3: OpenAICompatClient Implementation
 
 **Files:**
+
 - Modify: `packages/jarvis/src/model/openai-compat-client.ts`
 - Test: `packages/jarvis/test/model/openai-compat-client.test.ts`
 
@@ -671,7 +681,9 @@ describe("OpenAICompatClient", () => {
       const fetchFn = mockFetch({
         id: "chatcmpl-1",
         model: "gpt-4",
-        choices: [{ message: { role: "assistant", content: "Hello from GPT!" }, finish_reason: "stop" }],
+        choices: [
+          { message: { role: "assistant", content: "Hello from GPT!" }, finish_reason: "stop" },
+        ],
         usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
       });
 
@@ -856,11 +868,17 @@ export class OpenAICompatClient implements ModelClient {
         body: JSON.stringify({ model: this.model, messages }),
       });
     } catch {
-      throw new ModelError("unavailable", `Cannot connect to OpenAI-compatible server at ${this.baseUrl}`);
+      throw new ModelError(
+        "unavailable",
+        `Cannot connect to OpenAI-compatible server at ${this.baseUrl}`,
+      );
     }
 
     if (!response.ok) {
-      throw new ModelError("invalid_response", `OpenAI-compatible server returned HTTP ${response.status}`);
+      throw new ModelError(
+        "invalid_response",
+        `OpenAI-compatible server returned HTTP ${response.status}`,
+      );
     }
 
     let data: OpenAIChatResponse;
@@ -912,6 +930,7 @@ git commit -m "feat(jarvis): implement OpenAICompatClient with chat and isAvaila
 ### Task 4: MockModelClient Implementation and Factory
 
 **Files:**
+
 - Modify: `packages/jarvis/src/model/mock-client.ts`
 - Modify: `packages/jarvis/src/model/client.test.ts` (rename/update to test factory + mock)
 
@@ -1012,6 +1031,7 @@ git commit -m "feat(jarvis): implement MockModelClient and createModelClient fac
 ### Task 5: Wire ModelClient into RuleBasedRouter
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/router.ts`
 - Modify: `packages/jarvis/test/nexus/router.test.ts`
 
@@ -1035,13 +1055,22 @@ describe("RuleBasedRouter with ModelClient", () => {
   it("uses model classification when model is available and returns valid intent", async () => {
     const mockClient = new MockModelClient({
       response: {
-        content: JSON.stringify({ action: "check_weather", confidence: 0.95, entities: { location: "NYC" } }),
+        content: JSON.stringify({
+          action: "check_weather",
+          confidence: 0.95,
+          entities: { location: "NYC" },
+        }),
         model: "mock",
         done: true,
       },
     });
     const router = new RuleBasedRouter(mockClient);
-    const intent: Intent = { action: "what's the weather", params: {}, confidence: 0.3, ambiguous: true };
+    const intent: Intent = {
+      action: "what's the weather",
+      params: {},
+      confidence: 0.3,
+      ambiguous: true,
+    };
     const plan = await router.route(intent, context);
     expect(plan.primary?.agentId).toBe("weather");
     expect(plan.primary?.confidence).toBe(0.95);
@@ -1051,7 +1080,12 @@ describe("RuleBasedRouter with ModelClient", () => {
   it("falls back to rules when model is unavailable", async () => {
     const mockClient = new MockModelClient({ available: false });
     const router = new RuleBasedRouter(mockClient);
-    const intent: Intent = { action: "check_weather", params: {}, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "check_weather",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const plan = await router.route(intent, context);
     expect(plan.primary?.agentId).toBe("weather");
     expect(mockClient.chatCalls).toHaveLength(0);
@@ -1062,7 +1096,12 @@ describe("RuleBasedRouter with ModelClient", () => {
       response: { content: "not json at all", model: "mock", done: true },
     });
     const router = new RuleBasedRouter(mockClient);
-    const intent: Intent = { action: "check_weather", params: {}, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "check_weather",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const plan = await router.route(intent, context);
     expect(plan.primary?.agentId).toBe("weather");
   });
@@ -1076,7 +1115,12 @@ describe("RuleBasedRouter with ModelClient", () => {
       },
     });
     const router = new RuleBasedRouter(mockClient);
-    const intent: Intent = { action: "check_weather", params: {}, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "check_weather",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const plan = await router.route(intent, context);
     expect(plan.primary?.agentId).toBe("weather");
   });
@@ -1086,7 +1130,12 @@ describe("RuleBasedRouter with ModelClient", () => {
       error: new ModelError("unavailable", "server down"),
     });
     const router = new RuleBasedRouter(mockClient);
-    const intent: Intent = { action: "check_weather", params: {}, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "check_weather",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const plan = await router.route(intent, context);
     expect(plan.primary?.agentId).toBe("weather");
   });
@@ -1102,6 +1151,7 @@ Looking at `engine.ts` line 26: `const plan = this.cfg.intentRouter.route(intent
 This is a significant change. The engine test and all implementations need updating. Let me check if there are other implementations of `IntentRouter`.
 
 Only `RuleBasedRouter` implements `IntentRouter`. So the change is:
+
 1. Change `IntentRouter.route()` to return `Promise<DispatchPlan>`
 2. Update `NexusEngine.execute()` to `await this.cfg.intentRouter.route(intent, context)`
 3. Update `RuleBasedRouter.route()` to be `async`
@@ -1178,7 +1228,7 @@ export class RuleBasedRouter implements IntentRouter {
         if (available) {
           const modelResult = await this.client.chat(
             `Classify this user intent as JSON: {"action": "...", "confidence": 0.0-1.0}. User said: "${intent.action}"`,
-            "You are an intent classifier. Respond ONLY with valid JSON: {\"action\": \"<action>\", \"confidence\": <0.0-1.0>}. Valid actions: search, get_updates, open_app, check_weather, check_calendar, browse, vision_query, send_discord, read_discord, send_telegram, read_telegram, fetch_url, search_email, read_email, draft_email, send_email, calendar_list, calendar_get_events, calendar_create, calendar_update, calendar_delete, query_notion, get_notion, create_notion, update_notion, cron_schedule, cron_list, cron_cancel, secret_get, search_discord, get_calendar, set_reminder",
+            'You are an intent classifier. Respond ONLY with valid JSON: {"action": "<action>", "confidence": <0.0-1.0>}. Valid actions: search, get_updates, open_app, check_weather, check_calendar, browse, vision_query, send_discord, read_discord, send_telegram, read_telegram, fetch_url, search_email, read_email, draft_email, send_email, calendar_list, calendar_get_events, calendar_create, calendar_update, calendar_delete, query_notion, get_notion, create_notion, update_notion, cron_schedule, cron_list, cron_cancel, secret_get, search_discord, get_calendar, set_reminder',
           );
 
           const parsed = JSON.parse(modelResult.content) as { action: string; confidence: number };
@@ -1244,6 +1294,7 @@ git commit -m "feat(jarvis): wire ModelClient into RuleBasedRouter with async ro
 ### Task 6: Wire ModelClient into InProcessAgentPool
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/pool.ts`
 - Modify: `packages/jarvis/test/nexus/pool.test.ts`
 
@@ -1347,23 +1398,26 @@ export class InProcessAgentPool implements AgentPool {
 
     this.factories = new Map<string, AgentFactory>([
       // ... all existing factories except "general" ...
-      ["general", async (ctx: AgentContext) => {
-        if (this.client) {
-          try {
-            const available = await this.client.isAvailable();
-            if (available) {
-              const response = await this.client.chat(
-                ctx.intent.action,
-                "You are JARVIS, a helpful AI assistant. Respond concisely.",
-              );
-              return { response: response.content };
+      [
+        "general",
+        async (ctx: AgentContext) => {
+          if (this.client) {
+            try {
+              const available = await this.client.isAvailable();
+              if (available) {
+                const response = await this.client.chat(
+                  ctx.intent.action,
+                  "You are JARVIS, a helpful AI assistant. Respond concisely.",
+                );
+                return { response: response.content };
+              }
+            } catch {
+              // Fall back to mock
             }
-          } catch {
-            // Fall back to mock
           }
-        }
-        return { response: "general-acknowledgment" };
-      }],
+          return { response: "general-acknowledgment" };
+        },
+      ],
       // ... rest of factories ...
     ]);
     // ...
@@ -1389,6 +1443,7 @@ git commit -m "feat(jarvis): wire ModelClient into InProcessAgentPool for genera
 ### Task 7: Wire ModelClient into RuleBasedSynthesizer
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/synthesizer.ts`
 - Modify: `packages/jarvis/test/nexus/synthesizer.test.ts`
 
@@ -1412,13 +1467,21 @@ describe("RuleBasedSynthesizer with ModelClient", () => {
 
   it("uses model for synthesis when available", async () => {
     const mockClient = new MockModelClient({
-      response: { content: "It's sunny and 72°F in NYC, and you have a meeting at 10:00.", model: "mock", done: true },
+      response: {
+        content: "It's sunny and 72°F in NYC, and you have a meeting at 10:00.",
+        model: "mock",
+        done: true,
+      },
     });
     const synthesizer = new RuleBasedSynthesizer(mockClient);
     const intent: Intent = { action: "get_updates", params: {}, confidence: 0.9, ambiguous: false };
     const results: AgentResult[] = [
       { agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } },
-      { agentId: "calendar", success: true, output: { events: [{ title: "Meeting", time: "10:00" }] } },
+      {
+        agentId: "calendar",
+        success: true,
+        output: { events: [{ title: "Meeting", time: "10:00" }] },
+      },
     ];
     const synthesis = await synthesizer.synthesize(results, intent, context);
     expect(synthesis.spoken).toBe("It's sunny and 72°F in NYC, and you have a meeting at 10:00.");
@@ -1441,7 +1504,12 @@ describe("RuleBasedSynthesizer with ModelClient", () => {
       error: new ModelError("unavailable", "server down"),
     });
     const synthesizer = new RuleBasedSynthesizer(mockClient);
-    const intent: Intent = { action: "check_weather", params: {}, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "check_weather",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const results: AgentResult[] = [
       { agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } },
     ];
@@ -1462,7 +1530,11 @@ The `Synthesizer` interface in `types.ts` has:
 
 ```typescript
 interface Synthesizer {
-  synthesize(results: AgentResult[], originalIntent: Intent, context: JarvisContext): Promise<Synthesis>;
+  synthesize(
+    results: AgentResult[],
+    originalIntent: Intent,
+    context: JarvisContext,
+  ): Promise<Synthesis>;
 }
 ```
 
@@ -1539,6 +1611,7 @@ git commit -m "feat(jarvis): wire ModelClient into RuleBasedSynthesizer with mod
 ### Task 8: Wire ModelClient into NexusEngine config
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/engine.ts`
 - Modify: `packages/jarvis/test/nexus/engine.test.ts`
 
@@ -1554,7 +1627,11 @@ import { MockModelClient } from "../../src/model/mock-client.js";
 describe("NexusEngine with ModelClient", () => {
   it("passes ModelClient to router, pool, and synthesizer", async () => {
     const mockClient = new MockModelClient({
-      response: { content: JSON.stringify({ action: "search", confidence: 0.95 }), model: "mock", done: true },
+      response: {
+        content: JSON.stringify({ action: "search", confidence: 0.95 }),
+        model: "mock",
+        done: true,
+      },
     });
     const eventBus = new SimpleEventBus();
     const engine = new NexusEngine({
@@ -1573,7 +1650,12 @@ describe("NexusEngine with ModelClient", () => {
       currentTime: new Date(),
     };
 
-    const intent: Intent = { action: "search", params: { query: "test" }, confidence: 0.9, ambiguous: false };
+    const intent: Intent = {
+      action: "search",
+      params: { query: "test" },
+      confidence: 0.9,
+      ambiguous: false,
+    };
     const synthesis = await engine.execute(intent, context);
     expect(synthesis.spoken).toBeDefined();
     expect(synthesis.spoken.length).toBeGreaterThan(0);
@@ -1604,6 +1686,7 @@ git commit -m "test(jarvis): add engine integration test with ModelClient"
 ### Task 9: Wire ModelClient into desktop IPC
 
 **Files:**
+
 - Modify: `packages/desktop/src/main/ipc.ts`
 
 - [ ] **Step 1: Update ipc.ts to read model config and create ModelClient**
@@ -1691,7 +1774,13 @@ Looking at `ipc.ts` again, `getEngine()` is called lazily in the IPC handlers. I
 Updated approach for `packages/desktop/src/main/ipc.ts`:
 
 ```typescript
-import { NexusEngine, RuleBasedRouter, InProcessAgentPool, RuleBasedSynthesizer, TaskBoard } from "@openjarvis/jarvis/nexus";
+import {
+  NexusEngine,
+  RuleBasedRouter,
+  InProcessAgentPool,
+  RuleBasedSynthesizer,
+  TaskBoard,
+} from "@openjarvis/jarvis/nexus";
 import { SimpleEventBus } from "@openjarvis/jarvis";
 import type { EventBus } from "@openjarvis/jarvis";
 import { createModelClient } from "@openjarvis/jarvis/model";
@@ -1826,6 +1915,7 @@ git commit -m "feat(desktop): wire ModelClient into IPC, create from settings, r
 ### Task 10: Export the model module and verify full build
 
 **Files:**
+
 - Modify: `packages/jarvis/package.json` (exports)
 - Verify: `npx tsc -b` passes
 - Verify: `npx vitest run` passes

@@ -20,7 +20,11 @@ describe("OllamaClient", () => {
     it("sends prompt and returns response", async () => {
       const fn = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => {
         return new Response(
-          JSON.stringify({ model: "llama3", message: { role: "assistant", content: "hello" }, done: true }),
+          JSON.stringify({
+            model: "llama3",
+            message: { role: "assistant", content: "hello" },
+            done: true,
+          }),
           { status: 200 },
         );
       });
@@ -44,7 +48,11 @@ describe("OllamaClient", () => {
           { role: "user", content: "hi" },
         ]);
         return new Response(
-          JSON.stringify({ model: "llama3", message: { role: "assistant", content: "ok" }, done: true }),
+          JSON.stringify({
+            model: "llama3",
+            message: { role: "assistant", content: "ok" },
+            done: true,
+          }),
           { status: 200 },
         );
       });
@@ -58,7 +66,11 @@ describe("OllamaClient", () => {
         const headers = (init as RequestInit).headers as Record<string, string>;
         expect(headers["Authorization"]).toBe("Bearer my-key");
         return new Response(
-          JSON.stringify({ model: "llama3", message: { role: "assistant", content: "ok" }, done: true }),
+          JSON.stringify({
+            model: "llama3",
+            message: { role: "assistant", content: "ok" },
+            done: true,
+          }),
           { status: 200 },
         );
       });

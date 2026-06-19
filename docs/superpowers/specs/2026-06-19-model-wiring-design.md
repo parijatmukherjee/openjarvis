@@ -76,6 +76,7 @@ export function createModelClient(config: ModelConfig): ModelClient {
 - Parse response: `choices[0].message.content`
 
 Both clients:
+
 - Use native `fetch`
 - Catch network errors in `chat()` and throw a `ModelError` with a `code` field (`unavailable`, `timeout`, `invalid_response`)
 - `isAvailable()` returns `false` on any error (no throw)
@@ -85,6 +86,7 @@ Both clients:
 `RuleBasedRouter` constructor gets optional `client?: ModelClient`.
 
 When `client` is provided and `isAvailable()` returns true:
+
 - Send the user input + system prompt asking for intent classification as JSON (`{action, entities, confidence}`)
 - Parse the JSON response
 - If parsing succeeds and `confidence >= 0.7`, use the model's classification
@@ -105,6 +107,7 @@ Other agents (weather, calendar, etc.) remain rule-based for now. They can be up
 `RuleBasedSynthesizer` constructor gets optional `client?: ModelClient`.
 
 When `client` is provided and available:
+
 - Send agent results + system prompt asking for natural language synthesis
 - Use the model's response as `spoken` text
 - Fall back to current rule-based formatting on failure
@@ -112,12 +115,14 @@ When `client` is provided and available:
 ### 5. Config Flow in ipc.ts
 
 `getEngine()` in `ipc.ts`:
+
 1. Read current model settings from `DesktopStore`
 2. Call `createModelClient(config)` to create the appropriate client
 3. Pass client to `RuleBasedRouter`, `InProcessAgentPool`, `RuleBasedSynthesizer` constructors
 4. Create `NexusEngine` with these components
 
 Settings change handler:
+
 - When model settings change (detected via IPC `settings:changed` event), dispose the old engine and call `getEngine()` again to recreate with the new config
 - This is simple and avoids complex hot-reload logic
 
@@ -128,12 +133,14 @@ Add optional `modelClient?: ModelClient` to `NexusConfig`. The engine passes it 
 ### 7. Error Handling
 
 All model calls follow the same pattern:
+
 1. Call `client.isAvailable()` — skip model call if false
 2. Try `client.chat()` — fall back on any error
 3. Validate response format — fall back on parse failure
 4. Use model response — but never block the pipeline on a model failure
 
 `ModelError` types:
+
 - `unavailable` — server not reachable
 - `timeout` — request exceeded `defaultTimeoutMs`
 - `invalid_response` — response could not be parsed
@@ -141,6 +148,7 @@ All model calls follow the same pattern:
 ### 8. Testing
 
 `MockModelClient` for tests:
+
 - Configurable responses
 - Configurable availability
 - Configurable errors
@@ -148,6 +156,7 @@ All model calls follow the same pattern:
 Existing tests pass unchanged (no `ModelClient` provided = rule-based fallback).
 
 New test cases per component:
+
 - Model available, returns valid response → model response used
 - Model unavailable (`isAvailable: false`) → rule-based fallback
 - Model available but `chat()` throws → rule-based fallback

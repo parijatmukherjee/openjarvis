@@ -6,7 +6,24 @@ import type { ModelConfig } from "../../src/model/types.js";
 function mockFetch(
   fn: (url: string | URL | Request, init?: RequestInit) => Promise<Response>,
 ): typeof globalThis.fetch {
-  return fn;
+  const wrapped: typeof globalThis.fetch = async (input, init) => {
+    const follow = (init as RequestInit | undefined)?.redirect === "follow";
+    let current = await fn(input as string | URL | Request, init);
+    let hops = 0;
+    while (
+      follow &&
+      current.status >= 300 &&
+      current.status < 400 &&
+      current.headers.get("location") &&
+      hops < 5
+    ) {
+      const loc = current.headers.get("location")!;
+      current = await fn(loc, init);
+      hops += 1;
+    }
+    return current;
+  };
+  return wrapped;
 }
 
 const defaultConfig: ModelConfig = {
@@ -62,6 +79,39 @@ describe("OpenAICompatClient", () => {
       await client.chat("hi", "You are helpful");
     });
 
+    it("follows 301 redirects on chat endpoint", async () => {
+      const responses: Record<string, () => Response> = {
+        "https://api.openai.com/v1/chat/completions": () =>
+          new Response(null, {
+            status: 301,
+            headers: { location: "https://api.openai.com/v1/chat/completions/" },
+          }),
+        "https://api.openai.com/v1/chat/completions/": () =>
+          new Response(
+            JSON.stringify({
+              id: "chatcmpl-1",
+              model: "gpt-4",
+              choices: [
+                { message: { role: "assistant", content: "hello" }, finish_reason: "stop" },
+              ],
+            }),
+            { status: 200 },
+          ),
+      };
+      const fn = vi.fn(async (url: string | URL | Request) => {
+        const key = url.toString();
+        const responder = responses[key];
+        if (!responder) {
+          throw new Error(`unexpected URL: ${key}`);
+        }
+        return responder();
+      });
+
+      const client = new OpenAICompatClient(defaultConfig, mockFetch(fn));
+      const result = await client.chat("hi");
+      expect(result.content).toBe("hello");
+    });
+
     it("sends Authorization header when apiKey is provided", async () => {
       const fn = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
         const headers = (init as RequestInit).headers as Record<string, string>;
@@ -82,7 +132,11 @@ describe("OpenAICompatClient", () => {
     });
 
     it("does not send Authorization header when apiKey is not set", async () => {
-      const config: ModelConfig = { provider: "openai-compat", model: "gpt-4", baseUrl: "https://api.example.com" };
+      const config: ModelConfig = {
+        provider: "openai-compat",
+        model: "gpt-4",
+        baseUrl: "https://api.example.com",
+      };
       const fn = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
         const headers = (init as RequestInit).headers as Record<string, string>;
         expect(headers["Authorization"]).toBeUndefined();
@@ -137,7 +191,9 @@ describe("OpenAICompatClient", () => {
         return new Response(
           JSON.stringify({
             model: "gpt-4",
-            choices: [{ message: { role: "assistant", content: "ok" }, finish_reason: "content_filter" }],
+            choices: [
+              { message: { role: "assistant", content: "ok" }, finish_reason: "content_filter" },
+            ],
           }),
           { status: 200 },
         );
@@ -248,6 +304,29 @@ describe("OpenAICompatClient", () => {
       const client = new OpenAICompatClient(defaultConfig, mockFetch(fn));
       const result = await client.isAvailable();
       expect(result).toBe(false);
+    });
+
+    it("follows 301 redirects on isAvailable", async () => {
+      const responses: Record<string, () => Response> = {
+        "https://api.openai.com/v1/models": () =>
+          new Response(null, {
+            status: 301,
+            headers: { location: "https://api.openai.com/v1/models/" },
+          }),
+        "https://api.openai.com/v1/models/": () => new Response(null, { status: 200 }),
+      };
+      const fn = vi.fn(async (url: string | URL | Request) => {
+        const key = url.toString();
+        const responder = responses[key];
+        if (!responder) {
+          throw new Error(`unexpected URL: ${key}`);
+        }
+        return responder();
+      });
+
+      const client = new OpenAICompatClient(defaultConfig, mockFetch(fn));
+      const result = await client.isAvailable();
+      expect(result).toBe(true);
     });
 
     it("returns false on network error", async () => {

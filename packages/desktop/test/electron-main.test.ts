@@ -28,9 +28,6 @@ const MockBrowserWindow = vi.fn(() => {
   };
   return winInstance;
 });
-(MockBrowserWindow as unknown as Record<string, unknown>).getFocusedWindow = vi
-  .fn()
-  .mockReturnValue(null);
 
 const mockWhenReady = vi.fn().mockResolvedValue(undefined);
 const mockRequestSingleInstanceLock = vi.fn().mockReturnValue(true);

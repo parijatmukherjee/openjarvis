@@ -124,7 +124,9 @@ export class JarvisHub {
     if (this.cfg.readInputOverride) {
       return this.cfg.readInputOverride();
     }
-    throw new Error("No input source configured. Provide readInputOverride or wire a real STT engine.");
+    throw new Error(
+      "No input source configured. Provide readInputOverride or wire a real STT engine.",
+    );
   }
 
   private async speak(text: string): Promise<void> {

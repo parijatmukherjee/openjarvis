@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import type { VisionAgent, VisionIntent, VisionContext, VisionAgentResult } from "../../src/built-in/vision.js";
+import type {
+  VisionAgent,
+  VisionIntent,
+  VisionContext,
+  VisionAgentResult,
+} from "../../src/built-in/vision.js";
 
 describe("VisionAgent interface", () => {
   it("VisionAgentResult has required output fields", () => {
@@ -8,7 +13,9 @@ describe("VisionAgent interface", () => {
       agentName: "VisionAgent",
       output: {
         summary: "I see a person",
-        objects: [{ label: "person", confidence: 0.95, bbox: { x: 0, y: 0, width: 100, height: 200 } }],
+        objects: [
+          { label: "person", confidence: 0.95, bbox: { x: 0, y: 0, width: 100, height: 200 } },
+        ],
         presence: "present",
       },
       success: true,

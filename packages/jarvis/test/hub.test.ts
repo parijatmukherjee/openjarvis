@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { JarvisHub, RuleBasedIntentParser, SimpleSynthesizer, SimpleScheduler, SimpleEventBus } from "../src/index.js";
+import {
+  JarvisHub,
+  RuleBasedIntentParser,
+  SimpleSynthesizer,
+  SimpleScheduler,
+  SimpleEventBus,
+} from "../src/index.js";
 import { MockWakeWordEngine } from "../src/voice/mock-wake-word.js";
 import { MockSttEngine } from "../src/voice/mock-stt.js";
 import { MockTtsEngine } from "../src/voice/mock-tts.js";

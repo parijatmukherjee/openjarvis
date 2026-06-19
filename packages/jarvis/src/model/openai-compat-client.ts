@@ -28,6 +28,7 @@ export class OpenAICompatClient implements ModelClient {
         method: "POST",
         headers,
         body: JSON.stringify({ model: this.config.model, messages }),
+        redirect: "follow",
       });
     } catch (err: unknown) {
       throw new ModelError(
@@ -55,7 +56,11 @@ export class OpenAICompatClient implements ModelClient {
       model?: string;
       choices?: Array<{ message?: { role?: string; content?: string }; finish_reason?: string }>;
     };
-    if (!Array.isArray(body.choices) || body.choices.length === 0 || body.choices[0]?.message?.content === undefined) {
+    if (
+      !Array.isArray(body.choices) ||
+      body.choices.length === 0 ||
+      body.choices[0]?.message?.content === undefined
+    ) {
       throw new ModelError("invalid_response", "OpenAI-compat response missing message content");
     }
 
@@ -78,6 +83,7 @@ export class OpenAICompatClient implements ModelClient {
         method: "GET",
         headers,
         signal: AbortSignal.timeout(5000),
+        redirect: "follow",
       });
       return response.ok;
     } catch {

@@ -50,7 +50,11 @@ export class OllamaClient implements ModelClient {
       throw new ModelError("invalid_response", "Ollama returned invalid JSON");
     }
 
-    const body = json as { model?: string; message?: { role?: string; content?: string }; done?: boolean };
+    const body = json as {
+      model?: string;
+      message?: { role?: string; content?: string };
+      done?: boolean;
+    };
     if (body.message?.content === undefined) {
       throw new ModelError("invalid_response", "Ollama response missing message content");
     }

@@ -69,9 +69,7 @@ export default defineConfig({
   timeout: 30_000,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI
-    ? [["list"], ["html", { open: "never" }]]
-    : [["list"]],
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
   use: {
     headed: !process.env.CI,
     trace: "on-first-retry",
@@ -101,6 +99,7 @@ Custom Playwright fixture that:
 7. Cleans up: closes Electron, stops Vite dev server
 
 Key APIs:
+
 ```ts
 import { test as base, expect } from "@playwright/test";
 import type { PlaywrightTestBridge } from "./test-bridge";
@@ -112,9 +111,15 @@ type ElectronTestFixture = {
 };
 
 export const test = base.extend<ElectronTestFixture>({
-  electronApp: async ({}, use) => { /* launch, use, cleanup */ },
-  page: async ({ electronApp }, use) => { /* electronApp.firstWindow(), use */ },
-  bridge: async ({ page }, use) => { /* inject bridge, use */ },
+  electronApp: async ({}, use) => {
+    /* launch, use, cleanup */
+  },
+  page: async ({ electronApp }, use) => {
+    /* electronApp.firstWindow(), use */
+  },
+  bridge: async ({ page }, use) => {
+    /* inject bridge, use */
+  },
 });
 
 export { expect };
@@ -142,10 +147,10 @@ export { expect };
 Factory functions for deterministic test data:
 
 ```ts
-export function createTask(overrides?: Partial<Task>): Task
-export function createAgent(overrides?: Partial<AgentInfo>): AgentInfo
-export function createMessage(overrides?: Partial<ConversationMessage>): ConversationMessage
-export function createIntent(action: string, payload?: unknown): Intent
+export function createTask(overrides?: Partial<Task>): Task;
+export function createAgent(overrides?: Partial<AgentInfo>): AgentInfo;
+export function createMessage(overrides?: Partial<ConversationMessage>): ConversationMessage;
+export function createIntent(action: string, payload?: unknown): Intent;
 ```
 
 Each factory generates consistent, unique test data with sensible defaults.
@@ -208,6 +213,7 @@ For features that call external APIs (Discord REST, Telegram Bot API, Graph API,
 - API calls are unit-tested in their respective packages (99%+ coverage already)
 
 For manual "real API" smoke testing:
+
 - A `RealApiBridge` can be used with API keys from environment variables
 - Only runs manually (not in CI), gated behind `REAL_API=1` env var
 
@@ -217,64 +223,64 @@ For manual "real API" smoke testing:
 
 ### 5.1 Onboarding Flow
 
-| Test | What it verifies |
-|------|------------------|
-| `welcome.spec.ts` | Welcome screen renders, "Initialize" button is visible, click starts onboarding |
-| `locale-setup.spec.ts` | Locale selection renders, system locale detected, selecting locale persists |
-| `voice-calibration.spec.ts` | Calibration UI renders, start/stop calibration, progress indicator |
-| `agent-selection.spec.ts` | Agent toggles render, enabling/disabling agents updates count |
-| `completion.spec.ts` | Completion screen renders, "Launch Dashboard" transitions to dashboard |
+| Test                        | What it verifies                                                                |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| `welcome.spec.ts`           | Welcome screen renders, "Initialize" button is visible, click starts onboarding |
+| `locale-setup.spec.ts`      | Locale selection renders, system locale detected, selecting locale persists     |
+| `voice-calibration.spec.ts` | Calibration UI renders, start/stop calibration, progress indicator              |
+| `agent-selection.spec.ts`   | Agent toggles render, enabling/disabling agents updates count                   |
+| `completion.spec.ts`        | Completion screen renders, "Launch Dashboard" transitions to dashboard          |
 
 ### 5.2 Dashboard
 
-| Test | What it verifies |
-|------|------------------|
-| `layout.spec.ts` | 3-column layout renders, responsive, min 900x600 constraint |
-| `task-board.spec.ts` | Tasks render with status dots, progress bars, task detail on click |
-| `agent-status.spec.ts` | Agent grid renders, click opens detail modal, capabilities shown |
-| `conversation.spec.ts` | Panel expands/collapses, messages render, input sends |
-| `settings.spec.ts` | Settings modal opens, theme toggles, reduced motion works, saves persist |
-| `window-controls.spec.ts` | Min/max/close buttons present, settings gear opens panel |
+| Test                      | What it verifies                                                         |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `layout.spec.ts`          | 3-column layout renders, responsive, min 900x600 constraint              |
+| `task-board.spec.ts`      | Tasks render with status dots, progress bars, task detail on click       |
+| `agent-status.spec.ts`    | Agent grid renders, click opens detail modal, capabilities shown         |
+| `conversation.spec.ts`    | Panel expands/collapses, messages render, input sends                    |
+| `settings.spec.ts`        | Settings modal opens, theme toggles, reduced motion works, saves persist |
+| `window-controls.spec.ts` | Min/max/close buttons present, settings gear opens panel                 |
 
 ### 5.3 Channels
 
-| Test | What it verifies |
-|------|------------------|
-| `discord.spec.ts` | Discord connect UI, send message, search messages |
-| `telegram.spec.ts` | Telegram connect UI, send message |
+| Test               | What it verifies                                  |
+| ------------------ | ------------------------------------------------- |
+| `discord.spec.ts`  | Discord connect UI, send message, search messages |
+| `telegram.spec.ts` | Telegram connect UI, send message                 |
 
 ### 5.4 Skills (through conversation panel)
 
-| Test | What it verifies |
-|------|------------------|
-| `web-fetch.spec.ts` | `web_fetch` intent renders response |
-| `email.spec.ts` | Email search/read/draft/send intent flows |
-| `calendar.spec.ts` | Calendar list/create/update intent flows |
-| `notion.spec.ts` | Notion query/create intent flows |
-| `weather.spec.ts` | Weather current/forecast intent flows |
-| `secrets.spec.ts` | `op://` resolution intent flow |
-| `cron.spec.ts` | Schedule/list/cancel intent flows |
+| Test                | What it verifies                          |
+| ------------------- | ----------------------------------------- |
+| `web-fetch.spec.ts` | `web_fetch` intent renders response       |
+| `email.spec.ts`     | Email search/read/draft/send intent flows |
+| `calendar.spec.ts`  | Calendar list/create/update intent flows  |
+| `notion.spec.ts`    | Notion query/create intent flows          |
+| `weather.spec.ts`   | Weather current/forecast intent flows     |
+| `secrets.spec.ts`   | `op://` resolution intent flow            |
+| `cron.spec.ts`      | Schedule/list/cancel intent flows         |
 
 ### 5.5 Voice
 
-| Test | What it verifies |
-|------|------------------|
-| `wake-word.spec.ts` | Wake word detection UI, cooldown behavior |
-| `stt.spec.ts` | STT pipeline states (idle → listening → thinking → responding) |
+| Test                | What it verifies                                               |
+| ------------------- | -------------------------------------------------------------- |
+| `wake-word.spec.ts` | Wake word detection UI, cooldown behavior                      |
+| `stt.spec.ts`       | STT pipeline states (idle → listening → thinking → responding) |
 
 ### 5.6 Memory
 
-| Test | What it verifies |
-|------|------------------|
+| Test                       | What it verifies                                  |
+| -------------------------- | ------------------------------------------------- |
 | `recall-reinforce.spec.ts` | Memory recall through conversation, reinforcement |
 
 ### 5.7 Integration
 
-| Test | What it verifies |
-|------|------------------|
+| Test                              | What it verifies                                            |
+| --------------------------------- | ----------------------------------------------------------- |
 | `onboarding-to-dashboard.spec.ts` | Full flow: onboarding through all steps → dashboard renders |
-| `settings-persistence.spec.ts` | Settings survive app restart (close → relaunch → verify) |
-| `nexus-bridge.spec.ts` | Real `createNexusBridge()` data flows through UI |
+| `settings-persistence.spec.ts`    | Settings survive app restart (close → relaunch → verify)    |
+| `nexus-bridge.spec.ts`            | Real `createNexusBridge()` data flows through UI            |
 
 ---
 

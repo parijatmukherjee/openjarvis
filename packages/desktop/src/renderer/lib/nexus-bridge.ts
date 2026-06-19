@@ -14,6 +14,10 @@ export function createNexusBridge(
 ): import("./nexus-types.js").NexusBridge {
   const messages: MessageView[] = [];
   let messageId = 0;
+  const messageSubscribers = new Set<() => void>();
+  const notifyMessages = (): void => {
+    for (const sub of messageSubscribers) sub();
+  };
 
   return {
     async getTasks() {
@@ -45,6 +49,7 @@ export function createNexusBridge(
         text: `${action}: ${JSON.stringify(params)}`,
         timestamp: new Date().toLocaleTimeString(),
       });
+      notifyMessages();
 
       try {
         await engine.execute(
@@ -63,6 +68,7 @@ export function createNexusBridge(
           text: `Error: ${String(err)}`,
           timestamp: new Date().toLocaleTimeString(),
         });
+        notifyMessages();
       }
     },
 
@@ -71,6 +77,13 @@ export function createNexusBridge(
         handler(event.payload);
       });
       return () => sub.unsubscribe();
+    },
+
+    subscribeToMessages(handler) {
+      messageSubscribers.add(handler);
+      return () => {
+        messageSubscribers.delete(handler);
+      };
     },
   };
 }

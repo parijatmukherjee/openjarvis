@@ -207,13 +207,15 @@ function ModelSection({
             "deepseek-coder",
           ],
           "ollama-cloud": [
-            "llama3.1",
-            "llama3.2",
-            "mistral",
-            "codellama",
-            "phi3",
-            "gemma2",
-            "qwen2.5",
+            "gemma3:4b",
+            "gemma3:12b",
+            "gemma3:27b",
+            "minimax-m3",
+            "minimax-m2.5",
+            "glm-5.1",
+            "qwen3-coder:480b",
+            "deepseek-v3.1:671b",
+            "gpt-oss:20b",
           ],
           "openai-compat": [
             "llama-3.1-70b-versatile",
@@ -237,7 +239,7 @@ function ModelSection({
 
   const defaultUrls: Record<string, string> = {
     ollama: "http://127.0.0.1:11434",
-    "ollama-cloud": "https://api.ollama.com/v1",
+    "ollama-cloud": "https://api.ollama.com",
     "openai-compat": "https://api.groq.com/openai/v1",
   };
 

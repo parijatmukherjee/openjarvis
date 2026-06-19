@@ -6,17 +6,31 @@ import { OpenAICompatClient } from "../../src/model/openai-compat-client.js";
 
 describe("createModelClient", () => {
   it("creates OllamaClient for ollama provider", () => {
-    const client = createModelClient({ provider: "ollama", model: "llama3", baseUrl: "http://localhost:11434" });
+    const client = createModelClient({
+      provider: "ollama",
+      model: "llama3",
+      baseUrl: "http://localhost:11434",
+    });
     expect(client).toBeInstanceOf(OllamaClient);
   });
 
-  it("creates OpenAICompatClient for ollama-cloud provider", () => {
-    const client = createModelClient({ provider: "ollama-cloud", model: "llama3", baseUrl: "https://api.ollama.com/v1", apiKey: "key" });
-    expect(client).toBeInstanceOf(OpenAICompatClient);
+  it("creates OllamaClient for ollama-cloud provider (native Ollama API)", () => {
+    const client = createModelClient({
+      provider: "ollama-cloud",
+      model: "gemma3:4b",
+      baseUrl: "https://api.ollama.com",
+      apiKey: "key",
+    });
+    expect(client).toBeInstanceOf(OllamaClient);
   });
 
   it("creates OpenAICompatClient for openai-compat provider", () => {
-    const client = createModelClient({ provider: "openai-compat", model: "gpt-4", baseUrl: "https://api.openai.com/v1", apiKey: "key" });
+    const client = createModelClient({
+      provider: "openai-compat",
+      model: "gpt-4",
+      baseUrl: "https://api.openai.com/v1",
+      apiKey: "key",
+    });
     expect(client).toBeInstanceOf(OpenAICompatClient);
   });
 });

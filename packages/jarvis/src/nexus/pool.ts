@@ -195,24 +195,27 @@ export class InProcessAgentPool implements AgentPool {
       ["web", async () => ({ status: "dispatched", action: "web" })],
       ["email", async () => ({ status: "dispatched", action: "email" })],
       ["notion", async () => ({ status: "dispatched", action: "notion" })],
-      ["general", async (ctx: AgentContext) => {
-        if (this.client) {
-          try {
-            const available = await this.client.isAvailable();
-            if (available) {
-              const prompt = (ctx.intent.params?.text as string) ?? ctx.intent.action;
-              const response = await this.client.chat(
-                prompt,
-                "You are JARVIS, a helpful AI assistant. Respond concisely.",
-              );
-              return { response: response.content };
+      [
+        "general",
+        async (ctx: AgentContext) => {
+          if (this.client) {
+            try {
+              const available = await this.client.isAvailable();
+              if (available) {
+                const prompt = (ctx.intent.params?.text as string) ?? ctx.intent.action;
+                const response = await this.client.chat(
+                  prompt,
+                  "You are JARVIS, a helpful AI assistant. Respond concisely.",
+                );
+                return { response: response.content };
+              }
+            } catch {
+              // Model unavailable, return acknowledgment
             }
-          } catch {
-            // Model unavailable, return acknowledgment
           }
-        }
-        return { response: "I'm here. How can I help?" };
-      }],
+          return { response: "I'm here. How can I help?" };
+        },
+      ],
       ["cron", async () => ({ status: "dispatched", action: "cron" })],
       ["secrets", async () => ({ status: "dispatched", action: "secrets" })],
       [

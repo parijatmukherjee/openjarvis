@@ -12,6 +12,7 @@ export default tseslint.config(
       "packages/desktop/tailwind.config.js",
       "packages/desktop/postcss.config.js",
       "packages/desktop/vite.renderer.config.ts",
+      "packages/desktop/vite.preload.config.ts",
       "packages/*/vitest.config.ts",
       "packages/*/tsconfig.test.json",
       "packages/skills-web/test/**/*.ts",
@@ -46,6 +47,15 @@ export default tseslint.config(
     files: ["packages/desktop-e2e/**/*.ts"],
     rules: {
       "no-empty-pattern": "off",
+    },
+  },
+  {
+    // The Electron preload script is intentionally CommonJS — the build
+    // (vite.preload.config.ts) emits `dist/preload.js` as a CJS module and
+    // `preload.smoke.test.ts` asserts on the presence of `require("electron")`.
+    files: ["packages/desktop/src/preload.ts"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
 );

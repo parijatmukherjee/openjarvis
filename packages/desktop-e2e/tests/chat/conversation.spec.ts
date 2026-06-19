@@ -16,16 +16,21 @@ test.describe("Chat — user message appears in conversation", () => {
 
 test.describe("Chat — model response via Ollama Cloud", () => {
   test.describe.configure({ timeout: 120_000, retries: 0 });
+  test.skip(!process.env.OLLAMA_API_KEY, "Set OLLAMA_API_KEY to run live Ollama Cloud tests");
 
   test("model replies to a math question after configuring Ollama Cloud", async ({ page }) => {
     await completeOnboarding(page);
 
     await test.step("configure Ollama Cloud model", async () => {
       await page.click("[data-testid='btn-settings']");
-      await expect(page.locator("[data-testid='settings-tab-model']")).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator("[data-testid='settings-tab-model']")).toBeVisible({
+        timeout: 10_000,
+      });
       await page.click("[data-testid='settings-tab-model']");
       await page.click("[data-testid='provider-ollama-cloud']");
-      await expect(page.locator("[data-testid='model-api-key-input']")).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator("[data-testid='model-api-key-input']")).toBeVisible({
+        timeout: 5_000,
+      });
 
       const envKey = process.env.OLLAMA_API_KEY ?? "";
       if (envKey) {
@@ -58,10 +63,14 @@ test.describe("Chat — model response via Ollama Cloud", () => {
 
     await test.step("configure Ollama Cloud model", async () => {
       await page.click("[data-testid='btn-settings']");
-      await expect(page.locator("[data-testid='settings-tab-model']")).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator("[data-testid='settings-tab-model']")).toBeVisible({
+        timeout: 10_000,
+      });
       await page.click("[data-testid='settings-tab-model']");
       await page.click("[data-testid='provider-ollama-cloud']");
-      await expect(page.locator("[data-testid='model-api-key-input']")).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator("[data-testid='model-api-key-input']")).toBeVisible({
+        timeout: 5_000,
+      });
 
       const envKey = process.env.OLLAMA_API_KEY ?? "";
       if (envKey) {
@@ -91,10 +100,14 @@ test.describe("Chat — model response via Ollama Cloud", () => {
 
     await test.step("configure Ollama Cloud model", async () => {
       await page.click("[data-testid='btn-settings']");
-      await expect(page.locator("[data-testid='settings-tab-model']")).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator("[data-testid='settings-tab-model']")).toBeVisible({
+        timeout: 10_000,
+      });
       await page.click("[data-testid='settings-tab-model']");
       await page.click("[data-testid='provider-ollama-cloud']");
-      await expect(page.locator("[data-testid='model-api-key-input']")).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator("[data-testid='model-api-key-input']")).toBeVisible({
+        timeout: 5_000,
+      });
 
       const envKey = process.env.OLLAMA_API_KEY ?? "";
       if (envKey) {

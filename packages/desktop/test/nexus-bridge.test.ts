@@ -107,6 +107,38 @@ describe("NexusBridge", () => {
     unsub();
   });
 
+  it("subscribeToMessages returns an unsubscribe function", () => {
+    const bridge = makeBridge();
+    const unsub = bridge.subscribeToMessages(() => {});
+    expect(typeof unsub).toBe("function");
+    unsub();
+  });
+
+  it("subscribeToMessages fires synchronously on executeIntent", async () => {
+    const bridge = makeBridge();
+    const calls: number[] = [];
+    const unsub = bridge.subscribeToMessages(() => {
+      calls.push(calls.length + 1);
+    });
+
+    await bridge.executeIntent("check_weather", { location: "NYC" });
+    expect(calls.length).toBeGreaterThan(0);
+    unsub();
+  });
+
+  it("subscribeToMessages stops firing after unsubscribe", async () => {
+    const bridge = makeBridge();
+    let count = 0;
+    const unsub = bridge.subscribeToMessages(() => {
+      count += 1;
+    });
+    await bridge.executeIntent("search", { query: "first" });
+    const afterFirst = count;
+    unsub();
+    await bridge.executeIntent("search", { query: "second" });
+    expect(count).toBe(afterFirst);
+  });
+
   it("subscribeToEvents receives nexus events", async () => {
     const bridge = makeBridge();
     const events: unknown[] = [];

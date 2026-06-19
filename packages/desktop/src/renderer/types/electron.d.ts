@@ -14,7 +14,10 @@ export interface ElectronAPI {
   nexusGetTasks: () => Promise<Task[]>;
   nexusGetAgents: () => Promise<AgentView[]>;
   nexusGetMessages: () => Promise<MessageView[]>;
-  nexusExecuteIntent: (action: string, params: Record<string, unknown>) => Promise<{
+  nexusExecuteIntent: (
+    action: string,
+    params: Record<string, unknown>,
+  ) => Promise<{
     success: boolean;
     spoken?: string;
     visual?: unknown[];

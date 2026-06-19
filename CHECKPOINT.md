@@ -5,8 +5,9 @@
 > trackers live under `docs/` and are linked below.
 >
 > **Last updated:** 2026-06-19 · **Default branch:** `main` (protected; required
-> `docker-gate`) · **Tests:** 1334 passing / 32 skipped, typecheck/lint/format clean.
-> **Current branch:** `feat/playwright-e2e` (ahead of `origin/feat/playwright-e2e` by 2 commits).
+> `docker-gate`) · **Tests:** 1364 passing / 7 skipped, typecheck/lint/format clean,
+> coverage 99.62% (≥99% gate). **Current branch:** `feat/playwright-e2e` (with
+> Round-11 wiring + tooling fixes; uncommitted at the time of writing).
 
 ---
 
@@ -68,14 +69,15 @@ Additional infrastructure:
 
 ## 4. Gate status
 
-- **Tests:** 1334 passing / 32 skipped (190 files) — `vitest run`
+- **Tests:** 1364 passing / 7 skipped (192 files) — `vitest run`
+- **Coverage:** 99.62% statements / 99.16% lines / 100% functions / 99.62% branches
+  (≥99% thresholds, `vitest run --coverage`)
 - **Typecheck:** Clean (`tsc -b` passes)
-- **Lint:** Clean (`eslint . --max-warnings 0` passes)
+- **Lint:** Clean (`eslint .` passes; 0 errors, 0 warnings)
 - **Format:** Clean (`prettier --check` passes)
 - **Playwright (desktop-e2e):** onboarding + dashboard + chat non-LLM + settings all
-  green; LLM-gated chat specs require `OLLAMA_API_KEY` (green by construction when set).
-- **Branch:** `main` (all feature parity + gap fill + robustness work merged). Active
-  feature work on `feat/playwright-e2e` (2 commits ahead of `origin/feat/playwright-e2e`).
+  green; LLM-gated chat specs skip explicitly with `test.skip(!OLLAMA_API_KEY)`.
+- **Branch:** `feat/playwright-e2e` (Round 10 + Round 11 audit fixes; gate clean).
 
 ## 5. How to work here
 
@@ -207,3 +209,122 @@ cd packages/desktop-e2e && OLLAMA_API_KEY=… npx playwright test --workers=1
 (Playwright chat specs that hit the real model need `OLLAMA_API_KEY`; the rest
 do not.)
 
+### Round 11 — residual-work + ollama-cloud rewire + toolchain fixes (2026-06-19)
+
+Followed TDD: confirm a bug, write a failing test, fix, re-run the gate.
+
+**Residual-work items closed:**
+
+1. **ConversationPanel does not re-fetch messages** — added
+   `subscribeToMessages(handler)` to the `NexusBridge` interface and both
+   implementations (`nexus-bridge.ts`, `ipc-nexus-bridge.ts`); the bridge
+   notifies subscribers on every `executeIntent` mutation. `ConversationPanel`
+   now subscribes and re-fetches on each notification. New test coverage in
+   `nexus-bridge.test.ts` (3 new tests).
+2. **`Makefile test-e2e` background-launch is fragile** — extracted into
+   `scripts/test-e2e.sh` with a `trap cleanup EXIT INT TERM` that always kills
+   the Vite dev server, surfaces the vite log on failure, and waits for the
+   server to be reachable (curl-poll) instead of an arbitrary `sleep 3`.
+3. **`electron-main.test.ts` mocks `BrowserWindow.getFocusedWindow`** — the
+   production code no longer calls it; deleted the dead mock.
+4. **LLM-gated Playwright chat specs** — added explicit
+   `test.skip(!process.env.OLLAMA_API_KEY, ...)` to the Ollama Cloud describe
+   so the skip is visible in the report.
+
+**Pre-existing live-API bugs closed (root cause: ollama-cloud wired to wrong API surface):**
+
+5. **`ollama-cloud` provider routed to `OpenAICompatClient`** — Ollama Cloud
+   is the native Ollama API, not an OpenAI-compat shim. The `OpenAICompatClient`
+   was hitting `https://api.ollama.com/v1/chat/completions`, which the
+   upstream returns `301 Moved Permanently` to `ollama.com/v1/chat/completions`
+   (404) and `ollama.com/v1/chat/completions` does not exist on the canonical
+   host. The `OllamaClient` (used for local Ollama) already talks the right
+   shape (`POST /api/chat`, `GET /api/tags`) and already supports an API-key
+   header. Switched the factory to route `ollama-cloud` through `OllamaClient`
+   instead. Single source of truth for the Ollama wire format.
+6. **Default URL for `ollama-cloud` was `https://api.ollama.com/v1`** —
+   updated to `https://api.ollama.com` (no `/v1`) in `SettingsPanel`,
+   `ipc.ts`'s `model:list` handler, and all tests.
+7. **Default `ollama-cloud` model list asserted the `llama` family** — Ollama
+   has retired its `llama*` cloud models (see Ollama Cloud deprecation table).
+   Updated the UI default list and tests to current catalog (`gemma3:4b`,
+   `gemma3:12b`, `minimax-m3`, `minimax-m2.5`, `glm-5.1`, `qwen3-coder:480b`,
+   `deepseek-v3.1:671b`, `gpt-oss:20b`).
+8. **`OpenAICompatClient` did not follow redirects** — added
+   `redirect: "follow"` to both the `chat` and `isAvailable` fetch calls. The
+   `OllamaCloud` case in the test still hits a 301 → 200 (we added a
+   redirect-following mock fetch to the test helper).
+9. **Live-API integration tests had a 5s default timeout** — cloud model
+   cold-start can exceed 5s on the first request. Added a `LIVE_TEST_TIMEOUT`
+   constant (60 s) applied to every live test in `integration.test.ts` and
+   `engine-integration.test.ts`.
+
+**Toolchain fixes (pre-existing, would have failed the gate):**
+
+10. **Lint: `preload.ts` flagged for `require("electron")`** — the file is
+    intentionally CJS (built by `vite.preload.config.ts` and asserted by
+    `preload.smoke.test.ts`). Added a per-file ESLint override disabling
+    `@typescript-eslint/no-require-imports` for `packages/desktop/src/preload.ts`.
+11. **Lint: `packages/desktop/vite.preload.config.ts` not picked up by the
+    project service** — added it to the top-level `ignores` (Vite handles
+    config-file type checking at build time).
+12. **Format: 57 files had `No newline at end of file`** — ran
+    `prettier --write "**/*.{ts,json,md,yml}"` to add trailing newlines and
+    realign the rest of the formatting. `prettier --check` now passes.
+
+**New test coverage:**
+
+- `nexus-bridge.test.ts` — 3 new tests for `subscribeToMessages` (presence of
+  unsubscribe, fires on `executeIntent`, stops after unsubscribe).
+- `openai-compat-client.test.ts` — 2 new tests for redirect-following on
+  `chat` and `isAvailable` (the test mock now follows 301s when the production
+  code opts in via `redirect: "follow"`).
+- `client.test.ts` — updated `ollama-cloud` factory test to assert
+  `OllamaClient` is now returned.
+- `integration.test.ts` — `Ollama Cloud integration` and `Model error handling`
+  suites updated for the new client + URL + model + timeout; the
+  `model:list` test now hits `/api/tags` (correct shape) and asserts a
+  stable, currently-listed model.
+- `ipc-model-list.test.ts` — same shape update; the "returns empty for
+  invalid key" assertion was wrong (the public catalog is unauthenticated)
+  and now asserts the correct shape.
+- `engine-integration.test.ts` — swapped to `OllamaClient`, new URL/model,
+  per-test 60 s timeout.
+
+**Known-good invariants (re-verified by tests):**
+
+- `OllamaClient(ollama-cloud)` `POST /api/chat` with `Authorization: Bearer <key>`
+  works against the real `https://api.ollama.com/api/chat` endpoint.
+- `OllamaClient(ollama-cloud)` `GET /api/tags` returns the public catalog
+  (no auth check), shaped as `{ models: [{ name, ... }] }`.
+- `OpenAICompatClient` now follows 3xx responses on both `chat` and
+  `isAvailable` paths.
+- `NexusBridge.subscribeToMessages(handler)` is invoked synchronously on
+  every `executeIntent` mutation; the returned unsubscribe stops the calls.
+
+**Residual work (intentionally not in this round):**
+
+- **`nexus:getMessages` always returns `[]`** — by design (no persistence).
+  If persistence is desired, mirror the renderer bridge cache into
+  `DesktopStore` or a SQLite table. Out of scope for the wiring audit.
+- **`useSettings.resetSettings` flashes local fallback** — cosmetic,
+  one-frame visual. Not user-visible in practice.
+- **`SettingsPanel` API-key persistence quirk** — when a user picks
+  Ollama Cloud, enters a key, then switches to local Ollama, the key is
+  preserved on the model object (just hidden). On a future switch back to
+  Ollama Cloud the key is still there. Acceptable; document when we add
+  a user-facing settings export.
+
+**How to verify this round:**
+
+```
+npx tsc -b
+npx vitest run
+npm run coverage
+npm run lint
+npm run format:check
+cd packages/desktop && npx vite build --config vite.renderer.config.ts && \
+  npx vite build --config vite.preload.config.ts
+# For the e2e suite (optional, requires OLLAMA_API_KEY + headed Electron):
+make test-e2e
+```

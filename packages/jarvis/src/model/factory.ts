@@ -3,7 +3,7 @@ import { OllamaClient } from "./ollama-client.js";
 import { OpenAICompatClient } from "./openai-compat-client.js";
 
 export function createModelClient(config: ModelConfig): ModelClient {
-  if (config.provider === "ollama") {
+  if (config.provider === "ollama" || config.provider === "ollama-cloud") {
     return new OllamaClient(config);
   }
   return new OpenAICompatClient(config);

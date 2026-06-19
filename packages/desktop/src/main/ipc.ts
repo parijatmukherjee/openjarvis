@@ -22,7 +22,11 @@ let eventSubscriptions: Array<() => void> = [];
 
 function resetEngine(): void {
   for (const unsub of eventSubscriptions) {
-    try { unsub(); } catch { /* ignore */ }
+    try {
+      unsub();
+    } catch {
+      /* ignore */
+    }
   }
   eventSubscriptions = [];
   engine = null;
@@ -31,7 +35,11 @@ function resetEngine(): void {
   eventBus = null;
 }
 
-function createEngine(client?: ModelClient): { engine: NexusEngine; taskBoard: TaskBoard; agentPool: InProcessAgentPool } {
+function createEngine(client?: ModelClient): {
+  engine: NexusEngine;
+  taskBoard: TaskBoard;
+  agentPool: InProcessAgentPool;
+} {
   const bus = new SimpleEventBus();
   const router = new RuleBasedRouter(client);
   const pool = new InProcessAgentPool(client);
@@ -77,15 +85,20 @@ async function getSystemLocale(): Promise<string> {
   return Intl.DateTimeFormat().resolvedOptions().locale;
 }
 
-export function registerIpcHandlers(store: DesktopStore, ipcMain: MinimalIpcMain, getWindow: () => BrowserWindow | null): void {
+export function registerIpcHandlers(
+  store: DesktopStore,
+  ipcMain: MinimalIpcMain,
+  getWindow: () => BrowserWindow | null,
+): void {
   ipcMain.handle("settings:load", async () => {
     const settings = await store.loadSettings();
     if (settings.model && !settings.model.apiKey) {
-      const envKey = settings.model.provider === "ollama-cloud"
-        ? process.env.OLLAMA_API_KEY
-        : settings.model.provider === "openai-compat"
-          ? process.env.OPENAI_API_KEY
-          : process.env.OLLAMA_API_KEY;
+      const envKey =
+        settings.model.provider === "ollama-cloud"
+          ? process.env.OLLAMA_API_KEY
+          : settings.model.provider === "openai-compat"
+            ? process.env.OPENAI_API_KEY
+            : process.env.OLLAMA_API_KEY;
       if (envKey) {
         settings.model.apiKey = envKey;
       }
@@ -185,36 +198,39 @@ export function registerIpcHandlers(store: DesktopStore, ipcMain: MinimalIpcMain
     return [];
   });
 
-  ipcMain.handle("model:list", async (_event, provider: string, baseUrl: string, apiKey?: string) => {
-    try {
-      const headers: Record<string, string> = {};
-      if (apiKey && (provider === "ollama-cloud" || provider === "openai-compat")) {
-        headers["Authorization"] = `Bearer ${apiKey}`;
-      }
-      if (provider === "ollama") {
-        const url = `${baseUrl}/api/tags`;
-        const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  ipcMain.handle(
+    "model:list",
+    async (_event, provider: string, baseUrl: string, apiKey?: string) => {
+      try {
+        const headers: Record<string, string> = {};
+        if (apiKey && (provider === "ollama-cloud" || provider === "openai-compat")) {
+          headers["Authorization"] = `Bearer ${apiKey}`;
+        }
+        if (provider === "ollama" || provider === "ollama-cloud") {
+          const url = `${baseUrl}/api/tags`;
+          const response = await fetch(url, { signal: AbortSignal.timeout(10000), headers });
+          if (!response.ok) {
+            console.error(`[model:list] Ollama ${url} returned ${response.status}`);
+            return [];
+          }
+          const data = (await response.json()) as Record<string, unknown>;
+          const models = data.models as Array<Record<string, string>> | undefined;
+          return (models ?? []).map((m) => m.name);
+        }
+        const url = `${baseUrl}/models`;
+        const response = await fetch(url, { signal: AbortSignal.timeout(10000), headers });
         if (!response.ok) {
-          console.error(`[model:list] Ollama ${url} returned ${response.status}`);
+          console.error(`[model:list] ${url} returned ${response.status}`);
           return [];
         }
-        const data = (await response.json()) as Record<string, unknown>;
-        const models = data.models as Array<Record<string, string>> | undefined;
-        return (models ?? []).map((m) => m.name);
-      }
-      const url = `${baseUrl}/models`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(10000), headers });
-      if (!response.ok) {
-        console.error(`[model:list] ${url} returned ${response.status}`);
+        const data = (await response.json()) as { data?: Array<Record<string, string>> };
+        return (data.data ?? []).map((m) => m.id);
+      } catch (err) {
+        console.error(`[model:list] Error fetching models for ${provider} at ${baseUrl}:`, err);
         return [];
       }
-      const data = (await response.json()) as { data?: Array<Record<string, string>> };
-      return (data.data ?? []).map((m) => m.id);
-    } catch (err) {
-      console.error(`[model:list] Error fetching models for ${provider} at ${baseUrl}:`, err);
-      return [];
-    }
-  });
+    },
+  );
 }
 
 export function registerWindowHandlers(

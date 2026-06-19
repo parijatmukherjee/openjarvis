@@ -68,7 +68,11 @@ export class NexusEngine {
     return synthesis;
   }
 
-  private async dispatchAgent(route: AgentRoute, context: JarvisContext, intent: Intent): Promise<AgentResult> {
+  private async dispatchAgent(
+    route: AgentRoute,
+    context: JarvisContext,
+    intent: Intent,
+  ): Promise<AgentResult> {
     const sessionId = context.sessionId;
     const taskId = `${sessionId}-${route.agentId}-${randomUUID()}`;
 
