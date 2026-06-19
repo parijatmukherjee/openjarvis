@@ -52,10 +52,16 @@ export function getMainWindow(): BrowserWindow | null {
 
 async function loadRenderer(win: BrowserWindow): Promise<void> {
   if (isDev()) {
-    await win.loadURL("http://localhost:5173/");
-    win.webContents.openDevTools();
+    const devUrl = "http://localhost:5173/";
+    try {
+      await win.loadURL(devUrl);
+      win.webContents.openDevTools();
+    } catch {
+      const html = join(__dirname, "renderer", "index.html");
+      await win.loadFile(html);
+    }
   } else {
-    const html = join(__dirname, "..", "renderer", "index.html");
+    const html = join(__dirname, "renderer", "index.html");
     await win.loadFile(html);
   }
 }
