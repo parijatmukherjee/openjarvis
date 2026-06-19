@@ -1,19 +1,20 @@
 import { describe, it, expect, vi } from "vitest";
 import { asMemoryStore } from "../src/adapter.js";
+import type { JarvisMemoryStore } from "../src/store.js";
 
-function mockStore() {
+function mockStore(): JarvisMemoryStore {
   return {
     recall: vi.fn().mockResolvedValue([
       { text: "result a", score: 0.9 },
       { text: "result b", score: 0.5 },
     ]),
-  };
+  } as unknown as JarvisMemoryStore;
 }
 
 describe("asMemoryStore", () => {
   it("calls store.recall without k when k is not provided", async () => {
     const store = mockStore();
-    const mem = asMemoryStore(store as any);
+    const mem = asMemoryStore(store);
     const results = await mem.recall("query");
 
     expect(store.recall).toHaveBeenCalledOnce();
@@ -25,7 +26,7 @@ describe("asMemoryStore", () => {
 
   it("calls store.recall with k when k is provided", async () => {
     const store = mockStore();
-    const mem = asMemoryStore(store as any);
+    const mem = asMemoryStore(store);
     const results = await mem.recall("query", 5);
 
     expect(store.recall).toHaveBeenCalledOnce();
