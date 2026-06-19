@@ -1,4 +1,4 @@
-import type { NexusBridge, Task, AgentView, MessageView } from "./nexus-types.js";
+import type { NexusBridge, Task, AgentView, MessageView, StreamChunk } from "./nexus-types.js";
 
 export function createIpcNexusBridge(): NexusBridge {
   const messages: MessageView[] = [];
@@ -7,6 +7,7 @@ export function createIpcNexusBridge(): NexusBridge {
   const notifyMessages = (): void => {
     for (const sub of messageSubscribers) sub();
   };
+  const cancelUnsubs = new Map<string, () => void>();
 
   const api = (): Window["electronAPI"] | undefined => window.electronAPI;
 
@@ -65,6 +66,59 @@ export function createIpcNexusBridge(): NexusBridge {
         if (Number.isFinite(n) && n >= nextId) nextId = n + 1;
       }
       notifyMessages();
+    },
+
+    async executeIntentStream(
+      action: string,
+      params: Record<string, unknown>,
+      onChunk: (chunk: StreamChunk) => void,
+      abort?: AbortSignal,
+    ): Promise<{ sessionId: string }> {
+      const electron = api();
+      // Chat is the only action that streams. Other actions (e.g. check_weather)
+      // keep their original non-streaming behaviour so callers can use the
+      // streaming path uniformly without branching on action.
+      if (action !== "chat" || !electron?.nexusChatStream) {
+        await this.executeIntent(action, params);
+        return { sessionId: "" };
+      }
+      const { sessionId } = await electron.nexusChatStream(params.text as string);
+      // Bridge to the bus: the main process publishes chunks on
+      // `nexus:chat:${sessionId}:chunk`. We forward them as StreamChunk.
+      const unsub = this.subscribeToEvents((event) => {
+        const evt = event as { topic?: string; payload?: StreamChunk };
+        if (evt.topic === `nexus:chat:${sessionId}:chunk` && evt.payload) {
+          onChunk(evt.payload);
+        }
+      });
+      cancelUnsubs.set(sessionId, unsub);
+      // Honour the optional AbortSignal by tearing down the subscription and
+      // forwarding to the IPC cancel channel as soon as the signal fires.
+      if (abort) {
+        const onAbort = (): void => {
+          if (abort.aborted) {
+            void this.cancelChatStream(sessionId);
+          }
+        };
+        if (abort.aborted) {
+          void this.cancelChatStream(sessionId);
+        } else {
+          abort.addEventListener("abort", onAbort, { once: true });
+        }
+      }
+      return { sessionId };
+    },
+
+    async cancelChatStream(sessionId: string): Promise<void> {
+      const unsub = cancelUnsubs.get(sessionId);
+      if (unsub) {
+        unsub();
+        cancelUnsubs.delete(sessionId);
+      }
+      const electron = api();
+      if (electron?.nexusCancelChatStream) {
+        await electron.nexusCancelChatStream(sessionId);
+      }
     },
 
     subscribeToEvents(handler: (event: unknown) => void): () => void {

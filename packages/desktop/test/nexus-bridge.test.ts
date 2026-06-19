@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   NexusEngine,
   RuleBasedRouter,
@@ -8,6 +8,9 @@ import {
 } from "@openjarvis/jarvis/nexus";
 import { SimpleEventBus } from "@openjarvis/jarvis";
 import { createNexusBridge } from "../src/renderer/lib/nexus-bridge.js";
+import { createIpcNexusBridge } from "../src/renderer/lib/ipc-nexus-bridge.js";
+import type { StreamChunk } from "../src/renderer/lib/nexus-types.js";
+import type { ElectronAPI } from "../src/renderer/types/electron.js";
 
 describe("NexusBridge", () => {
   function makeBridge() {
@@ -158,5 +161,268 @@ describe("NexusBridge", () => {
     const agents = await bridge.getAgents();
     const activeAgents = agents.filter((a) => a.status === "active");
     expect(activeAgents.length).toBeGreaterThan(0);
+  });
+});
+
+describe("NexusBridge.executeIntentStream (in-process)", () => {
+  function makeEngine() {
+    const eventBus = new SimpleEventBus();
+    const router = new RuleBasedRouter();
+    const pool = new InProcessAgentPool();
+    const synthesizer = new RuleBasedSynthesizer();
+    const taskBoard = new TaskBoard(eventBus);
+    const engine = new NexusEngine({
+      intentRouter: router,
+      agentPool: pool,
+      synthesizer,
+      eventBus,
+      maxConcurrentAgents: 3,
+      defaultTimeoutMs: 30000,
+    });
+    return { engine, taskBoard, pool, eventBus };
+  }
+
+  it("forwards each model chunk to onChunk with a sessionId", async () => {
+    const { engine, taskBoard, pool, eventBus } = makeEngine();
+    const bridge = createNexusBridge(engine, taskBoard, pool, eventBus);
+
+    const spy = vi.spyOn(engine, "executeChatStream").mockImplementation(async (_text, onChunk) => {
+      onChunk({ text: "Hel", done: false });
+      onChunk({ text: "lo", done: false });
+      onChunk({ text: " world", done: true });
+    });
+
+    try {
+      const chunks: StreamChunk[] = [];
+      const { sessionId } = await bridge.executeIntentStream("chat", { text: "hi" }, (c) =>
+        chunks.push(c),
+      );
+      expect(typeof sessionId).toBe("string");
+      expect(sessionId.length).toBeGreaterThan(0);
+      expect(chunks).toEqual([
+        { sessionId, content: "Hel", done: false },
+        { sessionId, content: "lo", done: false },
+        { sessionId, content: " world", done: true },
+      ]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("falls back to executeIntent for non-chat actions and returns an empty sessionId", async () => {
+    const { engine, taskBoard, pool, eventBus } = makeEngine();
+    const bridge = createNexusBridge(engine, taskBoard, pool, eventBus);
+
+    const streamSpy = vi.spyOn(engine, "executeChatStream");
+    const executeSpy = vi.spyOn(engine, "execute").mockResolvedValue({
+      spoken: "ok",
+      visual: undefined,
+    } as never);
+
+    try {
+      const chunks: StreamChunk[] = [];
+      const { sessionId } = await bridge.executeIntentStream(
+        "check_weather",
+        { location: "NYC" },
+        (c) => chunks.push(c),
+      );
+      expect(sessionId).toBe("");
+      expect(chunks).toEqual([]);
+      expect(streamSpy).not.toHaveBeenCalled();
+      expect(executeSpy).toHaveBeenCalledOnce();
+    } finally {
+      streamSpy.mockRestore();
+      executeSpy.mockRestore();
+    }
+  });
+
+  it("forwards error field on the chunk when the engine reports one", async () => {
+    const { engine, taskBoard, pool, eventBus } = makeEngine();
+    const bridge = createNexusBridge(engine, taskBoard, pool, eventBus);
+
+    const spy = vi.spyOn(engine, "executeChatStream").mockImplementation(async (_text, onChunk) => {
+      onChunk({ text: "", done: true, error: "boom" });
+    });
+
+    try {
+      const chunks: StreamChunk[] = [];
+      const { sessionId } = await bridge.executeIntentStream("chat", { text: "hi" }, (c) =>
+        chunks.push(c),
+      );
+      expect(chunks).toEqual([{ sessionId, content: "", done: true, error: "boom" }]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("cancelChatStream is a safe no-op for the in-process bridge", async () => {
+    const { engine, taskBoard, pool, eventBus } = makeEngine();
+    const bridge = createNexusBridge(engine, taskBoard, pool, eventBus);
+    await expect(bridge.cancelChatStream("any-session-id")).resolves.toBeUndefined();
+  });
+});
+
+describe("createIpcNexusBridge().executeIntentStream", () => {
+  type GlobalWithWindow = {
+    window?: { electronAPI?: Partial<ElectronAPI> };
+  };
+
+  const setWindow = (electronAPI: Partial<ElectronAPI>): void => {
+    (globalThis as unknown as GlobalWithWindow).window = { electronAPI };
+  };
+
+  const clearWindow = (): void => {
+    delete (globalThis as unknown as GlobalWithWindow).window;
+  };
+
+  beforeEach(() => {
+    setWindow({});
+  });
+
+  afterEach(() => {
+    clearWindow();
+  });
+
+  it("calls electron.nexusChatStream and forwards each event-bus chunk to onChunk", async () => {
+    const eventHandlers = new Set<(event: unknown) => void>();
+    const api: Partial<ElectronAPI> = {
+      nexusGetMessages: vi.fn(async () => []),
+      nexusExecuteIntent: vi.fn(async () => ({ success: true })),
+      nexusChatStream: vi.fn(async () => ({ sessionId: "s1" })),
+      onNexusEvent: vi.fn((cb: (payload: unknown) => void) => {
+        eventHandlers.add(cb);
+        return () => eventHandlers.delete(cb);
+      }),
+    };
+    setWindow(api);
+
+    const bridge = createIpcNexusBridge();
+
+    const chunks: StreamChunk[] = [];
+    const { sessionId } = await bridge.executeIntentStream("chat", { text: "hi" }, (c) =>
+      chunks.push(c),
+    );
+
+    expect(sessionId).toBe("s1");
+    expect(api.nexusChatStream).toHaveBeenCalledWith("hi");
+
+    // The IPC bridge subscribes via electron.onNexusEvent; simulate main
+    // publishing two chunks on the topic `nexus:chat:s1:chunk`.
+    for (const h of eventHandlers) {
+      h({
+        topic: "nexus:chat:s1:chunk",
+        payload: { sessionId: "s1", content: "Hel", done: false },
+      });
+      h({ topic: "nexus:chat:s1:chunk", payload: { sessionId: "s1", content: "lo", done: true } });
+    }
+    expect(chunks).toEqual([
+      { sessionId: "s1", content: "Hel", done: false },
+      { sessionId: "s1", content: "lo", done: true },
+    ]);
+  });
+
+  it("ignores events for other sessions", async () => {
+    const eventHandlers = new Set<(event: unknown) => void>();
+    const api: Partial<ElectronAPI> = {
+      nexusGetMessages: vi.fn(async () => []),
+      nexusChatStream: vi.fn(async () => ({ sessionId: "s1" })),
+      onNexusEvent: vi.fn((cb: (payload: unknown) => void) => {
+        eventHandlers.add(cb);
+        return () => eventHandlers.delete(cb);
+      }),
+    };
+    setWindow(api);
+    const bridge = createIpcNexusBridge();
+
+    const chunks: StreamChunk[] = [];
+    await bridge.executeIntentStream("chat", { text: "hi" }, (c) => chunks.push(c));
+
+    for (const h of eventHandlers) {
+      h({ topic: "nexus:chat:s2:chunk", payload: { sessionId: "s2", content: "x", done: false } });
+    }
+    expect(chunks).toEqual([]);
+  });
+
+  it("falls back to executeIntent for non-chat actions and returns empty sessionId", async () => {
+    const api: Partial<ElectronAPI> = {
+      nexusGetMessages: vi.fn(async () => []),
+      nexusExecuteIntent: vi.fn(async () => ({ success: true })),
+      nexusChatStream: vi.fn(async () => ({ sessionId: "s1" })),
+    };
+    setWindow(api);
+    const bridge = createIpcNexusBridge();
+
+    const chunks: StreamChunk[] = [];
+    const { sessionId } = await bridge.executeIntentStream(
+      "check_weather",
+      { location: "NYC" },
+      (c) => chunks.push(c),
+    );
+    expect(sessionId).toBe("");
+    expect(chunks).toEqual([]);
+    expect(api.nexusChatStream).not.toHaveBeenCalled();
+    expect(api.nexusExecuteIntent).toHaveBeenCalledWith("check_weather", { location: "NYC" });
+  });
+
+  it("falls back to executeIntent when nexusChatStream is unavailable", async () => {
+    const api: Partial<ElectronAPI> = {
+      nexusGetMessages: vi.fn(async () => []),
+      nexusExecuteIntent: vi.fn(async () => ({ success: true })),
+    };
+    setWindow(api);
+    const bridge = createIpcNexusBridge();
+
+    const chunks: StreamChunk[] = [];
+    const { sessionId } = await bridge.executeIntentStream("chat", { text: "hi" }, (c) =>
+      chunks.push(c),
+    );
+    expect(sessionId).toBe("");
+    expect(chunks).toEqual([]);
+    expect(api.nexusExecuteIntent).toHaveBeenCalledWith("chat", { text: "hi" });
+  });
+
+  it("cancelChatStream detaches the event subscription and forwards to nexusCancelChatStream", async () => {
+    const eventHandlers = new Set<(event: unknown) => void>();
+    const cancelFn = vi.fn(async (_sessionId: string) => undefined);
+    const api: Partial<ElectronAPI> = {
+      nexusGetMessages: vi.fn(async () => []),
+      nexusChatStream: vi.fn(async () => ({ sessionId: "s9" })),
+      nexusCancelChatStream: cancelFn,
+      onNexusEvent: vi.fn((cb: (payload: unknown) => void) => {
+        eventHandlers.add(cb);
+        return () => eventHandlers.delete(cb);
+      }),
+    };
+    setWindow(api);
+    const bridge = createIpcNexusBridge();
+
+    const chunks: StreamChunk[] = [];
+    await bridge.executeIntentStream("chat", { text: "hi" }, (c) => chunks.push(c));
+
+    // Sanity: before cancel, events reach the callback.
+    for (const h of eventHandlers) {
+      h({ topic: "nexus:chat:s9:chunk", payload: { sessionId: "s9", content: "A", done: false } });
+    }
+    expect(chunks).toEqual([{ sessionId: "s9", content: "A", done: false }]);
+
+    await bridge.cancelChatStream("s9");
+
+    // After cancel: no further chunks should arrive.
+    for (const h of eventHandlers) {
+      h({ topic: "nexus:chat:s9:chunk", payload: { sessionId: "s9", content: "B", done: false } });
+    }
+    expect(chunks).toHaveLength(1);
+    expect(cancelFn).toHaveBeenCalledWith("s9");
+  });
+
+  it("cancelChatStream does not throw when no stream is active", async () => {
+    const api: Partial<ElectronAPI> = {
+      nexusGetMessages: vi.fn(async () => []),
+      nexusCancelChatStream: vi.fn(async () => undefined),
+    };
+    setWindow(api);
+    const bridge = createIpcNexusBridge();
+    await expect(bridge.cancelChatStream("never-registered")).resolves.toBeUndefined();
+    expect(api.nexusCancelChatStream).toHaveBeenCalledWith("never-registered");
   });
 });
