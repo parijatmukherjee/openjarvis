@@ -14,6 +14,7 @@
     "build": "tsc -b",
     "build:renderer": "vite build --config vite.renderer.config.ts",
     "dev": "electron .",
+    "dev:renderer": "vite --config vite.renderer.config.ts --port 5173",
     "start": "electron .",
     "pack": "npm run build && npm run build:renderer && electron-builder"
   },

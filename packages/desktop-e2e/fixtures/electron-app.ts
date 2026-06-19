@@ -43,7 +43,7 @@ export const test = base.extend<ElectronFixture>({
         async getMessages() {
           return messages;
         },
-        async executeIntent(action: string, params: Record<string, unknown>) {
+        async executeIntent(_action: string, _params: Record<string, unknown>) {
           return;
         },
         subscribeToEvents(handler: (event: unknown) => void) {
