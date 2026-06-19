@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # Start the desktop app in dev mode. Always runs the Vite renderer; runs
 # Electron when a display is available (or via xvfb-run). Falls back to
 # "renderer only" mode on headless servers without xvfb, so the renderer can
@@ -23,12 +23,33 @@ cd "$DESKTOP_DIR"
 
 VITE_LOG=$(mktemp)
 VITE_PID=""
+XVFB_PID=""
+
+# Recursively kill a process and all of its descendants. xvfb-run spawns
+# Xvfb and npx electron, which themselves spawn zygote / gpu / utility /
+# renderer subprocesses; killing xvfb-run alone leaves those orphans.
+kill_tree() {
+  pid=$1
+  sig=${2:-TERM}
+  if [ -z "$pid" ] || ! kill -0 "$pid" 2>/dev/null; then
+    return 0
+  fi
+  # Collect children first (process tree snapshot).
+  for child in $(pgrep -P "$pid" 2>/dev/null || true); do
+    kill_tree "$child" "$sig"
+  done
+  kill -"$sig" "$pid" 2>/dev/null || true
+}
 
 cleanup() {
   rc=$?
+  # Forward SIGINT/SIGTERM explicitly. (On EXIT the signal is already
+  # the default — TERM is the right default for a dev server.)
+  if [ -n "$XVFB_PID" ]; then
+    kill_tree "$XVFB_PID" TERM
+  fi
   if [ -n "$VITE_PID" ] && kill -0 "$VITE_PID" 2>/dev/null; then
-    kill "$VITE_PID" 2>/dev/null || true
-    wait "$VITE_PID" 2>/dev/null || true
+    kill_tree "$VITE_PID" TERM
   fi
   if [ "$rc" -ne 0 ]; then
     echo "==> vite log (last 50 lines):" >&2
@@ -70,19 +91,36 @@ if command -v xvfb-run >/dev/null 2>&1; then
   #
   # --disable-dev-shm-usage: /dev/shm is small in many containers; tells
   # Chromium to use /tmp instead so we don't run out of shared memory.
-  exec xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24" \
-    npx electron . \
-      --no-sandbox \
-      --disable-gpu \
-      --disable-software-rasterizer \
-      --disable-dev-shm-usage
+  #
+  # --disable-features=Autofill: DevTools tries to call the deprecated
+  # Autofill CDP method and Chromium logs a noisy "Request Autofill.enable
+  # failed" error every time DevTools opens. Autofill is not used by the
+  # app; disabling the feature is safe and quiets the noise.
+  #
+  # We run xvfb-run as a child (not via `exec`) so this script remains
+  # the signal-handling parent. The trap's `kill -- -$$` delivers a
+  # signal to the whole process group on Ctrl-C / SIGTERM, which
+  # xvfb-run's own (less reliable) signal forwarding would miss.
+  # The polling loop is just a thin wrapper around `wait` that works
+  # around bash's tendency to queue signals while in `wait`; the trap
+  # does the actual cleanup.
+  ELECTRON_CMD="npx electron . --no-sandbox --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage --disable-features=Autofill"
+  xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24" \
+    sh -c "$ELECTRON_CMD" &
+  XVFB_PID=$!
+  while kill -0 "$XVFB_PID" 2>/dev/null; do
+    sleep 1
+  done
+  XVFB_RC=0
+  wait "$XVFB_PID" 2>/dev/null || XVFB_RC=$?
 elif [ -n "${DISPLAY:-}" ]; then
   echo "==> launching electron against DISPLAY=${DISPLAY}"
-  exec npx electron . \
+  npx electron . \
     --no-sandbox \
     --disable-gpu \
     --disable-software-rasterizer \
-    --disable-dev-shm-usage
+    --disable-dev-shm-usage \
+    --disable-features=Autofill
 else
   cat <<EOF
 ==> no display server detected and xvfb-run is not installed.
@@ -101,5 +139,7 @@ Or override per-run with:
 EOF
   # Wait for the user to kill the script (Ctrl-C). The vite child is
   # torn down by the EXIT trap.
-  wait "$VITE_PID"
+  while kill -0 "$VITE_PID" 2>/dev/null; do
+    sleep 1
+  done
 fi

@@ -179,13 +179,17 @@ describe("electron-main", () => {
   });
 
   describe("dev mode loading (OPENJARVIS_DEV=1)", () => {
-    it("loads URL http://localhost:5173/ and opens DevTools", async () => {
+    it("loads URL http://localhost:5173/ in dev mode", async () => {
       const origDev = process.env.OPENJARVIS_DEV;
       process.env.OPENJARVIS_DEV = "1";
       try {
         await bootstrap();
         expect(mockLoadURL).toHaveBeenCalledWith("http://localhost:5173/");
-        expect(mockOpenDevTools).toHaveBeenCalled();
+        // DevTools is intentionally not auto-opened (see loadRenderer).
+        // The Autofill CDP probe that DevTools sends on open logs a
+        // noisy error on headless / Xvfb launches. Users open
+        // DevTools manually (Ctrl+Shift+I / Cmd+Opt+I).
+        expect(mockOpenDevTools).not.toHaveBeenCalled();
       } finally {
         if (origDev === undefined) delete process.env.OPENJARVIS_DEV;
         else process.env.OPENJARVIS_DEV = origDev;

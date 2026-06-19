@@ -53,7 +53,10 @@ async function loadRenderer(win: BrowserWindow): Promise<void> {
     const devUrl = "http://localhost:5173/";
     try {
       await win.loadURL(devUrl);
-      win.webContents.openDevTools();
+      // DevTools is intentionally not auto-opened: on headless / Xvfb
+      // launches the DevTools Autofill CDP probe logs a noisy
+      // "Request Autofill.enable failed" error every time. Users who
+      // want DevTools can open it manually (Ctrl+Shift+I / Cmd+Opt+I).
     } catch {
       const html = join(__dirname, "renderer", "index.html");
       await win.loadFile(html);

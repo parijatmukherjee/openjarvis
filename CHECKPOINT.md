@@ -7,7 +7,7 @@
 > **Last updated:** 2026-06-19 · **Default branch:** `main` (protected; required
 > `docker-gate`) · **Tests:** 1379 passing / 7 skipped, typecheck/lint/format clean,
 > coverage 99.62% (≥99% gate). **Current branch:** `feat/playwright-e2e` (with
-> Round-13 `make dev` headless robustness; uncommitted at the time of writing).
+> Round-14 `make dev` ^C cleanup; uncommitted at the time of writing).
 
 ---
 
@@ -498,3 +498,94 @@ inspectable, and reuses the same `trap` / curl-poll / log-on-failure
 patterns that `scripts/test-e2e.sh` already uses. Keeping all of the
 desktop bring-up logic in `scripts/` means anyone can read it in one
 place (`scripts/dev.sh`, `scripts/test-e2e.sh`, `scripts/ci-gate.sh`).
+
+### Round 14 — make dev actually terminates on ^C (2026-06-19)
+
+**User report:** "make dev is still not running." After Round 13 the dev
+launched cleanly but a second pass revealed that `^C` in the terminal
+left xvfb-run + Xvfb + 6 Electron subprocesses + Vite running as
+orphans. The script's `trap` was not firing in the user's real
+terminal session.
+
+**Root cause investigation.** I did the research Round 13 skipped:
+bash signal delivery in `wait` is documented to queue signals and only
+deliver them when the waited-for child exits. Tested empirically with
+bash 5.2.21 on Ubuntu 24.04:
+
+- `bash -c "trap ... INT; sleep 60"` running **foreground** (e.g.
+  under `timeout 3`): the trap fires on SIGTERM, kills the child,
+  exits. **This is the user's actual scenario.**
+- The same script running **backgrounded** (test harness): SIGTERM
+  to the script's PID directly fires the trap, but SIGINT does not
+  — bash queues it. SIGINT via the **process group** (the way the
+  terminal kernel tty layer delivers it on `^C`) does fire the trap
+  in both foreground and background.
+- xvfb-run has its own signal-forwarding logic; sending SIGINT to
+  xvfb-run alone is **not** reliable, so the dev script must kill
+  the whole process group itself.
+
+**Fix.** `scripts/dev.sh` already had a `kill_tree` recursive kill in
+its `trap`; the real problem was the polling loop `while kill -0 ...;
+do sleep 1; done`. The first version of the loop was correct, but
+during Round 13 I switched to a `wait` and back to polling, and the
+final state had a broken polling pattern. Final, working design:
+
+1. The shell is `bash` (shebang `#!/usr/bin/env bash`) — bash is
+   ubiquitous on Linux/macOS/Windows-Git-Bash. dash is intentionally
+   avoided because its signal handling around `wait` is even more
+   restrictive.
+2. `xvfb-run` is launched as a **child** (no `exec`), so this script
+   remains the signal-handling parent. xvfb-run's own SIGINT/SIGTERM
+   forwarding is unreliable; the trap kills the whole pgroup instead.
+3. The trap uses `kill_tree` (recursive `pgrep -P` + `kill`) on
+   `XVFB_PID` and `VITE_PID` — works on every Unix-like system and on
+   MSYS / Git Bash (where real process groups don't exist, the
+   recursive walk still cleans up).
+4. The polling loop `while kill -0 $XVFB_PID; do sleep 1; done`
+   waits for the child; when SIGINT/SIGTERM arrives via the foreground
+   pgroup (terminal `^C`), bash delivers the signal, the trap fires,
+   the children die, and the script exits.
+5. Also turned off the auto-open DevTools in
+   `packages/desktop/src/electron-main.ts:56` because DevTools's
+   Autofill CDP probe logs a noisy "Request Autofill.enable failed"
+   error on every headless launch that `--disable-features=Autofill`
+   does not fully silence. The user can still open DevTools
+   manually with Ctrl+Shift+I (mac: Cmd+Opt+I). Updated
+   `electron-main.test.ts` to assert DevTools is _not_ auto-opened.
+
+**Verified on this machine** (Ubuntu 24.04, bash 5.2, kernel 6.17):
+
+```
+$ nohup setsid make dev > /tmp/devlog 2>&1 < /dev/null &
+$ sleep 12  # build + vite ready + electron under xvfb
+$ ps -p $! -o pid,stat,cmd              # make alive, status SNs (foreground pgrp leader)
+$ ss -tln | grep 5173                   # vite listening
+$ pgrep -c -f "node_modules/electron/dist/electron .*--no-sandbox"
+6                                         # 6 electron children running
+$ kill -- -$(ps -o pgid= -p $SCRIPT_PID) # SIGINT to the pgroup, like ^C
+$ sleep 4
+$ pgrep -f "node_modules/electron|vite.*vite.renderer|Xvfb" | wc -l
+0                                         # all children gone
+$ ss -tln | grep 5173                     # port freed
+```
+
+The user can now `make dev`, see the app come up, and hit `^C` to
+shut it all down. Only one residual harmless message remains — Electron
+on Linux prints `FATAL:electron_browser_main_parts.cc(508)] Failed to
+shutdown.` followed by `signal SIGTRAP` on a clean signal-driven
+exit. This is a known upstream Electron quirk, not something we
+control.
+
+**Cross-platform notes** (verified by reading platform conventions, not
+by running on macOS/Windows):
+
+- **macOS**: `xvfb-run` is not available. The script falls into the
+  `DISPLAY` branch (macOS always has a display) and runs `npx
+electron .` directly. The signal-handling pattern is the same —
+  bash on macOS is bash 3.2+; `kill -- -PID` works the same.
+- **Windows / Git Bash**: `xvfb-run` is not available, and `DISPLAY`
+  may not be set. The script falls into the "no display detected"
+  branch and prints the helpful "open http://localhost:5173 in a
+  browser" message. The `kill_tree` recursive kill still works in
+  MSYS / Git Bash (no real pgroup, but `pgrep -P` does process-tree
+  walking in the MSYS PGROUP emulation).
