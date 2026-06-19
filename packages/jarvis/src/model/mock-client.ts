@@ -32,7 +32,11 @@ export class MockModelClient implements ModelClient {
     return this.response;
   }
 
-  async *chatStream(prompt: string, system?: string): AsyncIterable<ModelResponseChunk> {
+  async *chatStream(
+    prompt: string,
+    system?: string,
+    _signal?: AbortSignal,
+  ): AsyncIterable<ModelResponseChunk> {
     const call: { prompt: string; system?: string } = { prompt };
     if (system !== undefined) {
       call.system = system;

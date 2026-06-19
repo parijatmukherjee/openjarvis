@@ -24,6 +24,10 @@ export interface ModelResponseChunk {
 
 export interface ModelClient {
   chat(prompt: string, system?: string): Promise<ModelResponse>;
-  chatStream(prompt: string, system?: string): AsyncIterable<ModelResponseChunk>;
+  chatStream(
+    prompt: string,
+    system?: string,
+    signal?: AbortSignal,
+  ): AsyncIterable<ModelResponseChunk>;
   isAvailable(): Promise<boolean>;
 }

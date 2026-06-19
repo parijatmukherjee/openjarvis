@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { OllamaClient } from "../../src/model/ollama-client.js";
 import { ModelError } from "../../src/model/error.js";
-import type { ModelConfig } from "../../src/model/types.js";
+import type { ModelConfig, ModelResponseChunk } from "../../src/model/types.js";
 
 function mockFetch(
   fn: (url: string | URL | Request, init?: RequestInit) => Promise<Response>,
@@ -207,5 +207,58 @@ describe("ModelClient interface (chatStream)", () => {
     // Stub implementation is added in Task 1; real NDJSON parser arrives in Task 3.
     const client = new OllamaClient(defaultConfig);
     expect(typeof client.chatStream).toBe("function");
+  });
+});
+
+describe("OllamaClient.chatStream", () => {
+  function makeNDJSONResponse(chunks: object[]): Response {
+    const body = chunks.map((c) => JSON.stringify(c)).join("\n") + "\n";
+    return new Response(body, { status: 200, headers: { "content-type": "application/x-ndjson" } });
+  }
+  it("yields one chunk per NDJSON line", async () => {
+    const fetchMock = vi.fn(async () =>
+      makeNDJSONResponse([
+        { model: "llama3", message: { role: "assistant", content: "The" }, done: false },
+        { model: "llama3", message: { role: "assistant", content: " sky" }, done: false },
+        { model: "llama3", message: { role: "assistant", content: " is" }, done: false },
+        {
+          model: "llama3",
+          message: { role: "assistant", content: " blue" },
+          done: true,
+          total_duration: 100,
+        },
+      ]),
+    );
+    const client = new OllamaClient(defaultConfig, fetchMock as unknown as typeof fetch);
+    const chunks: ModelResponseChunk[] = [];
+    for await (const chunk of client.chatStream("hi")) chunks.push(chunk);
+    expect(chunks).toEqual([
+      { content: "The", done: false },
+      { content: " sky", done: false },
+      { content: " is", done: false },
+      { content: " blue", done: true, model: "llama3" },
+    ]);
+  });
+
+  it("yields a final error chunk on HTTP 5xx", async () => {
+    const fetchMock = vi.fn(async () => new Response("server error", { status: 503 }));
+    const client = new OllamaClient(defaultConfig, fetchMock as unknown as typeof fetch);
+    const chunks: ModelResponseChunk[] = [];
+    for await (const chunk of client.chatStream("hi")) chunks.push(chunk);
+    expect(chunks).toEqual([{ content: "", done: true, error: "unavailable" }]);
+  });
+
+  it("passes AbortSignal to fetch", async () => {
+    const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) =>
+      makeNDJSONResponse([{ done: true }]),
+    );
+    const client = new OllamaClient(defaultConfig, fetchMock as unknown as typeof fetch);
+    const ctrl = new AbortController();
+    for await (const _ of client.chatStream("hi", undefined, ctrl.signal)) {
+      /* noop */
+    }
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const call = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(call?.signal).toBe(ctrl.signal);
   });
 });

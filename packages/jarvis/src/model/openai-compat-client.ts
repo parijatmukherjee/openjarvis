@@ -92,7 +92,11 @@ export class OpenAICompatClient implements ModelClient {
   }
 
   // Stub; the real SSE implementation lives in Task 4.
-  async *chatStream(_prompt: string, _system?: string): AsyncIterable<ModelResponseChunk> {
+  async *chatStream(
+    _prompt: string,
+    _system?: string,
+    _signal?: AbortSignal,
+  ): AsyncIterable<ModelResponseChunk> {
     yield { content: "", done: true };
   }
 }
