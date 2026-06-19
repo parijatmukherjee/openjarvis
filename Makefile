@@ -52,7 +52,7 @@ install: ## Install dependencies
 
 dev: install build preload-build renderer-build ## Start the full application (Electron + backend)
 	@echo "$(GREEN)Starting OpenJarvis Desktop...$(RESET)"
-	cd packages/desktop && npm run dev
+	./scripts/dev.sh
 
 build: ## Build all packages
 	@echo "$(GREEN)Building all packages...$(RESET)"

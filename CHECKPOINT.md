@@ -5,10 +5,9 @@
 > trackers live under `docs/` and are linked below.
 >
 > **Last updated:** 2026-06-19 · **Default branch:** `main` (protected; required
-> `docker-gate`) · **Tests:** 1370 passing / 7 skipped, typecheck/lint/format clean,
+> `docker-gate`) · **Tests:** 1379 passing / 7 skipped, typecheck/lint/format clean,
 > coverage 99.62% (≥99% gate). **Current branch:** `feat/playwright-e2e` (with
-> Round-12 CI infrastructure + chat persistence + resetSettings fixes;
-> uncommitted at the time of writing).
+> Round-13 `make dev` headless robustness; uncommitted at the time of writing).
 
 ---
 
@@ -444,3 +443,54 @@ cd packages/desktop && npx vite build --config vite.renderer.config.ts && \
 
 (Do all of the above in one go via `bash scripts/ci-gate.sh` — that is what
 the Docker gate runs.)
+
+### Round 13 — make dev headless robustness (2026-06-19)
+
+**Root cause:** `make dev` ran `cd packages/desktop && npm run dev`, which
+spawned `concurrently --kill-others "npm run dev:renderer" "npm run
+dev:electron"`. The moment Electron failed (in any headless environment
+without a display server), `concurrently` sent `SIGTERM` to Vite, which
+exited with `EPIPE` and an `esbuild` "Failed to scan for dependencies" error.
+The whole command then exited non-zero. This was a pre-existing bug from
+commit `e09814d` that was never run in CI.
+
+**Fix:** extracted into `scripts/dev.sh` (mirrors the `scripts/test-e2e.sh`
+pattern from Round 11). The new script:
+
+1. Always starts the Vite renderer and waits for it to serve
+   (`curl`-poll, the same readiness check the e2e runner uses).
+2. **Auto-detects the display situation** before launching Electron:
+   - `xvfb-run` is on PATH → wraps Electron in a virtual display
+     (`-screen 0 1280x800x24`) so headless dev boxes get a real window.
+   - `DISPLAY` is set but no `xvfb-run` → runs Electron directly.
+   - neither → runs the renderer only and prints a clear message
+     ("no display server detected, open http://localhost:5173 in a browser
+     to see the UI; install xvfb for the full Electron experience").
+3. **Forces `--no-sandbox` on the Electron side** because the SUID
+   `chrome-sandbox` helper requires `root:4755` ownership, which we cannot
+   assume on every dev machine. This is safe for dev (the renderer is just
+   `localhost`); production builds are unaffected (they use the packaged
+   binary, not this dev script).
+4. Uses `trap cleanup EXIT INT TERM` to always tear the Vite child down,
+   the same way `scripts/test-e2e.sh` does — the previous Makefile version
+   never reaped Vite on early exit, leaking the process.
+
+`Makefile:53-55` now invokes `./scripts/dev.sh` instead of the
+`concurrently` command.
+
+**How to verify this round:**
+
+```sh
+# Show the three display-mode paths without actually launching Electron:
+DISPLAY= ./scripts/dev.sh         # → "no display server detected …"
+xvfb-run --version >/dev/null && DISPLAY= ./scripts/dev.sh   # → uses xvfb-run
+
+# Or just:
+make dev
+```
+
+**Why a script, not a Makefile rewrite?** A shell script is portable,
+inspectable, and reuses the same `trap` / curl-poll / log-on-failure
+patterns that `scripts/test-e2e.sh` already uses. Keeping all of the
+desktop bring-up logic in `scripts/` means anyone can read it in one
+place (`scripts/dev.sh`, `scripts/test-e2e.sh`, `scripts/ci-gate.sh`).
