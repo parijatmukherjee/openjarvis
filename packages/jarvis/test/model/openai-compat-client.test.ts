@@ -389,9 +389,8 @@ describe("OpenAICompatClient.chatStream", () => {
   });
 
   it("passes AbortSignal to fetch", async () => {
-    const fetchMock = vi.fn(
-      async (_url: string | URL | Request, _init?: RequestInit) =>
-        makeSSEResponse([{ choices: [{ delta: {} }] }]),
+    const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) =>
+      makeSSEResponse([{ choices: [{ delta: {} }] }]),
     );
     const client = new OpenAICompatClient(defaultConfig, fetchMock as unknown as typeof fetch);
     const ctrl = new AbortController();
