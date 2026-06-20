@@ -7,6 +7,11 @@ set -eu
 echo "==> build"
 npm run build
 
+# The Electron preload is a CJS bundle emitted by Vite, not by `tsc -b`.
+# `preload.smoke.test.ts` reads it directly; build it before the unit suite.
+echo "==> build:preload (Electron preload CJS bundle)"
+npm run build:preload -w @openjarvis/desktop
+
 echo "==> lint"
 npm run lint
 

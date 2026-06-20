@@ -4,3 +4,4 @@ build/
 coverage/
 .astro/
 package-lock.json
+.superpowers/

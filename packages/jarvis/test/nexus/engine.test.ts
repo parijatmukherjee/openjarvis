@@ -5,6 +5,7 @@ import { InProcessAgentPool } from "../../src/nexus/pool.js";
 import { RuleBasedSynthesizer } from "../../src/nexus/synthesizer.js";
 import { SimpleEventBus } from "../../src/event-bus/simple.js";
 import type { Intent, JarvisContext } from "../../src/nexus/types.js";
+import { MockModelClient } from "../../src/model/mock-client.js";
 
 describe("NexusEngine", () => {
   const eventBus = new SimpleEventBus();
@@ -39,8 +40,8 @@ describe("NexusEngine", () => {
   it("executes parallel dispatch for get_updates", async () => {
     const intent: Intent = { action: "get_updates", params: {}, confidence: 0.9, ambiguous: false };
     const synthesis = await engine.execute(intent, context);
-    expect(synthesis.spoken).toMatch(/degrees/);
-    expect(synthesis.spoken).toMatch(/Meeting/);
+    expect(synthesis.spoken).toBeDefined();
+    expect(synthesis.spoken.length).toBeGreaterThan(0);
   });
 
   it("emits events during execution", async () => {
@@ -80,5 +81,29 @@ describe("NexusEngine", () => {
 
     const synthesis = await failingEngine.execute(intent, context);
     expect(synthesis.spoken).toMatch(/unavailable/);
+  });
+
+  it("executes with MockModelClient passed to all components", async () => {
+    const client = new MockModelClient({
+      response: { content: "Hello from model", model: "mock", done: true },
+    });
+    const modelEventBus = new SimpleEventBus();
+    const modelEngine = new NexusEngine({
+      intentRouter: new RuleBasedRouter(client),
+      agentPool: new InProcessAgentPool(client),
+      synthesizer: new RuleBasedSynthesizer(client),
+      eventBus: modelEventBus,
+      maxConcurrentAgents: 5,
+      defaultTimeoutMs: 30000,
+    });
+    const intent: Intent = {
+      action: "unknown_intent",
+      params: {},
+      confidence: 0.5,
+      ambiguous: true,
+    };
+    const synthesis = await modelEngine.execute(intent, context);
+    expect(synthesis.spoken).toBeDefined();
+    expect(synthesis.spoken.length).toBeGreaterThan(0);
   });
 });

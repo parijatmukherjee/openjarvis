@@ -5,11 +5,15 @@ import { configDir } from "@openjarvis/core";
 import {
   appSettingsSchema,
   userProfileSchema,
+  chatMessageSchema,
   defaultAppSettings,
   defaultUserProfile,
   type AppSettings,
   type UserProfile,
+  type ChatMessage,
 } from "./schemas.js";
+
+const MAX_PERSISTED_MESSAGES = 500;
 
 export class DesktopStore {
   private readonly configDir: string;
@@ -69,6 +73,11 @@ export class DesktopStore {
     await this.writeJson("settings.json", appSettingsSchema.parse(settings));
   }
 
+  async resetSettings(): Promise<AppSettings> {
+    await this.writeJson("settings.json", defaultAppSettings);
+    return defaultAppSettings;
+  }
+
   async loadProfile(): Promise<UserProfile> {
     return this.readJson("profile.json", defaultUserProfile, userProfileSchema);
   }
@@ -77,5 +86,24 @@ export class DesktopStore {
     const parsed = userProfileSchema.parse(profile);
     const safe = parsed.userName.length === 0 ? defaultUserProfile : parsed;
     await this.writeJson("profile.json", safe);
+  }
+
+  async loadMessages(): Promise<ChatMessage[]> {
+    return this.readJson<ChatMessage[]>("messages.json", [], this.chatMessagesArraySchema());
+  }
+
+  async appendMessage(message: ChatMessage): Promise<void> {
+    const safe = chatMessageSchema.parse(message);
+    const current = await this.loadMessages();
+    const next = [...current, safe].slice(-MAX_PERSISTED_MESSAGES);
+    await this.writeJson("messages.json", next);
+  }
+
+  async clearMessages(): Promise<void> {
+    await this.writeJson("messages.json", []);
+  }
+
+  private chatMessagesArraySchema(): z.ZodSchema<ChatMessage[], z.ZodTypeDef, unknown> {
+    return z.array(chatMessageSchema).max(MAX_PERSISTED_MESSAGES);
   }
 }

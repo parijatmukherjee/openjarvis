@@ -28,9 +28,6 @@ const MockBrowserWindow = vi.fn(() => {
   };
   return winInstance;
 });
-(MockBrowserWindow as unknown as Record<string, unknown>).getFocusedWindow = vi
-  .fn()
-  .mockReturnValue(null);
 
 const mockWhenReady = vi.fn().mockResolvedValue(undefined);
 const mockRequestSingleInstanceLock = vi.fn().mockReturnValue(true);
@@ -101,7 +98,6 @@ describe("electron-main", () => {
           height: 760,
           minWidth: 900,
           minHeight: 600,
-          frame: false,
           show: false,
           webPreferences: expect.objectContaining({
             contextIsolation: true,
@@ -183,13 +179,17 @@ describe("electron-main", () => {
   });
 
   describe("dev mode loading (OPENJARVIS_DEV=1)", () => {
-    it("loads URL http://localhost:5173/ and opens DevTools", async () => {
+    it("loads URL http://localhost:5173/ in dev mode", async () => {
       const origDev = process.env.OPENJARVIS_DEV;
       process.env.OPENJARVIS_DEV = "1";
       try {
         await bootstrap();
         expect(mockLoadURL).toHaveBeenCalledWith("http://localhost:5173/");
-        expect(mockOpenDevTools).toHaveBeenCalled();
+        // DevTools is intentionally not auto-opened (see loadRenderer).
+        // The Autofill CDP probe that DevTools sends on open logs a
+        // noisy error on headless / Xvfb launches. Users open
+        // DevTools manually (Ctrl+Shift+I / Cmd+Opt+I).
+        expect(mockOpenDevTools).not.toHaveBeenCalled();
       } finally {
         if (origDev === undefined) delete process.env.OPENJARVIS_DEV;
         else process.env.OPENJARVIS_DEV = origDev;

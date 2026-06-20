@@ -10,7 +10,19 @@ export function ConversationPanel() {
   const [messages, setMessages] = useState<MessageView[]>([]);
 
   useEffect(() => {
-    nexus.getMessages().then(setMessages);
+    let cancelled = false;
+    nexus.getMessages().then((m) => {
+      if (!cancelled) setMessages(m);
+    });
+    const unsub = nexus.subscribeToMessages(() => {
+      nexus.getMessages().then((m) => {
+        if (!cancelled) setMessages(m);
+      });
+    });
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, [nexus]);
 
   return (

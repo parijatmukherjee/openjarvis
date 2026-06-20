@@ -32,10 +32,25 @@ export interface MessageView {
   timestamp: string;
 }
 
+export interface StreamChunk {
+  sessionId: string;
+  content: string;
+  done: boolean;
+  error?: string;
+}
+
 export interface NexusBridge {
   getTasks(): Promise<Task[]>;
   getAgents(): Promise<AgentView[]>;
   getMessages(): Promise<MessageView[]>;
   executeIntent(action: string, params: Record<string, unknown>): Promise<void>;
+  executeIntentStream(
+    action: string,
+    params: Record<string, unknown>,
+    onChunk: (chunk: StreamChunk) => void,
+    abort?: AbortSignal,
+  ): Promise<{ sessionId: string }>;
+  cancelChatStream(sessionId: string): Promise<void>;
   subscribeToEvents(handler: (event: unknown) => void): () => void;
+  subscribeToMessages(handler: () => void): () => void;
 }

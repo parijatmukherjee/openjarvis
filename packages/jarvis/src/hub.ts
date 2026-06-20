@@ -20,8 +20,8 @@ export interface JarvisHubConfig {
   wakeWordEngine: WakeWordEngine;
   scheduler: Scheduler;
   eventBus: EventBus;
-  /** Testing seam: override the input source. */
   readInputOverride?: () => Promise<string>;
+  userId?: string;
 }
 
 type JarvisState = "idle" | "listening" | "thinking" | "responding";
@@ -124,9 +124,9 @@ export class JarvisHub {
     if (this.cfg.readInputOverride) {
       return this.cfg.readInputOverride();
     }
-    // v1: Mock returns pre-configured text.
-    // v1.1: Read from real audio stream.
-    return "";
+    throw new Error(
+      "No input source configured. Provide readInputOverride or wire a real STT engine.",
+    );
   }
 
   private async speak(text: string): Promise<void> {
@@ -177,7 +177,7 @@ export class JarvisHub {
   private buildContext(): JarvisContext {
     return {
       sessionId: this.sessionId,
-      userId: "default-user",
+      userId: this.cfg.userId ?? `user-${this.sessionId.slice(0, 8)}`,
       recentIntents: [...this.recentIntents],
       currentTime: new Date(),
     };

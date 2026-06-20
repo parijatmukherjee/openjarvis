@@ -63,7 +63,7 @@ export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7, duration: 0.5 }}
       >
-        <NeonButton onClick={onNext}>Initialize</NeonButton>
+        <NeonButton data-testid="onboarding-initialize" onClick={onNext}>Initialize</NeonButton>
       </motion.div>
     </div>
   );

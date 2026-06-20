@@ -8,6 +8,7 @@ const fallbackSettings: AppSettings = {
   shortcut: "CommandOrControl+Shift+J",
   autoStart: true,
   locale: "en-US",
+  model: { provider: "ollama", model: "llama3", baseUrl: "http://127.0.0.1:11434" },
 };
 
 const fallbackProfile: UserProfile = {
@@ -22,6 +23,7 @@ export interface UseSettingsResult {
   error: string | null;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
   updateProfile: (patch: Partial<UserProfile>) => void;
+  resetSettings: () => void;
 }
 
 export function useSettings(): UseSettingsResult {
@@ -33,12 +35,22 @@ export function useSettings(): UseSettingsResult {
 
   useEffect(() => {
     if (!api) {
-      setError("Electron API not available");
       setIsLoading(false);
       return;
     }
-    Promise.all([api.getSettings(), api.getProfile()])
-      .then(([s, p]) => {
+    Promise.all([api.getSettings(), api.getProfile(), api.getEnvApiKeys()])
+      .then(([s, p, envKeys]) => {
+        if (!s.model.apiKey) {
+          const envKey =
+            s.model.provider === "ollama-cloud"
+              ? envKeys.ollamaApiKey
+              : s.model.provider === "openai-compat"
+                ? envKeys.openaiApiKey
+                : envKeys.ollamaApiKey;
+          if (envKey) {
+            s.model.apiKey = envKey;
+          }
+        }
         setSettings(s);
         setProfile(p);
       })
@@ -50,27 +62,39 @@ export function useSettings(): UseSettingsResult {
 
   const updateSetting = useCallback(
     <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-      if (!api || !settings) return;
-      const next = { ...settings, [key]: value };
+      const current = settings ?? fallbackSettings;
+      const next = { ...current, [key]: value };
       setSettings(next);
-      api
-        .setSettings(next)
-        .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+      if (api) {
+        api
+          .setSettings(next)
+          .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+      }
     },
     [api, settings],
   );
 
   const updateProfile = useCallback(
     (patch: Partial<UserProfile>) => {
-      if (!api || !profile) return;
-      const next = { ...profile, ...patch };
+      const current = profile ?? fallbackProfile;
+      const next = { ...current, ...patch };
       setProfile(next);
-      api
-        .setProfile(next)
-        .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+      if (api) {
+        api
+          .setProfile(next)
+          .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+      }
     },
     [api, profile],
   );
+
+  const resetSettings = useCallback(() => {
+    if (!api) return;
+    api
+      .resetSettings()
+      .then((defaults) => setSettings(defaults))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+  }, [api]);
 
   return {
     settings: settings ?? fallbackSettings,
@@ -79,5 +103,6 @@ export function useSettings(): UseSettingsResult {
     error,
     updateSetting,
     updateProfile,
+    resetSettings,
   };
 }

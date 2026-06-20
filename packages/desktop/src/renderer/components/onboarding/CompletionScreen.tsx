@@ -83,7 +83,7 @@ export function CompletionScreen({ onComplete }: CompletionScreenProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1 }}
         >
-          <NeonButton onClick={onComplete}>Launch Dashboard</NeonButton>
+          <NeonButton data-testid="onboarding-launch" onClick={onComplete}>Launch Dashboard</NeonButton>
         </motion.div>
       </motion.div>
     </div>

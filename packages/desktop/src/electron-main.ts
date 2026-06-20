@@ -24,8 +24,6 @@ export function createMainWindow(): BrowserWindow {
     height: DEFAULT_HEIGHT,
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
-    frame: false,
-    titleBarStyle: "hidden",
     show: false,
     webPreferences: {
       preload: join(__dirname, "preload.js"),
@@ -52,10 +50,19 @@ export function getMainWindow(): BrowserWindow | null {
 
 async function loadRenderer(win: BrowserWindow): Promise<void> {
   if (isDev()) {
-    await win.loadURL("http://localhost:5173/");
-    win.webContents.openDevTools();
+    const devUrl = "http://localhost:5173/";
+    try {
+      await win.loadURL(devUrl);
+      // DevTools is intentionally not auto-opened: on headless / Xvfb
+      // launches the DevTools Autofill CDP probe logs a noisy
+      // "Request Autofill.enable failed" error every time. Users who
+      // want DevTools can open it manually (Ctrl+Shift+I / Cmd+Opt+I).
+    } catch {
+      const html = join(__dirname, "renderer", "index.html");
+      await win.loadFile(html);
+    }
   } else {
-    const html = join(__dirname, "..", "renderer", "index.html");
+    const html = join(__dirname, "renderer", "index.html");
     await win.loadFile(html);
   }
 }
@@ -68,8 +75,8 @@ export async function bootstrap(): Promise<void> {
   await app.whenReady();
 
   const createdStore = initializeStore();
-  registerIpcHandlers(createdStore, ipcMain);
-  registerWindowHandlers(ipcMain, () => BrowserWindow.getFocusedWindow() ?? null);
+  registerIpcHandlers(createdStore, ipcMain, () => mainWindow);
+  registerWindowHandlers(ipcMain, () => mainWindow);
 
   mainWindow = createMainWindow();
   await loadRenderer(mainWindow);

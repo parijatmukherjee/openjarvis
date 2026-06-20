@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { NeonButton } from "../ui/NeonButton";
 import { GlassPanel } from "../ui/GlassPanel";
@@ -11,20 +11,35 @@ interface VoiceCalibrationProps {
 export function VoiceCalibration({ onNext }: VoiceCalibrationProps) {
   const [step, setStep] = useState<"idle" | "calibrating" | "done">("idle");
   const [confidence, setConfidence] = useState(0);
+  const animFrameRef = useRef<number>(0);
+  const startRef = useRef<number>(0);
 
-  const startCalibration = () => {
+  const startCalibration = useCallback(() => {
     setStep("calibrating");
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.random() * 15;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
+    startRef.current = Date.now();
+    const duration = 3000;
+
+    const tick = () => {
+      const elapsed = Date.now() - startRef.current;
+      const progress = Math.min(100, (elapsed / duration) * 100);
+      setConfidence(progress);
+      if (progress < 100) {
+        animFrameRef.current = requestAnimationFrame(tick);
+      } else {
         setStep("done");
       }
-      setConfidence(progress);
-    }, 200);
-  };
+    };
+
+    animFrameRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="h-screen flex flex-col items-center justify-center bg-bg-deep px-6">
@@ -67,9 +82,9 @@ export function VoiceCalibration({ onNext }: VoiceCalibrationProps) {
 
         <div className="flex justify-center gap-4">
           {step === "idle" && (
-            <NeonButton onClick={startCalibration}>Start Calibration</NeonButton>
+            <NeonButton data-testid="voice-start" onClick={startCalibration}>Start Calibration</NeonButton>
           )}
-          {step === "done" && <NeonButton onClick={onNext}>Continue</NeonButton>}
+          {step === "done" && <NeonButton data-testid="voice-continue" onClick={onNext}>Continue</NeonButton>}
         </div>
       </motion.div>
     </div>

@@ -7,6 +7,14 @@ export const appSettingsSchema = z.object({
   shortcut: z.string().default("CommandOrControl+Shift+J"),
   autoStart: z.boolean().default(true),
   locale: z.string().default("en-US"),
+  model: z
+    .object({
+      provider: z.enum(["ollama", "ollama-cloud", "openai-compat"]).default("ollama"),
+      model: z.string().default("llama3"),
+      baseUrl: z.string().default("http://127.0.0.1:11434"),
+      apiKey: z.string().optional(),
+    })
+    .default({ provider: "ollama", model: "llama3", baseUrl: "http://127.0.0.1:11434" }),
   channels: z
     .object({
       discord: z
@@ -55,6 +63,7 @@ export const appSettingsSchema = z.object({
       weather: z
         .object({
           provider: z.enum(["wttr", "openweathermap"]).default("wttr"),
+          apiKey: z.string().optional(),
         })
         .optional(),
     })
@@ -74,3 +83,12 @@ export const userProfileSchema = z.object({
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
 export const defaultUserProfile: UserProfile = userProfileSchema.parse({});
+
+export const chatMessageSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(["user", "jarvis", "system"]),
+  text: z.string(),
+  timestamp: z.string(),
+});
+
+export type ChatMessage = z.infer<typeof chatMessageSchema>;

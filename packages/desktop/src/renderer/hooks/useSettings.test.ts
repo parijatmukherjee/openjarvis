@@ -14,6 +14,7 @@ const defaultSettings = {
   shortcut: "CommandOrControl+Shift+J",
   autoStart: true,
   locale: "en-US",
+  model: { provider: "ollama" as const, model: "llama3", baseUrl: "http://127.0.0.1:11434" },
 };
 
 const customSettings = {
@@ -31,6 +32,11 @@ function createApi(overrides = {}) {
     setSettings: vi.fn().mockResolvedValue(undefined),
     getProfile: vi.fn().mockResolvedValue(defaultProfile),
     setProfile: vi.fn().mockResolvedValue(undefined),
+    getEnvApiKeys: vi.fn().mockResolvedValue({ ollamaApiKey: null, openaiApiKey: null }),
+    resetSettings: vi.fn().mockResolvedValue({
+      ...defaultSettings,
+      model: { provider: "ollama", model: "llama3", baseUrl: "http://127.0.0.1:11434" },
+    }),
     ...overrides,
   };
 }
@@ -136,11 +142,57 @@ describe("useSettings", () => {
     });
   });
 
-  it("sets an error when the API is missing", async () => {
+  it("is ready immediately when the API is missing", async () => {
     (window as any).electronAPI = undefined;
     const { result, flush } = await mountUseSettings(undefined);
     await flush();
-    expect(result.error).toBe("Electron API not available");
+    // No fatal error — the hook just returns defaults and stays not-loading.
+    expect(result.error).toBeNull();
     expect(result.isLoading).toBe(false);
+  });
+
+  it("resetSettings does not flash the local fallback before IPC resolves", async () => {
+    // The hook used to optimistically setSettings(fallbackSettings) before
+    // awaiting the IPC; this produced a one-frame flash of the local
+    // fallback. Verify that the in-flight settings object is unchanged
+    // while the IPC is pending, and only flips to the IPC result after it
+    // resolves.
+    const customDefault = {
+      version: 1,
+      theme: "light" as const,
+      reducedMotion: false,
+      shortcut: "Ctrl+Alt+J",
+      autoStart: false,
+      locale: "fr-FR",
+    };
+    let resolveReset: ((value: typeof customDefault) => void) | undefined;
+    const resetPromise = new Promise<typeof customDefault>((r) => {
+      resolveReset = r;
+    });
+    const api = createApi({
+      resetSettings: vi.fn().mockReturnValue(resetPromise),
+    });
+    const mounted = await mountUseSettings(api);
+    await mounted.flush();
+
+    // Start reset, but do not let it resolve yet.
+    await act(async () => {
+      mounted.result.resetSettings();
+    });
+    await mounted.flush();
+
+    // While the IPC is pending, settings must be the original (not the
+    // local dark-theme fallback, not the IPC result yet).
+    expect(mounted.result.settings.theme).toBe("dark");
+    expect(mounted.result.settings.locale).toBe("en-US");
+
+    // Now resolve the IPC and check the settings flip to the IPC result.
+    await act(async () => {
+      resolveReset?.(customDefault);
+      await resetPromise;
+    });
+    await mounted.flush();
+
+    expect(mounted.result.settings).toEqual(customDefault);
   });
 });

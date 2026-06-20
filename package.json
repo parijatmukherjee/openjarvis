@@ -18,7 +18,9 @@
     "coverage": "vitest run --coverage",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,json,md,yml}\"",
-    "format:check": "prettier --check \"**/*.{ts,json,md,yml}\""
+    "format:check": "prettier --check \"**/*.{ts,json,md,yml}\"",
+    "test:e2e": "npm run build -w @openjarvis/desktop && npm run build:renderer -w @openjarvis/desktop && npx playwright test -c packages/desktop-e2e",
+    "test:e2e:headed": "npm run build -w @openjarvis/desktop && npm run build:renderer -w @openjarvis/desktop && npx playwright test -c packages/desktop-e2e --headed"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

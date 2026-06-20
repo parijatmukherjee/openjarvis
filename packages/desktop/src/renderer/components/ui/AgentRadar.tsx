@@ -1,22 +1,14 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNexus } from "../../contexts/NexusContext";
 
-interface Agent {
+interface AgentBlip {
   id: string;
   name: string;
-  role: string;
   status: "active" | "busy" | "failed" | "idle";
   angle: number;
   distance: number;
 }
-
-const mockAgents: Agent[] = [
-  { id: "research", name: "Research", role: "research", status: "active", angle: 30, distance: 0.6 },
-  { id: "system", name: "System", role: "system", status: "busy", angle: 120, distance: 0.4 },
-  { id: "weather", name: "Weather", role: "data", status: "active", angle: 210, distance: 0.7 },
-  { id: "calendar", name: "Calendar", role: "data", status: "idle", angle: 300, distance: 0.5 },
-  { id: "browser", name: "Browser", role: "browser", status: "failed", angle: 180, distance: 0.8 },
-  { id: "vision", name: "Vision", role: "vision", status: "active", angle: 45, distance: 0.3 },
-];
 
 const statusColors = {
   active: "var(--status-success)",
@@ -25,7 +17,35 @@ const statusColors = {
   idle: "var(--status-idle)",
 };
 
+function distributeAgents(agentCount: number): Array<{ angle: number; distance: number }> {
+  const positions: Array<{ angle: number; distance: number }> = [];
+  for (let i = 0; i < agentCount; i++) {
+    const angle = (360 / agentCount) * i + 15;
+    const distance = 0.3 + (i % 3) * 0.2;
+    positions.push({ angle, distance });
+  }
+  return positions;
+}
+
 export function AgentRadar() {
+  const nexus = useNexus();
+  const [agents, setAgents] = useState<AgentBlip[]>([]);
+
+  useEffect(() => {
+    nexus.getAgents().then((agentViews) => {
+      const positions = distributeAgents(agentViews.length);
+      setAgents(
+        agentViews.map((a, i) => ({
+          id: a.id,
+          name: a.name,
+          status: a.status,
+          angle: positions[i]?.angle ?? 0,
+          distance: positions[i]?.distance ?? 0.5,
+        })),
+      );
+    });
+  }, [nexus]);
+
   return (
     <div className="relative w-64 h-64">
       {/* Radar rings */}
@@ -58,7 +78,7 @@ export function AgentRadar() {
       />
 
       {/* Agent blips */}
-      {mockAgents.map((agent) => {
+      {agents.map((agent) => {
         const x = 50 + Math.cos((agent.angle * Math.PI) / 180) * agent.distance * 50;
         const y = 50 + Math.sin((agent.angle * Math.PI) / 180) * agent.distance * 50;
 

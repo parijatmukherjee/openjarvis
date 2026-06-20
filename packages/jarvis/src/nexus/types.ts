@@ -66,6 +66,7 @@ export interface AgentContext {
   sessionId: string;
   intent: Intent;
   memory?: unknown;
+  jarvisContext?: JarvisContext;
 }
 
 export interface AgentSessionConfig {
@@ -76,10 +77,22 @@ export interface AgentSessionConfig {
   timeoutMs: number;
 }
 
+export interface SynthesizeChunk {
+  text: string;
+  done: boolean;
+  error?: string;
+}
+
+export interface SynthesizeHooks {
+  onChunk?: (chunk: SynthesizeChunk) => void;
+  abort?: AbortSignal;
+}
+
 export interface Synthesizer {
   synthesize(
     results: AgentResult[],
     originalIntent: Intent,
     context: JarvisContext,
+    hooks?: SynthesizeHooks,
   ): Promise<Synthesis>;
 }
