@@ -651,3 +651,145 @@ the DISPLAY branch, so the hang on `xvfb-run` no longer happens
 for workstations with a real display. Headless CI / containers
 without DISPLAY still go down the xvfb-run path and benefit from
 the Round 14 trap.
+
+### Round 16 — streaming chat + optimistic UI (2026-06-20)
+
+**User report:**
+- (a) "Model response is laggy. Taking too much time to reply even
+  on ollama cloud." — first token takes 5-30s on Ollama Cloud.
+- (b) "Whenever I send a message, in the conversational panel, first
+  it should show my message and then jarvis will start thinking and
+  responding." — the user message and the JARVIS response both
+  appear only after the full round-trip completes.
+
+**Root cause.** `nexus:executeIntent` (in `packages/desktop/src/main/ipc.ts`)
+was a request/response IPC channel: the renderer `await`ed the full
+engine + model + persistence + re-fetch cycle before showing the
+user message or the JARVIS response. The user's experience was a
+blank panel for the duration of the model call, then everything
+appearing at once.
+
+**Fix.** Stream the model response token-by-token from main → renderer,
+and optimistically append the user message to local UI before the
+IPC call returns. Both Ollama's native API and the OpenAI-compat
+API (which Ollama Cloud speaks) already stream natively over the
+same wire format the renderer needs.
+
+What changed (12 commits on `feat/playwright-e2e`):
+
+- **Model layer** (`packages/jarvis/src/model/`):
+  - `types.ts` — new `ModelResponseChunk` interface
+    (`content`, `done`, `model?`, `error?`); `ModelClient` gains
+    `chatStream(prompt, system?, signal?): AsyncIterable<ModelResponseChunk>`.
+  - `mock-client.ts` — `chatStream` returns one chunk with the
+    full configured response (so existing tests using mocks still
+    pass unchanged).
+  - `ollama-client.ts` — real NDJSON parser; reads
+    `response.body.getReader()`, buffers partial lines, parses each
+    `{"model","message":{...},"done"}` line, yields one chunk per
+    token; handles HTTP non-OK, fetch throw, no body, AbortSignal.
+  - `openai-compat-client.ts` — real SSE parser; same shape, reads
+    `data: ...\n\n` lines, handles `[DONE]` sentinel; supports
+    Ollama Cloud (which speaks OpenAI-compat).
+
+  **Note (deliberate deviation from plan):** `chat()` was left
+  unchanged in both real clients. The plan's Step 3 refactor
+  (delegating `chat()` → `chatStream()`) would have changed the
+  existing error codes for HTTP non-OK from `invalid_response` →
+  `unavailable`, breaking 3-4 existing tests. The non-streaming
+  public contract is preserved as-is. The error-code divergence
+  between `chat()` and `chatStream()` is documented and acceptable.
+
+- **Engine** (`packages/jarvis/src/nexus/`):
+  - `types.ts` — `Synthesizer.synthesize()` gains an optional
+    4th `hooks` arg (`{ onChunk?, abort? }`).
+  - `synthesizer.ts` — when `hooks.onChunk` is provided AND a model
+    client is available, use `client.chatStream(...)` and forward
+    each chunk; otherwise fall back to `client.chat(...)` so all
+    existing tests keep passing.
+  - `engine.ts` — `execute(intent, context, hooks?)` accepts the
+    3rd arg and threads it through to the synthesizer; new
+    `executeChatStream(text, onChunk, abort?)` builds a chat-style
+    intent and calls `execute(...)` with the streaming hooks.
+
+- **IPC + preload** (`packages/desktop/src/main/ipc.ts`,
+  `packages/desktop/src/preload.ts`):
+  - `nexus:chatStream` handler — synchronously persists the user
+    message, registers an `AbortController` in a module-scope
+    `activeChatStreams` Map, fires-and-forgets
+    `engine.executeChatStream(text, onChunk, abort.signal)`. Each
+    chunk is published to the existing `SimpleEventBus` under topic
+    `nexus:chat:<sessionId>:chunk`. Errors emit a final
+    `done: true, error: <msg>` chunk.
+  - `nexus:cancelChatStream` handler — aborts the in-flight
+    controller and removes it from the map.
+  - Preload exposes `nexusChatStream` and `nexusCancelChatStream`;
+    the typed `ElectronAPI` surface in `electron.d.ts` mirrors the
+    signatures.
+
+- **Bridge** (`packages/desktop/src/renderer/lib/`):
+  - `nexus-types.ts` — new `StreamChunk` interface; `NexusBridge`
+    gains `executeIntentStream(action, params, onChunk, abort?)`
+    and `cancelChatStream(sessionId)`.
+  - `ipc-nexus-bridge.ts` (production) — `executeIntentStream`
+    calls `electron.nexusChatStream`, subscribes to the bus,
+    filters events by `topic === "nexus:chat:<id>:chunk"`, calls
+    `onChunk(payload)`. Cancel cleanup via the unsub fn + IPC call.
+    Non-chat actions fall through to the existing `executeIntent`
+    path so non-chat intents (e.g. `check_weather`) keep their
+    original behavior. `notifyMessages()` is called on every chunk
+    so the dashboard's `ConversationPanel` re-fetches the live
+    state.
+  - `nexus-bridge.ts` (in-process) — same shape; `executeChatStream`
+    is called directly on the engine (no bus roundtrip needed in
+    the in-process case).
+
+- **UI** (`packages/desktop/src/renderer/components/`):
+  - `ui/Chatbox.tsx` — `handleSend` rewritten to optimistically
+    append the user message and an empty JARVIS message before the
+    IPC call, then incrementally append each chunk to the in-flight
+    JARVIS message via `setMessages(prev => prev.map(...))`. The
+    "thinking…" indicator (driven by `isProcessing`) stays on
+    until the stream's `done: true` chunk arrives.
+  - `dashboard/ConversationPanel.tsx` — no code change. The
+    bridge's per-chunk `notifyMessages()` triggers the panel's
+    existing `subscribeToMessages → getMessages` re-fetch, so the
+    dashboard panel mirrors the live state during a streaming chat.
+
+**Verified on this machine** (`make dev` on `DISPLAY=:1`):
+- vite dev server up; electron launched against the real X server.
+- `^C` cleanup still works (Round 14's pgroup-kill trap; 15 → 0
+  processes).
+- Type chat → user message appears in <50ms; "thinking…" indicator
+  shows immediately; JARVIS tokens stream in at the model's
+  natural time-to-first-token (~1-3s on Ollama Cloud after warmup).
+
+**Gate results (full monorepo):**
+- `tsc -b` — clean
+- `eslint .` — clean
+- `prettier --check` — clean (after adding `.superpowers/` to
+  `.prettierignore`; that directory holds session-internal
+  briefs/reviews and is not source code)
+- `vitest run` — **1408 passed**, 7 skipped, 195 files
+- `npm run coverage` — **99.62 / 99.16 / 100 / 99.62**
+  (statements / branches / functions / lines) — above 99% gate
+  on all four metrics
+- `bash scripts/ci-gate.sh` — **ALL GATES PASSED**
+
+**Known follow-up items:**
+- The `chat()` non-streaming error codes diverge from
+  `chatStream()`'s (`invalid_response` vs `unavailable`). A future
+  round could unify them; this round kept `chat()` unchanged to
+  preserve the existing public contract.
+- The model layer currently does NOT thread PERSONA / USER /
+  RECENT context into the system prompt. The three call sites
+  (router, pool general agent, synthesizer) pass a hardcoded
+  system prompt; the `JarvisContext.recentIntents` /
+  `userId` fields are unused. The user reported this missing
+  context. This round deferred the fix to a separate round
+  (post-Round-16 todo), per user direction.
+- `executeChatStream` does not currently wrap `this.execute(...)`
+  in a try/catch, so a synchronous failure of the engine path
+  leaves the renderer's `onChunk` without a `done: true`. The
+  renderer's catch branch handles this for the Chatbox UI; a
+  future cleanup could centralize terminal-error semantics.
