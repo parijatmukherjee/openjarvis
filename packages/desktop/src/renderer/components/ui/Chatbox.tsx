@@ -27,19 +27,49 @@ export function Chatbox() {
     setInput("");
     setIsProcessing(true);
 
-    try {
-      await nexus.executeIntent("chat", { text });
-      const updated = await nexus.getMessages();
-      setMessages(updated);
-    } catch {
-      const errMsg: MessageView = {
-        id: `e-${Date.now()}`,
-        type: "system",
-        text: "Command processing failed.",
+    const localUserId = `local-u-${Date.now()}`;
+    const userMsg: MessageView = {
+      id: localUserId,
+      type: "user",
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+
+    const localJarvisId = `local-j-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: localJarvisId,
+        type: "jarvis",
+        text: "",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      };
-      setMessages((prev) => [...prev, errMsg]);
-    } finally {
+      },
+    ]);
+
+    try {
+      await nexus.executeIntentStream("chat", { text }, (chunk) => {
+        if (chunk.done) {
+          setIsProcessing(false);
+          return;
+        }
+        if (chunk.error) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === localJarvisId ? { ...m, text: `Error: ${chunk.error}` } : m)),
+          );
+          setIsProcessing(false);
+          return;
+        }
+        setMessages((prev) =>
+          prev.map((m) => (m.id === localJarvisId ? { ...m, text: m.text + chunk.content } : m)),
+        );
+      });
+    } catch {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === localJarvisId ? { ...m, text: "Command processing failed." } : m,
+        ),
+      );
       setIsProcessing(false);
     }
   }, [input, isProcessing, nexus]);
