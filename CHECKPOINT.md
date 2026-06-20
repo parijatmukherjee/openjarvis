@@ -655,6 +655,7 @@ the Round 14 trap.
 ### Round 16 — streaming chat + optimistic UI (2026-06-20)
 
 **User report:**
+
 - (a) "Model response is laggy. Taking too much time to reply even
   on ollama cloud." — first token takes 5-30s on Ollama Cloud.
 - (b) "Whenever I send a message, in the conversational panel, first
@@ -757,6 +758,7 @@ What changed (12 commits on `feat/playwright-e2e`):
     dashboard panel mirrors the live state during a streaming chat.
 
 **Verified on this machine** (`make dev` on `DISPLAY=:1`):
+
 - vite dev server up; electron launched against the real X server.
 - `^C` cleanup still works (Round 14's pgroup-kill trap; 15 → 0
   processes).
@@ -765,6 +767,7 @@ What changed (12 commits on `feat/playwright-e2e`):
   natural time-to-first-token (~1-3s on Ollama Cloud after warmup).
 
 **Gate results (full monorepo):**
+
 - `tsc -b` — clean
 - `eslint .` — clean
 - `prettier --check` — clean (after adding `.superpowers/` to
@@ -777,6 +780,7 @@ What changed (12 commits on `feat/playwright-e2e`):
 - `bash scripts/ci-gate.sh` — **ALL GATES PASSED**
 
 **Known follow-up items:**
+
 - The `chat()` non-streaming error codes diverge from
   `chatStream()`'s (`invalid_response` vs `unavailable`). A future
   round could unify them; this round kept `chat()` unchanged to
@@ -793,3 +797,70 @@ What changed (12 commits on `feat/playwright-e2e`):
   leaves the renderer's `onChunk` without a `done: true`. The
   renderer's catch branch handles this for the Chatbox UI; a
   future cleanup could centralize terminal-error semantics.
+
+### Round 17 — persona + user + recent context (2026-06-20)
+
+**User report:** "When I was using the model, I saw the model has
+no context. No SYSTEM. PERSONA, USER contexts."
+
+**Root cause.** The model layer (`OllamaClient`, `OpenAICompatClient`)
+accepts a `system?: string` argument, but the three call sites in the
+nexus stack (router, pool general agent, synthesizer) passed only
+hardcoded strings. `JarvisContext.userId` and `recentIntents` were
+defined but unused. The model had no idea who the user was, what
+JARVIS's voice should be, or what the user had just done.
+
+**Fix.** Added a centralized `buildSystemPrompt(role, context)`
+helper that produces a single system string from a persona constant
++ user id + last 3 recent intents + role-specific tail, capped at
+1500 characters. The four call sites (router.chat, pool.general.chat,
+synthesizer.chatStream, synthesizer.chat) swap their hardcoded
+strings for a call to this helper.
+
+- **Persona:** a TS const (`JARVIS_PERSONA`, ~280 chars). User
+  prefers TS over `.md` for smallest context footprint.
+- **User id:** kept hardcoded as `"desktop-user"` per user
+  direction, wired through `JarvisContext.userId` so a real
+  value can drop in later without further changes.
+- **Recent intents:** the last 3 intent actions as a compact list
+  in newest-first order (e.g. `"Recent actions: send_email, chat,
+  search"`). Empty when no history.
+- **Cap:** hard 1500-char total; truncates with `…` if exceeded.
+- **AgentContext** gains an optional `jarvisContext?: JarvisContext`
+  field so the pool general agent (which only had sessionId +
+  intent before) can build a context for its system prompt.
+
+**What changed (5 commits on `feat/playwright-e2e`):**
+
+- `feat(nexus): add buildSystemPrompt helper with persona, user,
+  recent intents` — new `system-prompt.ts` + 7-test spec.
+- `feat(router): use buildSystemPrompt for context-aware
+  classification` — router passes the new prompt.
+- `feat(pool): thread jarvisContext + use buildSystemPrompt in
+  general agent` — AgentContext gains jarvisContext; pool wires it.
+- `test(pool): assert persona-aware system prompt and fallback in
+  general agent` — regression tests (added after task-reviewer
+  flagged them as missing).
+- `feat(synthesizer): use buildSystemPrompt for context-aware
+  synthesis` — both streaming and non-streaming branches.
+
+**Verified on this machine** (`make dev` on `DISPLAY=:1`):
+- vite + electron still launch.
+- `^C` cleanup still works.
+- Type a query → JARVIS responds with the persona's voice. The
+  request body's `system` argument now contains the persona, user
+  id, recent actions, and the role-specific tail.
+
+**Gate results (full monorepo):**
+- `tsc -b` — clean
+- `eslint .` — clean
+- `prettier --check` — clean
+- `vitest run` — 1420 passed, 7 skipped
+- `npm run coverage` — 99.62 / 99.16 / 100 / 99.62 (statements /
+  branches / functions / lines), all above the 99% floor
+- `bash scripts/ci-gate.sh` — **ALL GATES PASSED**
+
+**Deferred to a future round** (per user direction):
+- Persona as a `.md` file editable from the Settings window with
+  hot-reload. The TS const is enough for now.
+- Real user id (auto-generated UUID persisted in DesktopStore).
