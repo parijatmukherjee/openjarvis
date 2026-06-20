@@ -88,4 +88,47 @@ describe("InProcessAgentPool with ModelClient", () => {
     expect(result.success).toBe(true);
     expect((result.output as { status: string }).status).toBe("dispatched");
   });
+
+  it("general agent passes a persona-aware system prompt to the model", async () => {
+    const client = new MockModelClient({
+      response: { content: "AI response", model: "mock", done: true },
+    });
+    const pool = new InProcessAgentPool(client);
+    const route: AgentRoute = { agentId: "general", confidence: 0.9, required: false };
+    const ctx: AgentContext = {
+      sessionId: "sess-1",
+      intent: { action: "general", params: { text: "hello" }, confidence: 1, ambiguous: false },
+      jarvisContext: {
+        sessionId: "sess-1",
+        userId: "alice",
+        recentIntents: [{ action: "check_weather", params: {}, confidence: 1, ambiguous: false }],
+        currentTime: new Date(),
+      },
+    };
+    await pool.execute(route, ctx);
+    expect(client.chatCalls).toHaveLength(1);
+    const system = client.chatCalls[0].system ?? "";
+    expect(system).toContain("JARVIS");
+    expect(system).toContain("User: alice");
+    expect(system).toContain("Recent actions: check_weather");
+  });
+
+  it("general agent falls back to a default JarvisContext when none is provided", async () => {
+    const client = new MockModelClient({
+      response: { content: "AI response", model: "mock", done: true },
+    });
+    const pool = new InProcessAgentPool(client);
+    const route: AgentRoute = { agentId: "general", confidence: 0.9, required: false };
+    // ctx has no jarvisContext — pool should synthesize a fallback.
+    const ctxNoJc: AgentContext = {
+      sessionId: "sess-2",
+      intent: { action: "general", params: { text: "hi" }, confidence: 1, ambiguous: false },
+    };
+    await pool.execute(route, ctxNoJc);
+    expect(client.chatCalls).toHaveLength(1);
+    const system = client.chatCalls[0].system ?? "";
+    expect(system).toContain("JARVIS");
+    expect(system).toContain("User: desktop-user");
+    expect(system).not.toContain("Recent actions:");
+  });
 });
