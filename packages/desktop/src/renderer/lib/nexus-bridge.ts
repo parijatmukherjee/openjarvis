@@ -86,17 +86,56 @@ export function createNexusBridge(
         return { sessionId: "" };
       }
       const sessionId = randomUUID();
+      const userText = (params.text as string | undefined) ?? "";
+      // Mirror Chatbox behaviour: append the user message + a transient
+      // jarvis placeholder up front so any other UI (e.g. ConversationPanel)
+      // sees the user turn immediately and the jarvis turn grow in real
+      // time as chunks arrive.
+      const userId = String(++messageId);
+      const jarvisId = String(++messageId);
+      const userTimestamp = new Date().toLocaleTimeString();
+      const jarvisTimestamp = new Date().toLocaleTimeString();
+      messages.push({
+        id: userId,
+        type: "user",
+        text: userText,
+        timestamp: userTimestamp,
+      });
+      messages.push({
+        id: jarvisId,
+        type: "jarvis",
+        text: "",
+        timestamp: jarvisTimestamp,
+      });
+      notifyMessages();
       // engine.executeChatStream invokes onChunk synchronously as the model
       // streams; we forward each chunk to the consumer with our sessionId.
       await engine.executeChatStream(
-        params.text as string,
+        userText,
         (chunk) => {
+          // Update the in-flight jarvis message in place. We mutate the
+          // object directly (rather than replacing the array entry) so
+          // existing references (e.g. inside React component state) keep
+          // pointing at the same message.
+          const jarvisMsg = messages.find((m) => m.id === jarvisId);
+          if (jarvisMsg) {
+            if (chunk.done && chunk.error) {
+              jarvisMsg.text = `Error: ${chunk.error}`;
+            } else {
+              jarvisMsg.text += chunk.text;
+            }
+          }
           onChunk({
             sessionId,
             content: chunk.text,
             done: chunk.done,
             ...(chunk.error !== undefined ? { error: chunk.error } : {}),
           });
+          // Notify subscribers on every chunk so ConversationPanel can
+          // re-fetch and see the live in-progress text. Chatbox ignores this
+          // (it does not subscribe to messages) so there is no risk of
+          // overwriting its optimistic state.
+          notifyMessages();
         },
         abort,
       );

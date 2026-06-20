@@ -9,7 +9,7 @@ import {
 import { SimpleEventBus } from "@openjarvis/jarvis";
 import { createNexusBridge } from "../src/renderer/lib/nexus-bridge.js";
 import { createIpcNexusBridge } from "../src/renderer/lib/ipc-nexus-bridge.js";
-import type { StreamChunk } from "../src/renderer/lib/nexus-types.js";
+import type { MessageView, StreamChunk } from "../src/renderer/lib/nexus-types.js";
 import type { ElectronAPI } from "../src/renderer/types/electron.js";
 
 describe("NexusBridge", () => {
@@ -260,6 +260,95 @@ describe("NexusBridge.executeIntentStream (in-process)", () => {
     const bridge = createNexusBridge(engine, taskBoard, pool, eventBus);
     await expect(bridge.cancelChatStream("any-session-id")).resolves.toBeUndefined();
   });
+
+  it("subscribeToMessages fires during executeIntentStream streaming", async () => {
+    const { engine, taskBoard, pool, eventBus } = makeEngine();
+    const bridge = createNexusBridge(engine, taskBoard, pool, eventBus);
+
+    const spy = vi.spyOn(engine, "executeChatStream").mockImplementation(async (_text, onChunk) => {
+      onChunk({ text: "Hel", done: false });
+      onChunk({ text: "lo", done: false });
+      onChunk({ text: " world", done: true });
+    });
+
+    try {
+      let count = 0;
+      const unsub = bridge.subscribeToMessages(() => {
+        count += 1;
+      });
+
+      // Pre-condition: no notifications before streaming.
+      expect(count).toBe(0);
+
+      await bridge.executeIntentStream("chat", { text: "hi" }, () => {
+        // Drain chunks; we only care about the subscribeToMessages signal.
+      });
+
+      // ConversationPanel should have been notified at least once while the
+      // stream was in flight — once per chunk, plus the final-done emit.
+      expect(count).toBeGreaterThan(0);
+      unsub();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("executeIntentStream mirrors streaming jarvis text into getMessages", async () => {
+    const { engine, taskBoard, pool, eventBus } = makeEngine();
+    const bridge = createNexusBridge(engine, taskBoard, pool, eventBus);
+
+    const spy = vi.spyOn(engine, "executeChatStream").mockImplementation(async (_text, onChunk) => {
+      onChunk({ text: "Hel", done: false });
+      // Yield to the microtask queue so any subscribers that capture a
+      // snapshot via getMessages() can run before the next chunk mutates
+      // the in-flight message.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      onChunk({ text: "lo", done: true });
+    });
+
+    try {
+      // Capture the current jarvis text after every notification. The
+      // bridge mutates the message object in place; we read the live
+      // reference synchronously inside the subscriber to capture the
+      // state at the moment the bridge fired the notification.
+      const jarvisTextAtNotify: string[] = [];
+      // Pre-subscribe to grab the messages array reference (it is the
+      // same reference getMessages() returns).
+      const messagesRef = (await bridge.getMessages()) as MessageView[];
+      const unsub = bridge.subscribeToMessages(() => {
+        const jarvis = messagesRef.find((m) => m.type === "jarvis");
+        jarvisTextAtNotify.push(jarvis?.text ?? "<no jarvis>");
+      });
+
+      await bridge.executeIntentStream("chat", { text: "hi" }, () => {
+        // Drain chunks.
+      });
+
+      // After the stream completes, the messages array must contain a user
+      // message and a final jarvis message with the full assembled text.
+      const messages = await bridge.getMessages();
+      const userMsg = messages.find((m) => m.type === "user");
+      const jarvisMsg = messages.find((m) => m.type === "jarvis");
+      expect(userMsg).toBeDefined();
+      expect(jarvisMsg).toBeDefined();
+      expect(jarvisMsg?.text).toBe("Hello");
+
+      // The bridge fires one notification when it appends the user +
+      // jarvis messages (text=""), then one per chunk. The mock fires
+      // two chunks ("Hel", "lo") with a setTimeout yield between them,
+      // so we expect to see "" → "Hel" → "Hello" in the captures.
+      // The key assertion is that at least one in-flight notification
+      // saw a non-final jarvis text — proving chunk-by-chunk
+      // accumulation rather than a single notify at the end.
+      expect(jarvisTextAtNotify.length).toBeGreaterThan(0);
+      expect(jarvisTextAtNotify).toContain("Hel");
+      expect(jarvisTextAtNotify).toContain("Hello");
+
+      unsub();
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });
 
 describe("createIpcNexusBridge().executeIntentStream", () => {
@@ -424,5 +513,46 @@ describe("createIpcNexusBridge().executeIntentStream", () => {
     const bridge = createIpcNexusBridge();
     await expect(bridge.cancelChatStream("never-registered")).resolves.toBeUndefined();
     expect(api.nexusCancelChatStream).toHaveBeenCalledWith("never-registered");
+  });
+
+  it("subscribeToMessages fires during executeIntentStream so ConversationPanel re-fetches", async () => {
+    const eventHandlers = new Set<(event: unknown) => void>();
+    const api: Partial<ElectronAPI> = {
+      nexusGetMessages: vi.fn(async () => []),
+      nexusChatStream: vi.fn(async () => ({ sessionId: "s5" })),
+      onNexusEvent: vi.fn((cb: (payload: unknown) => void) => {
+        eventHandlers.add(cb);
+        return () => eventHandlers.delete(cb);
+      }),
+    };
+    setWindow(api);
+    const bridge = createIpcNexusBridge();
+
+    let count = 0;
+    const unsub = bridge.subscribeToMessages(() => {
+      count += 1;
+    });
+    expect(count).toBe(0);
+
+    await bridge.executeIntentStream("chat", { text: "hi" }, () => {
+      // Drain chunks.
+    });
+
+    // Drive two chunks through the event bus.
+    for (const h of eventHandlers) {
+      h({
+        topic: "nexus:chat:s5:chunk",
+        payload: { sessionId: "s5", content: "Hel", done: false },
+      });
+      h({
+        topic: "nexus:chat:s5:chunk",
+        payload: { sessionId: "s5", content: "lo", done: true },
+      });
+    }
+
+    // Each chunk must trigger a re-fetch notification so ConversationPanel
+    // (which subscribes via subscribeToMessages) sees the live state.
+    expect(count).toBeGreaterThanOrEqual(2);
+    unsub();
   });
 });

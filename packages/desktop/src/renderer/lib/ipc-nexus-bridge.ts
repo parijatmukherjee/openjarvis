@@ -89,6 +89,15 @@ export function createIpcNexusBridge(): NexusBridge {
         const evt = event as { topic?: string; payload?: StreamChunk };
         if (evt.topic === `nexus:chat:${sessionId}:chunk` && evt.payload) {
           onChunk(evt.payload);
+          // Notify message subscribers (e.g. ConversationPanel) on every
+          // chunk so they re-fetch. Chatbox does not subscribe to messages
+          // (it manages its own optimistic state) so this is safe. The main
+          // process only persists the final jarvis message on stream
+          // completion, so during streaming the panel sees the user message
+          // immediately and the jarvis message only after the stream
+          // completes — acceptable trade-off, the panel mirrors Chatbox
+          // timing in main.
+          notifyMessages();
         }
       });
       cancelUnsubs.set(sessionId, unsub);
