@@ -131,6 +131,7 @@ export class NexusEngine {
       sessionId,
       intent,
       memory: undefined,
+      jarvisContext: context,
     };
 
     const result = await this.cfg.agentPool.execute(route, agentContext);

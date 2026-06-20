@@ -8,6 +8,7 @@ import type {
 import type { ModelClient } from "../model/types.js";
 import { randomUUID } from "node:crypto";
 import { AgentSession } from "./session.js";
+import { buildSystemPrompt } from "./system-prompt.js";
 
 export interface AgentPool {
   list(): Promise<AgentInfo[]>;
@@ -203,9 +204,15 @@ export class InProcessAgentPool implements AgentPool {
               const available = await this.client.isAvailable();
               if (available) {
                 const prompt = (ctx.intent.params?.text as string) ?? ctx.intent.action;
+                const jarvisContext = ctx.jarvisContext ?? {
+                  sessionId: ctx.sessionId,
+                  userId: "desktop-user",
+                  recentIntents: [],
+                  currentTime: new Date(),
+                };
                 const response = await this.client.chat(
                   prompt,
-                  "You are JARVIS, a helpful AI assistant. Respond concisely.",
+                  buildSystemPrompt("general", jarvisContext),
                 );
                 return { response: response.content };
               }

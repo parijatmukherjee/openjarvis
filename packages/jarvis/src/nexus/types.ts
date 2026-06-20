@@ -66,6 +66,7 @@ export interface AgentContext {
   sessionId: string;
   intent: Intent;
   memory?: unknown;
+  jarvisContext?: JarvisContext;
 }
 
 export interface AgentSessionConfig {
