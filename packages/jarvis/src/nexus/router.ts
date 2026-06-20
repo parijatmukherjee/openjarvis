@@ -1,5 +1,6 @@
 import type { Intent, JarvisContext, DispatchPlan } from "./types.js";
 import type { ModelClient } from "../model/types.js";
+import { buildSystemPrompt } from "./system-prompt.js";
 
 export interface IntentRouter {
   route(intent: Intent, context: JarvisContext): Promise<DispatchPlan>;
@@ -47,15 +48,15 @@ export class RuleBasedRouter implements IntentRouter {
     ]);
   }
 
-  async route(intent: Intent, _context: JarvisContext): Promise<DispatchPlan> {
+  async route(intent: Intent, context: JarvisContext): Promise<DispatchPlan> {
     if (this.client) {
       try {
         const available = await this.client.isAvailable();
         if (available) {
           const validActions = Array.from(this.rules.keys()).join(", ");
           const response = await this.client.chat(
-            `Classify: "${intent.action}"`,
-            `You are an intent classifier. Respond with JSON: {"action": "<action>", "confidence": <0.0-1.0>}. Valid actions: ${validActions}`,
+            `Classify: "${intent.action}". Valid actions: ${validActions}`,
+            buildSystemPrompt("router", context),
           );
           const parsed = JSON.parse(response.content) as { action: string; confidence: number };
           if (
