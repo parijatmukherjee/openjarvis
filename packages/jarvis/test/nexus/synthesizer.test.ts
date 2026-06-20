@@ -118,4 +118,103 @@ describe("RuleBasedSynthesizer with ModelClient", () => {
     expect(synthesis.spoken).toMatch(/sunny/);
     expect(synthesis.spoken).toMatch(/72/);
   });
+
+  it("chat() passes a persona-aware system prompt to the model", async () => {
+    const client = new MockModelClient({
+      response: { content: "synthesized", model: "mock", done: true },
+    });
+    const synthesizer = new RuleBasedSynthesizer(client);
+    const intent: Intent = {
+      action: "check_weather",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
+    const results: AgentResult[] = [
+      { agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } },
+    ];
+    const ctx: JarvisContext = {
+      sessionId: "sess-1",
+      userId: "alice",
+      recentIntents: [
+        { action: "check_weather", params: {}, confidence: 1, ambiguous: false },
+        { action: "list_events", params: {}, confidence: 1, ambiguous: false },
+      ],
+      currentTime: new Date(),
+    };
+    await synthesizer.synthesize(results, intent, ctx);
+    expect(client.chatCalls).toHaveLength(1);
+    const system = client.chatCalls[0].system ?? "";
+    expect(system).toContain("JARVIS");
+    expect(system).toContain("User: alice");
+    expect(system).toContain("Synthesize the following agent results");
+    expect(system).toContain("Recent actions: list_events, check_weather");
+  });
+
+  it("chatStream() passes a persona-aware system prompt to the model", async () => {
+    const client = new MockModelClient({
+      response: { content: "streamed synthesis", model: "mock", done: true },
+    });
+    const synthesizer = new RuleBasedSynthesizer(client);
+    const intent: Intent = {
+      action: "check_weather",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
+    const results: AgentResult[] = [
+      { agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } },
+    ];
+    const ctx: JarvisContext = {
+      sessionId: "sess-1",
+      userId: "bob",
+      recentIntents: [],
+      currentTime: new Date(),
+    };
+    const chunks: string[] = [];
+    const synthesis = await synthesizer.synthesize(results, intent, ctx, {
+      onChunk: (chunk) => chunks.push(chunk.text),
+    });
+    expect(synthesis.spoken).toContain("streamed synthesis");
+    expect(client.chatCalls).toHaveLength(1);
+    const system = client.chatCalls[0].system ?? "";
+    expect(system).toContain("JARVIS");
+    expect(system).toContain("User: bob");
+    expect(system).toContain("Synthesize the following agent results");
+  });
+
+  it("synthesizer surfaces recent intents in the system prompt", async () => {
+    const client = new MockModelClient({
+      response: { content: "ok", model: "mock", done: true },
+    });
+    const synthesizer = new RuleBasedSynthesizer(client);
+    const intent: Intent = {
+      action: "get_updates",
+      params: {},
+      confidence: 0.9,
+      ambiguous: false,
+    };
+    const results: AgentResult[] = [
+      { agentId: "weather", success: true, output: { temp: 72, condition: "sunny" } },
+    ];
+    const ctx: JarvisContext = {
+      sessionId: "sess-1",
+      userId: "carol",
+      recentIntents: [
+        { action: "open_app", params: {}, confidence: 1, ambiguous: false },
+        { action: "search_web", params: {}, confidence: 1, ambiguous: false },
+        { action: "check_calendar", params: {}, confidence: 1, ambiguous: false },
+        { action: "send_email", params: {}, confidence: 1, ambiguous: false },
+      ],
+      currentTime: new Date(),
+    };
+    await synthesizer.synthesize(results, intent, ctx);
+    expect(client.chatCalls).toHaveLength(1);
+    const system = client.chatCalls[0].system ?? "";
+    expect(system).toContain("Recent actions:");
+    expect(system).toContain("check_calendar");
+    expect(system).toContain("search_web");
+    expect(system).toContain("send_email");
+    expect(system).not.toContain("open_app");
+  });
 });

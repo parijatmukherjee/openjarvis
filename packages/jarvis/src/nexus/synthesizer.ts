@@ -8,6 +8,7 @@ import type {
 } from "./types.js";
 import type { ModelClient } from "../model/types.js";
 import { ModelError } from "../model/error.js";
+import { buildSystemPrompt } from "./system-prompt.js";
 
 export type { Synthesizer };
 
@@ -21,7 +22,7 @@ export class RuleBasedSynthesizer implements Synthesizer {
   async synthesize(
     results: AgentResult[],
     _originalIntent: Intent,
-    _context: JarvisContext,
+    context: JarvisContext,
     hooks?: SynthesizeHooks,
   ): Promise<Synthesis> {
     if (this.client && hooks?.onChunk) {
@@ -36,7 +37,7 @@ export class RuleBasedSynthesizer implements Synthesizer {
           let assembled = "";
           for await (const chunk of this.client.chatStream(
             resultsPrompt,
-            "You are JARVIS, a helpful AI assistant. Synthesize the following agent results into a concise, natural response for the user. Do not mention agent IDs or internal details.",
+            buildSystemPrompt("synthesizer", context),
             hooks.abort,
           )) {
             if (chunk.error) {
@@ -64,7 +65,7 @@ export class RuleBasedSynthesizer implements Synthesizer {
             .join("\n");
           const response = await this.client.chat(
             resultsPrompt,
-            "You are JARVIS, a helpful AI assistant. Synthesize the following agent results into a concise, natural response for the user. Do not mention agent IDs or internal details.",
+            buildSystemPrompt("synthesizer", context),
           );
           return { spoken: response.content };
         }
