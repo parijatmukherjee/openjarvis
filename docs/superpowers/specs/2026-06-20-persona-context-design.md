@@ -11,6 +11,7 @@ stack pass only hardcoded strings:
 - `synthesizer.ts:39,67` — `"You are JARVIS, a helpful AI assistant. Synthesize ..."`.
 
 As a result, the model receives no information about:
+
 - **PERSONA**: who JARVIS is, how to speak, what voice/tone.
 - **USER**: who the user is (even just an opaque id).
 - **RECENT**: what the user just did.
@@ -33,6 +34,7 @@ loading a file and editing support is a separate round.
 ## Scope
 
 In scope:
+
 - New file `packages/jarvis/src/nexus/system-prompt.ts` exporting
   `buildSystemPrompt(role: SystemPromptRole, context: JarvisContext): string`.
 - New constant `JARVIS_PERSONA` (~250 chars) at the top of that file.
@@ -46,6 +48,7 @@ In scope:
 - CHECKPOINT update.
 
 Out of scope (intentionally deferred):
+
 - `.md` file for persona; settings-panel editor; hot-reload. User
   approved deferring these to a later round.
 - Changing `userId` from hardcoded `"desktop-user"` to a real value.
@@ -80,25 +83,22 @@ export type SystemPromptRole = "router" | "general" | "synthesizer";
 const JARVIS_PERSONA = `You are JARVIS (Just A Rather Very Intelligent System), a concise, helpful AI assistant. Speak with dry British wit. Prefer short, direct answers. Avoid hedging. If you don't know, say so.`;
 
 const ROLE_TAILS: Record<SystemPromptRole, string> = {
-  router: "You are an intent classifier. Respond with JSON: { action: '<action>', confidence: <0.0-1.0> }. Valid actions follow.",
+  router:
+    "You are an intent classifier. Respond with JSON: { action: '<action>', confidence: <0.0-1.0> }. Valid actions follow.",
   general: "Respond concisely to the user's question.",
-  synthesizer: "Synthesize the following agent results into a concise, natural response for the user. Do not mention agent IDs or internal details.",
+  synthesizer:
+    "Synthesize the following agent results into a concise, natural response for the user. Do not mention agent IDs or internal details.",
 };
 
 export const SYSTEM_PROMPT_MAX_CHARS = 1500;
 
-export function buildSystemPrompt(
-  role: SystemPromptRole,
-  context: JarvisContext,
-): string {
+export function buildSystemPrompt(role: SystemPromptRole, context: JarvisContext): string {
   const user = `User: ${context.userId}`;
   const recentActions = context.recentIntents
     .slice(-3)
     .map((i) => i.action)
     .filter(Boolean);
-  const recent = recentActions.length > 0
-    ? `Recent actions: ${recentActions.join(", ")}`
-    : "";
+  const recent = recentActions.length > 0 ? `Recent actions: ${recentActions.join(", ")}` : "";
   const tail = ROLE_TAILS[role];
   const parts = [JARVIS_PERSONA, user, recent, tail].filter(Boolean);
   const joined = parts.join("\n\n");
@@ -130,7 +130,7 @@ export function buildSystemPrompt(
   call paths — only the `system` argument changes.
 - All existing tests for router / pool / synthesizer / model
   clients. The new system prompt is a different string but does not
-  change the *shape* of the model request, so fetch mocks that
+  change the _shape_ of the model request, so fetch mocks that
   assert body shape keep passing.
 - Round 16 streaming work.
 

@@ -23,10 +23,12 @@
 ### Task 1: Add `buildSystemPrompt` helper + persona constant
 
 **Files:**
+
 - Create: `packages/jarvis/src/nexus/system-prompt.ts`
 - Create: `packages/jarvis/test/nexus/system-prompt.test.ts`
 
 **Interfaces:**
+
 - Consumes: `JarvisContext` from `./types.js`.
 - Produces: `buildSystemPrompt(role: SystemPromptRole, context: JarvisContext): string` — a non-empty system prompt string, ≤1500 chars.
 - Exports: `SystemPromptRole` type union (`"router" | "general" | "synthesizer"`), `JARVIS_PERSONA` const, `SYSTEM_PROMPT_MAX_CHARS` const (1500).
@@ -151,17 +153,13 @@ const ROLE_TAILS: Record<SystemPromptRole, string> = {
 
 export const SYSTEM_PROMPT_MAX_CHARS = 1500;
 
-export function buildSystemPrompt(
-  role: SystemPromptRole,
-  context: JarvisContext,
-): string {
+export function buildSystemPrompt(role: SystemPromptRole, context: JarvisContext): string {
   const user = `User: ${context.userId}`;
   const recentActions = context.recentIntents
     .slice(-3)
     .map((i) => i.action)
     .filter((a): a is string => typeof a === "string" && a.length > 0);
-  const recent =
-    recentActions.length > 0 ? `Recent actions: ${recentActions.join(", ")}` : "";
+  const recent = recentActions.length > 0 ? `Recent actions: ${recentActions.join(", ")}` : "";
   const tail = ROLE_TAILS[role];
   const parts = [JARVIS_PERSONA, user, recent, tail].filter(Boolean);
   const joined = parts.join("\n\n");
@@ -183,11 +181,13 @@ Expected: all tests still pass (no regressions; this task only adds new files).
 - [ ] **Step 6: Run lint, format:check, tsc -b**
 
 Run:
+
 ```
 cd /home/parijat/workspace/openjarvis && npm run lint
 cd /home/parijat/workspace/openjarvis && npm run format:check
 cd /home/parijat/workspace/openjarvis && npx tsc -b
 ```
+
 Expected: all clean.
 
 - [ ] **Step 7: Commit**
@@ -202,17 +202,21 @@ git commit -m "feat(nexus): add buildSystemPrompt helper with persona, user, rec
 ### Task 2: Wire `buildSystemPrompt` into `RuleBasedRouter`
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/router.ts` (replace the hardcoded system string in the `client.chat(...)` call)
 
 **Interfaces:**
+
 - Consumes: `buildSystemPrompt("router", context)` from Task 1.
 - Produces: router passes the new system prompt to the model.
 
 - [ ] **Step 1: Read the existing router.ts**
 
 Read `packages/jarvis/src/nexus/router.ts` to confirm the existing call shape. The relevant lines are:
+
 - Line ~50-70: `async route(intent: Intent, _context: JarvisContext): Promise<DispatchPlan>`
 - Inside, when `this.client?.isAvailable()` is true, the call:
+
   ```ts
   const response = await this.client.chat(
     `Classify: "${intent.action}"`,
@@ -225,16 +229,19 @@ Read `packages/jarvis/src/nexus/router.ts` to confirm the existing call shape. T
 Modify `packages/jarvis/src/nexus/router.ts`:
 
 Add import at top:
+
 ```ts
 import { buildSystemPrompt } from "./system-prompt.js";
 ```
 
 Change the parameter from `_context` to `context` (drop the underscore — we now use it):
+
 ```ts
 async route(intent: Intent, context: JarvisContext): Promise<DispatchPlan> {
 ```
 
 Replace the call to `this.client.chat(...)`:
+
 ```ts
 const response = await this.client.chat(
   `Classify: "${intent.action}"`,
@@ -243,6 +250,7 @@ const response = await this.client.chat(
 ```
 
 Note: the existing call concatenates `validActions` into the system string. Move that to the prompt itself so `buildSystemPrompt` stays simple:
+
 ```ts
 const response = await this.client.chat(
   `Classify: "${intent.action}". Valid actions: ${validActions}`,
@@ -263,11 +271,13 @@ Expected: all tests pass.
 - [ ] **Step 5: Run lint, format:check, tsc -b**
 
 Run:
+
 ```
 cd /home/parijat/workspace/openjarvis && npm run lint
 cd /home/parijat/workspace/openjarvis && npm run format:check
 cd /home/parijat/workspace/openjarvis && npx tsc -b
 ```
+
 Expected: all clean. Run prettier --write on router.ts if format:check fails.
 
 - [ ] **Step 6: Commit**
@@ -282,15 +292,18 @@ git commit -m "feat(router): use buildSystemPrompt for context-aware classificat
 ### Task 3: Wire `buildSystemPrompt` into `InProcessAgentPool` general agent
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/pool.ts` (replace the hardcoded system string in the general agent's `client.chat(...)` call)
 
 **Interfaces:**
+
 - Consumes: `buildSystemPrompt("general", context)` from Task 1.
 - Produces: pool general agent passes the new system prompt to the model.
 
 - [ ] **Step 1: Read the existing pool.ts**
 
 Read `packages/jarvis/src/nexus/pool.ts` to find the general agent handler. It's around line 198-217 in the constructor's agents Map:
+
 ```ts
 [
   "general",
@@ -320,6 +333,7 @@ Note: `AgentContext` has `intent: Intent` but not `JarvisContext`. We need `Jarv
 Wait, that's a bigger change than this task. **Simpler approach:** thread `JarvisContext` through `agentPool.execute` → `AgentContext`. Look at the existing signature and find the minimal change.
 
 Look at `AgentContext` interface (likely in `nexus/types.ts`):
+
 ```ts
 export interface AgentContext {
   sessionId: string;
@@ -339,7 +353,7 @@ export interface AgentContext {
   sessionId: string;
   intent: Intent;
   memory?: unknown;
-  jarvisContext?: JarvisContext;  // NEW
+  jarvisContext?: JarvisContext; // NEW
 }
 ```
 
@@ -352,7 +366,7 @@ const agentContext = {
   sessionId,
   intent,
   memory: undefined,
-  jarvisContext: context,  // NEW
+  jarvisContext: context, // NEW
 };
 ```
 
@@ -361,6 +375,7 @@ const agentContext = {
 In `packages/jarvis/src/nexus/pool.ts`:
 
 Add import at top:
+
 ```ts
 import { buildSystemPrompt } from "./system-prompt.js";
 ```
@@ -410,11 +425,13 @@ Expected: all tests pass.
 - [ ] **Step 7: Run lint, format:check, tsc -b**
 
 Run:
+
 ```
 cd /home/parijat/workspace/openjarvis && npm run lint
 cd /home/parijat/workspace/openjarvis && npm run format:check
 cd /home/parijat/workspace/openjarvis && npx tsc -b
 ```
+
 Expected: all clean. Run prettier --write on changed files if format:check fails.
 
 - [ ] **Step 8: Commit**
@@ -429,15 +446,18 @@ git commit -m "feat(pool): thread jarvisContext + use buildSystemPrompt in gener
 ### Task 4: Wire `buildSystemPrompt` into `RuleBasedSynthesizer`
 
 **Files:**
+
 - Modify: `packages/jarvis/src/nexus/synthesizer.ts` (replace the hardcoded system string in BOTH the streaming and non-streaming branches)
 
 **Interfaces:**
+
 - Consumes: `buildSystemPrompt("synthesizer", context)` from Task 1.
 - Produces: synthesizer passes the new system prompt to the model in both code paths.
 
 - [ ] **Step 1: Read the existing synthesizer.ts**
 
 Read `packages/jarvis/src/nexus/synthesizer.ts` to find the two hardcoded strings. They are at:
+
 - Line ~39: inside the streaming branch (when `hooks?.onChunk` is provided and `this.client` is available).
 - Line ~67: inside the non-streaming branch (when `this.client` is available but no streaming hook).
 
@@ -452,11 +472,13 @@ Note: `_context` has the underscore because it was unused. Drop the underscore.
 In `packages/jarvis/src/nexus/synthesizer.ts`:
 
 Add import at top:
+
 ```ts
 import { buildSystemPrompt } from "./system-prompt.js";
 ```
 
 Change the parameter from `_context` to `context`:
+
 ```ts
 async synthesize(
   results: AgentResult[],
@@ -467,6 +489,7 @@ async synthesize(
 ```
 
 Replace the streaming branch hardcoded string (around line 39):
+
 ```ts
 for await (const chunk of this.client.chatStream(
   resultsPrompt,
@@ -478,11 +501,9 @@ for await (const chunk of this.client.chatStream(
 - [ ] **Step 3: Replace the non-streaming branch hardcoded string**
 
 Replace the non-streaming branch hardcoded string (around line 67):
+
 ```ts
-const response = await this.client.chat(
-  resultsPrompt,
-  buildSystemPrompt("synthesizer", context),
-);
+const response = await this.client.chat(resultsPrompt, buildSystemPrompt("synthesizer", context));
 ```
 
 - [ ] **Step 4: Run synthesizer tests**
@@ -498,11 +519,13 @@ Expected: all tests pass.
 - [ ] **Step 6: Run lint, format:check, tsc -b**
 
 Run:
+
 ```
 cd /home/parijat/workspace/openjarvis && npm run lint
 cd /home/parijat/workspace/openjarvis && npm run format:check
 cd /home/parijat/workspace/openjarvis && npx tsc -b
 ```
+
 Expected: all clean. Run prettier --write on synthesizer.ts if format:check fails.
 
 - [ ] **Step 7: Commit**
@@ -517,6 +540,7 @@ git commit -m "feat(synthesizer): use buildSystemPrompt for context-aware synthe
 ### Task 5: Final gate, CHECKPOINT update, commit, push
 
 **Files:**
+
 - Modify: `CHECKPOINT.md`
 
 - [ ] **Step 1: Run the full gate**
@@ -548,20 +572,22 @@ was, what JARVIS's voice should be, or what the user had just done.
 
 **Fix.** Added a centralized `buildSystemPrompt(role, context)`
 helper that produces a single system string from a persona constant
-+ user id + last 3 recent intents + role-specific tail, capped at
-1500 characters. The three call sites swap their hardcoded strings
-for a call to this helper.
 
-- **Persona:** a TS const (`JARVIS_PERSONA`, ~280 chars) — small,
+- user id + last 3 recent intents + role-specific tail, capped at
+  1500 characters. The three call sites swap their hardcoded strings
+  for a call to this helper.
+
+* **Persona:** a TS const (`JARVIS_PERSONA`, ~280 chars) — small,
   cheap, no I/O.
-- **User id:** kept hardcoded as `"desktop-user"` per user direction.
+* **User id:** kept hardcoded as `"desktop-user"` per user direction.
   Wired through `JarvisContext.userId` for future-proofing.
-- **Recent intents:** the last 3 intent actions as a compact list
+* **Recent intents:** the last 3 intent actions as a compact list
   ("Recent actions: send_email, chat, search"). Empty when no
   history.
-- **Cap:** hard 1500-char total; truncates with `…` if exceeded.
+* **Cap:** hard 1500-char total; truncates with `…` if exceeded.
 
 **Verified on this machine** (`make dev` on `DISPLAY=:1`):
+
 - vite + electron still launch.
 - `^C` cleanup still works.
 - Type a query → JARVIS responds with the persona's voice. Inspect
@@ -569,6 +595,7 @@ for a call to this helper.
   persona, user id, and recent actions.
 
 **Gate results:**
+
 - `tsc -b` — clean
 - `eslint .` — clean
 - `prettier --check` — clean
@@ -577,6 +604,7 @@ for a call to this helper.
 - `bash scripts/ci-gate.sh` — ALL GATES PASSED
 
 **Deferred to a future round** (per user direction):
+
 - Persona as a `.md` file editable from the Settings window with
   hot-reload. For now, the TS const is enough.
 - Real user id (auto-generated UUID persisted in DesktopStore).
